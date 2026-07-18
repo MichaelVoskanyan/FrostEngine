@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <CustomBuild Include="D:\Projects\CesiumEngine\build\windows-msvc\CMakeFiles\7a95630f630e0908aec238a03d1eb629\generate.stamp.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="CMake Rules">
+      <UniqueIdentifier>{F0003915-2A0D-3ACA-A88F-91527A7A312C}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

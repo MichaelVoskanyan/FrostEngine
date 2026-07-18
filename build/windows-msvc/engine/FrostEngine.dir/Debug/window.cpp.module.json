@@ -1,0 +1,14 @@
+{
+    "version": 1,
+    "revision": 0,
+    "rules": [
+        {
+            "primary-output": "FrostEngine.dir\\Debug\\Window.obj",
+            "outputs": [
+                "D:\\Projects\\CesiumEngine\\build\\windows-msvc\\engine\\Debug\\FrostEngined.pdb",
+                "FrostEngine.dir\\Debug\\"
+            ],
+            "requires": []
+        }
+    ]
+}

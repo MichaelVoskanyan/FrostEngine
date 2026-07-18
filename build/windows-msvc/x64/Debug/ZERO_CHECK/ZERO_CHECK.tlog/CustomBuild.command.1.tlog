@@ -1,0 +1,10 @@
+^D:\PROJECTS\CESIUMENGINE\BUILD\WINDOWS-MSVC\CMAKEFILES\7A95630F630E0908AEC238A03D1EB629\GENERATE.STAMP.RULE
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SD:/Projects/CesiumEngine -BD:/Projects/CesiumEngine/build/windows-msvc --check-stamp-list CMakeFiles/generate.stamp.list --vs-solution-file D:/Projects/CesiumEngine/build/windows-msvc/Frost.sln
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd

@@ -1,0 +1,42 @@
+Package: vcpkg-cmake-config
+Version: 2024-05-23
+Architecture: x64-windows
+Multi-Arch: same
+Abi: 34f79c1a96a60b5c1b82cb4d21f05c9d744cae14148e3bf6fd8490c49350799f
+Status: install ok installed
+
+Package: vcpkg-cmake
+Version: 2024-04-23
+Architecture: x64-windows
+Multi-Arch: same
+Abi: 8cc137bffbb4b2343d75e350614418d4b0e3f45a1b4d1962c204855676b5fb41
+Status: install ok installed
+
+Package: glfw3
+Version: 3.4
+Port-Version: 1
+Depends: vcpkg-cmake, vcpkg-cmake-config
+Architecture: x64-windows
+Multi-Arch: same
+Abi: 0cd3fb003e9faa7e421c2fe84657ddbb7504de78ef047b4a37fb46e9ffa5d9ce
+Description: GLFW is a free, Open Source, multi-platform library for OpenGL, OpenGL ES and Vulkan application development. It provides a simple, platform-independent API for creating windows, contexts and surfaces, reading input, handling events, etc.
+Status: install ok installed
+
+Package: glm
+Version: 1.0.3
+Depends: vcpkg-cmake, vcpkg-cmake-config
+Architecture: x64-windows
+Multi-Arch: same
+Abi: edfc969c431b3f41cae82d0a8ea7ef2cba8f2569f24a5db86c2716c10f31007a
+Description: OpenGL Mathematics (GLM)
+Status: install ok installed
+
+Package: vulkan-memory-allocator
+Version: 3.4.0
+Depends: vcpkg-cmake, vcpkg-cmake-config
+Architecture: x64-windows
+Multi-Arch: same
+Abi: 607a0c55103cbb14392f732ce07ab08ff441be30cbce5d2406647a5538c354f8
+Description: Easy to integrate Vulkan memory allocation library from GPUOpen
+Status: install ok installed
+
