@@ -6,7 +6,17 @@ target_sources(FrostEngine
         src/Application.cpp
         src/Engine.cpp
         src/Platform/Window.cpp
+        src/Renderer/Mesh.cpp
+        src/Renderer/Renderer.cpp
+        src/Renderer/Vertex.cpp
+        src/Renderer/Vulkan/VulkanAllocator.cpp
+        src/Renderer/Vulkan/VulkanBuffer.cpp
+        src/Renderer/Vulkan/VulkanCommandPool.cpp
         src/Renderer/Vulkan/VulkanContext.cpp
+        src/Renderer/Vulkan/VulkanPhysicalDevice.cpp
+        src/Renderer/Vulkan/VulkanDevice.cpp
+        src/Renderer/Vulkan/VulkanPipeline.cpp
+        src/Renderer/Vulkan/VulkanSwapchain.cpp
 
     PUBLIC
         FILE_SET HEADERS
@@ -16,7 +26,17 @@ target_sources(FrostEngine
             include/Frost/Application.hpp
             include/Frost/Engine.hpp
             include/Frost/Platform/Window.hpp
+            include/Frost/Renderer/Mesh.hpp
+            include/Frost/Renderer/Renderer.hpp
+            include/Frost/Renderer/Vertex.hpp
+            include/Frost/Renderer/Vulkan/VulkanAllocator.hpp
+            include/Frost/Renderer/Vulkan/VulkanBuffer.hpp
+            include/Frost/Renderer/Vulkan/VulkanCommandPool.hpp
             include/Frost/Renderer/Vulkan/VulkanContext.hpp
+            include/Frost/Renderer/Vulkan/VulkanPhysicalDevice.hpp
+            include/Frost/Renderer/Vulkan/VulkanDevice.hpp
+            include/Frost/Renderer/Vulkan/VulkanPipeline.hpp
+            include/Frost/Renderer/Vulkan/VulkanSwapchain.hpp
 )
 
 target_compile_features(FrostEngine
@@ -32,10 +52,10 @@ target_include_directories(FrostEngine
 target_link_libraries(FrostEngine
     PUBLIC
         Vulkan::Vulkan
+        glm::glm
 
     PRIVATE
         glfw
-        glm::glm
         GPUOpen::VulkanMemoryAllocator
 )
 

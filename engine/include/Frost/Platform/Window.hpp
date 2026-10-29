@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <string>
+#include <utility>
 
 struct GLFWwindow;
 
@@ -29,6 +30,12 @@ namespace Frost {
         bool ShouldClose() const noexcept;
 
         void PollEvents() const noexcept;
+
+        // Size of the window's drawable surface in pixels, as reported by GLFW. This can differ
+        // from the WindowSpecification width/height (DPI scaling, OS-imposed constraints), so it
+        // is what the swapchain extent should be derived from rather than m_Spec.
+        [[nodiscard]]
+        std::pair<std::uint32_t, std::uint32_t> GetFramebufferSize() const noexcept;
 
         [[nodiscard]]
         GLFWwindow* GetNativeHandle() const noexcept;

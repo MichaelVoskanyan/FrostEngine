@@ -10,7 +10,37 @@
     <ClCompile Include="D:\Projects\CesiumEngine\engine\src\Platform\Window.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="D:\Projects\CesiumEngine\engine\src\Renderer\Mesh.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Projects\CesiumEngine\engine\src\Renderer\Renderer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Projects\CesiumEngine\engine\src\Renderer\Vertex.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Projects\CesiumEngine\engine\src\Renderer\Vulkan\VulkanAllocator.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Projects\CesiumEngine\engine\src\Renderer\Vulkan\VulkanBuffer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Projects\CesiumEngine\engine\src\Renderer\Vulkan\VulkanCommandPool.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="D:\Projects\CesiumEngine\engine\src\Renderer\Vulkan\VulkanContext.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Projects\CesiumEngine\engine\src\Renderer\Vulkan\VulkanPhysicalDevice.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Projects\CesiumEngine\engine\src\Renderer\Vulkan\VulkanDevice.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Projects\CesiumEngine\engine\src\Renderer\Vulkan\VulkanPipeline.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Projects\CesiumEngine\engine\src\Renderer\Vulkan\VulkanSwapchain.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -24,7 +54,37 @@
     <ClInclude Include="D:\Projects\CesiumEngine\engine\include\Frost\Platform\Window.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="D:\Projects\CesiumEngine\engine\include\Frost\Renderer\Mesh.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D:\Projects\CesiumEngine\engine\include\Frost\Renderer\Renderer.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D:\Projects\CesiumEngine\engine\include\Frost\Renderer\Vertex.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D:\Projects\CesiumEngine\engine\include\Frost\Renderer\Vulkan\VulkanAllocator.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D:\Projects\CesiumEngine\engine\include\Frost\Renderer\Vulkan\VulkanBuffer.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D:\Projects\CesiumEngine\engine\include\Frost\Renderer\Vulkan\VulkanCommandPool.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="D:\Projects\CesiumEngine\engine\include\Frost\Renderer\Vulkan\VulkanContext.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D:\Projects\CesiumEngine\engine\include\Frost\Renderer\Vulkan\VulkanPhysicalDevice.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D:\Projects\CesiumEngine\engine\include\Frost\Renderer\Vulkan\VulkanDevice.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D:\Projects\CesiumEngine\engine\include\Frost\Renderer\Vulkan\VulkanPipeline.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D:\Projects\CesiumEngine\engine\include\Frost\Renderer\Vulkan\VulkanSwapchain.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

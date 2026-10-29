@@ -289,11 +289,31 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
     <ClCompile Include="D:\Projects\CesiumEngine\engine\src\Application.cpp" />
     <ClCompile Include="D:\Projects\CesiumEngine\engine\src\Engine.cpp" />
     <ClCompile Include="D:\Projects\CesiumEngine\engine\src\Platform\Window.cpp" />
+    <ClCompile Include="D:\Projects\CesiumEngine\engine\src\Renderer\Mesh.cpp" />
+    <ClCompile Include="D:\Projects\CesiumEngine\engine\src\Renderer\Renderer.cpp" />
+    <ClCompile Include="D:\Projects\CesiumEngine\engine\src\Renderer\Vertex.cpp" />
+    <ClCompile Include="D:\Projects\CesiumEngine\engine\src\Renderer\Vulkan\VulkanAllocator.cpp" />
+    <ClCompile Include="D:\Projects\CesiumEngine\engine\src\Renderer\Vulkan\VulkanBuffer.cpp" />
+    <ClCompile Include="D:\Projects\CesiumEngine\engine\src\Renderer\Vulkan\VulkanCommandPool.cpp" />
     <ClCompile Include="D:\Projects\CesiumEngine\engine\src\Renderer\Vulkan\VulkanContext.cpp" />
+    <ClCompile Include="D:\Projects\CesiumEngine\engine\src\Renderer\Vulkan\VulkanPhysicalDevice.cpp" />
+    <ClCompile Include="D:\Projects\CesiumEngine\engine\src\Renderer\Vulkan\VulkanDevice.cpp" />
+    <ClCompile Include="D:\Projects\CesiumEngine\engine\src\Renderer\Vulkan\VulkanPipeline.cpp" />
+    <ClCompile Include="D:\Projects\CesiumEngine\engine\src\Renderer\Vulkan\VulkanSwapchain.cpp" />
     <ClInclude Include="D:\Projects\CesiumEngine\engine\include\Frost\Application.hpp" />
     <ClInclude Include="D:\Projects\CesiumEngine\engine\include\Frost\Engine.hpp" />
     <ClInclude Include="D:\Projects\CesiumEngine\engine\include\Frost\Platform\Window.hpp" />
+    <ClInclude Include="D:\Projects\CesiumEngine\engine\include\Frost\Renderer\Mesh.hpp" />
+    <ClInclude Include="D:\Projects\CesiumEngine\engine\include\Frost\Renderer\Renderer.hpp" />
+    <ClInclude Include="D:\Projects\CesiumEngine\engine\include\Frost\Renderer\Vertex.hpp" />
+    <ClInclude Include="D:\Projects\CesiumEngine\engine\include\Frost\Renderer\Vulkan\VulkanAllocator.hpp" />
+    <ClInclude Include="D:\Projects\CesiumEngine\engine\include\Frost\Renderer\Vulkan\VulkanBuffer.hpp" />
+    <ClInclude Include="D:\Projects\CesiumEngine\engine\include\Frost\Renderer\Vulkan\VulkanCommandPool.hpp" />
     <ClInclude Include="D:\Projects\CesiumEngine\engine\include\Frost\Renderer\Vulkan\VulkanContext.hpp" />
+    <ClInclude Include="D:\Projects\CesiumEngine\engine\include\Frost\Renderer\Vulkan\VulkanPhysicalDevice.hpp" />
+    <ClInclude Include="D:\Projects\CesiumEngine\engine\include\Frost\Renderer\Vulkan\VulkanDevice.hpp" />
+    <ClInclude Include="D:\Projects\CesiumEngine\engine\include\Frost\Renderer\Vulkan\VulkanPipeline.hpp" />
+    <ClInclude Include="D:\Projects\CesiumEngine\engine\include\Frost\Renderer\Vulkan\VulkanSwapchain.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="D:\Projects\CesiumEngine\build\windows-msvc\ZERO_CHECK.vcxproj">

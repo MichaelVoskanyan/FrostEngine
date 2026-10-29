@@ -2,3 +2,4 @@ D:/Projects/CesiumEngine/build/windows-msvc/CMakeFiles/ALL_BUILD.dir
 D:/Projects/CesiumEngine/build/windows-msvc/CMakeFiles/ZERO_CHECK.dir
 D:/Projects/CesiumEngine/build/windows-msvc/engine/CMakeFiles/FrostEngine.dir
 D:/Projects/CesiumEngine/build/windows-msvc/game/CMakeFiles/CesiumGame.dir
+D:/Projects/CesiumEngine/build/windows-msvc/game/CMakeFiles/CesiumGameShaders.dir

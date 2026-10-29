@@ -7,7 +7,7 @@
 namespace Frost {
 
     class Window;
-    class VulkanContext;
+    class Renderer;
 
     struct EngineSpecification {
         std::string applicationName = "Frost Application";
@@ -34,9 +34,9 @@ namespace Frost {
 
     private:
         // Declared in dependency order. Destruction occurs in reverse order,
-        // so VulkanContext is destroyed before Window.
+        // so Renderer is destroyed before Window.
         std::unique_ptr<Window> m_Window;
-        std::unique_ptr<VulkanContext> m_VulkanContext;
+        std::unique_ptr<Renderer> m_Renderer;
     };
 
 }  // namespace Frost

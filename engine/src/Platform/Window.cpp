@@ -5,6 +5,7 @@
 
 #include <iostream>
 #include <stdexcept>
+#include <utility>
 
 namespace Frost {
 
@@ -39,6 +40,15 @@ namespace Frost {
     bool Window::ShouldClose() const noexcept { return glfwWindowShouldClose(m_Window) == GLFW_TRUE; }
 
     void Window::PollEvents() const noexcept { glfwPollEvents(); }
+
+    std::pair<std::uint32_t, std::uint32_t> Window::GetFramebufferSize() const noexcept {
+        int width = 0;
+        int height = 0;
+
+        glfwGetFramebufferSize(m_Window, &width, &height);
+
+        return {static_cast<std::uint32_t>(width), static_cast<std::uint32_t>(height)};
+    }
 
     GLFWwindow* Window::GetNativeHandle() const noexcept { return m_Window; }
 

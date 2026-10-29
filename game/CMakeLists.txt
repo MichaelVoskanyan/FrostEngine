@@ -37,3 +37,10 @@ else()
             -Wpedantic
     )
 endif()
+
+include(${CMAKE_SOURCE_DIR}/cmake/Shaders.cmake)
+
+frost_compile_shaders(CesiumGame
+    ${CMAKE_SOURCE_DIR}/shaders/basic.vert
+    ${CMAKE_SOURCE_DIR}/shaders/basic.frag
+)
