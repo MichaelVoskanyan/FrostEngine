@@ -5,7 +5,7 @@
         {
             "primary-output": "FrostEngine.dir\\Debug\\Window.obj",
             "outputs": [
-                "D:\\Projects\\CesiumEngine\\build\\windows-msvc\\engine\\Debug\\FrostEngined.pdb",
+                "D:\\Projects\\Frost\\build\\windows-msvc\\engine\\Debug\\FrostEngined.pdb",
                 "FrostEngine.dir\\Debug\\"
             ],
             "requires": []

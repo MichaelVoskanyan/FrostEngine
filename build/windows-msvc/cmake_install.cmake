@@ -1,4 +1,4 @@
-# Install script for directory: D:/Projects/CesiumEngine
+# Install script for directory: D:/Projects/Frost
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
@@ -34,12 +34,12 @@ endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for the subdirectory.
-  include("D:/Projects/CesiumEngine/build/windows-msvc/engine/cmake_install.cmake")
+  include("D:/Projects/Frost/build/windows-msvc/engine/cmake_install.cmake")
 endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for the subdirectory.
-  include("D:/Projects/CesiumEngine/build/windows-msvc/game/cmake_install.cmake")
+  include("D:/Projects/Frost/build/windows-msvc/game/cmake_install.cmake")
 endif()
 
 if(CMAKE_INSTALL_COMPONENT)
@@ -50,5 +50,5 @@ endif()
 
 string(REPLACE ";" "\n" CMAKE_INSTALL_MANIFEST_CONTENT
        "${CMAKE_INSTALL_MANIFEST_FILES}")
-file(WRITE "D:/Projects/CesiumEngine/build/windows-msvc/${CMAKE_INSTALL_MANIFEST}"
+file(WRITE "D:/Projects/Frost/build/windows-msvc/${CMAKE_INSTALL_MANIFEST}"
      "${CMAKE_INSTALL_MANIFEST_CONTENT}")

@@ -22,7 +22,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{93A885CE-638F-350F-BE8A-255D754192E4}</ProjectGuid>
+    <ProjectGuid>{356AC96F-2E21-3DA1-83B0-8D0DA6A985A7}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <VcpkgEnabled>false</VcpkgEnabled>
     <WindowsTargetPlatformVersion>10.0.26100.0</WindowsTargetPlatformVersion>
@@ -60,25 +60,25 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup>
     <_ProjectFileVersion>10.0.20506.1</_ProjectFileVersion>
-    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">D:\Projects\CesiumEngine\build\windows-msvc\game\Debug\</OutDir>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">D:\Projects\Frost\build\windows-msvc\game\Debug\</OutDir>
     <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">CesiumGame.dir\Debug\</IntDir>
     <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">CesiumGame</TargetName>
     <TargetExt Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">.exe</TargetExt>
     <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</LinkIncremental>
     <GenerateManifest Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</GenerateManifest>
-    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">D:\Projects\CesiumEngine\build\windows-msvc\game\Release\</OutDir>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">D:\Projects\Frost\build\windows-msvc\game\Release\</OutDir>
     <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">CesiumGame.dir\Release\</IntDir>
     <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">CesiumGame</TargetName>
     <TargetExt Condition="'$(Configuration)|$(Platform)'=='Release|x64'">.exe</TargetExt>
     <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</LinkIncremental>
     <GenerateManifest Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</GenerateManifest>
-    <OutDir Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">D:\Projects\CesiumEngine\build\windows-msvc\game\MinSizeRel\</OutDir>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">D:\Projects\Frost\build\windows-msvc\game\MinSizeRel\</OutDir>
     <IntDir Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">CesiumGame.dir\MinSizeRel\</IntDir>
     <TargetName Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">CesiumGame</TargetName>
     <TargetExt Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">.exe</TargetExt>
     <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">false</LinkIncremental>
     <GenerateManifest Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">true</GenerateManifest>
-    <OutDir Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">D:\Projects\CesiumEngine\build\windows-msvc\game\RelWithDebInfo\</OutDir>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">D:\Projects\Frost\build\windows-msvc\game\RelWithDebInfo\</OutDir>
     <IntDir Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">CesiumGame.dir\RelWithDebInfo\</IntDir>
     <TargetName Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">CesiumGame</TargetName>
     <TargetExt Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">.exe</TargetExt>
@@ -87,8 +87,8 @@
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
-      <AdditionalIncludeDirectories>D:\Projects\CesiumEngine\engine\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <AdditionalOptions>%(AdditionalOptions) /external:I "C:/VulkanSDK/1.4.350.0/Include" /external:I "D:/Projects/CesiumEngine/build/windows-msvc/vcpkg_installed/x64-windows/include" /Zc:__cplusplus</AdditionalOptions>
+      <AdditionalIncludeDirectories>D:\Projects\Frost\engine\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>%(AdditionalOptions) /external:I "C:/VulkanSDK/1.4.350.0/Include" /external:I "D:/Projects/Frost/build/windows-msvc/vcpkg_installed/x64-windows/include" /Zc:__cplusplus</AdditionalOptions>
       <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <ConformanceMode>true</ConformanceMode>
@@ -109,10 +109,10 @@
     </ClCompile>
     <ResourceCompile>
       <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_DEBUG;_WINDOWS;CMAKE_INTDIR=\"Debug\"</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>D:\Projects\CesiumEngine\engine\include;C:\VulkanSDK\1.4.350.0\Include;D:\Projects\CesiumEngine\build\windows-msvc\vcpkg_installed\x64-windows\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>D:\Projects\Frost\engine\include;C:\VulkanSDK\1.4.350.0\Include;D:\Projects\Frost\build\windows-msvc\vcpkg_installed\x64-windows\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
     <Midl>
-      <AdditionalIncludeDirectories>D:\Projects\CesiumEngine\engine\include;C:\VulkanSDK\1.4.350.0\Include;D:\Projects\CesiumEngine\build\windows-msvc\vcpkg_installed\x64-windows\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>D:\Projects\Frost\engine\include;C:\VulkanSDK\1.4.350.0\Include;D:\Projects\Frost\build\windows-msvc\vcpkg_installed\x64-windows\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
       <HeaderFileName>%(Filename).h</HeaderFileName>
       <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
@@ -122,7 +122,7 @@
     <PostBuildEvent>
       <Message></Message>
       <Command>setlocal
-C:\Users\micha\vcpkg\vcpkg.exe z-applocal --target-binary=D:/Projects/CesiumEngine/build/windows-msvc/game/Debug/CesiumGame.exe --installed-bin-dir=D:/Projects/CesiumEngine/build/windows-msvc/vcpkg_installed/x64-windows/debug/bin
+C:\Users\micha\vcpkg\vcpkg.exe z-applocal --target-binary=D:/Projects/Frost/build/windows-msvc/game/Debug/CesiumGame.exe --installed-bin-dir=D:/Projects/Frost/build/windows-msvc/vcpkg_installed/x64-windows/debug/bin
 if %errorlevel% neq 0 goto :cmEnd
 :cmEnd
 endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
@@ -137,8 +137,8 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
       <AdditionalOptions>%(AdditionalOptions) /machine:x64</AdditionalOptions>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <IgnoreSpecificDefaultLibraries>%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
-      <ImportLibrary>D:/Projects/CesiumEngine/build/windows-msvc/game/Debug/CesiumGame.lib</ImportLibrary>
-      <ProgramDataBaseFile>D:/Projects/CesiumEngine/build/windows-msvc/game/Debug/CesiumGame.pdb</ProgramDataBaseFile>
+      <ImportLibrary>D:/Projects/Frost/build/windows-msvc/game/Debug/CesiumGame.lib</ImportLibrary>
+      <ProgramDataBaseFile>D:/Projects/Frost/build/windows-msvc/game/Debug/CesiumGame.pdb</ProgramDataBaseFile>
       <SubSystem>Console</SubSystem>
     </Link>
     <ProjectReference>
@@ -147,8 +147,8 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
-      <AdditionalIncludeDirectories>D:\Projects\CesiumEngine\engine\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <AdditionalOptions>%(AdditionalOptions) /external:I "C:/VulkanSDK/1.4.350.0/Include" /external:I "D:/Projects/CesiumEngine/build/windows-msvc/vcpkg_installed/x64-windows/include" /Zc:__cplusplus</AdditionalOptions>
+      <AdditionalIncludeDirectories>D:\Projects\Frost\engine\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>%(AdditionalOptions) /external:I "C:/VulkanSDK/1.4.350.0/Include" /external:I "D:/Projects/Frost/build/windows-msvc/vcpkg_installed/x64-windows/include" /Zc:__cplusplus</AdditionalOptions>
       <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
       <ConformanceMode>true</ConformanceMode>
       <ExceptionHandling>Sync</ExceptionHandling>
@@ -169,10 +169,10 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
     </ClCompile>
     <ResourceCompile>
       <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;CMAKE_INTDIR=\"Release\"</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>D:\Projects\CesiumEngine\engine\include;C:\VulkanSDK\1.4.350.0\Include;D:\Projects\CesiumEngine\build\windows-msvc\vcpkg_installed\x64-windows\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>D:\Projects\Frost\engine\include;C:\VulkanSDK\1.4.350.0\Include;D:\Projects\Frost\build\windows-msvc\vcpkg_installed\x64-windows\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
     <Midl>
-      <AdditionalIncludeDirectories>D:\Projects\CesiumEngine\engine\include;C:\VulkanSDK\1.4.350.0\Include;D:\Projects\CesiumEngine\build\windows-msvc\vcpkg_installed\x64-windows\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>D:\Projects\Frost\engine\include;C:\VulkanSDK\1.4.350.0\Include;D:\Projects\Frost\build\windows-msvc\vcpkg_installed\x64-windows\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
       <HeaderFileName>%(Filename).h</HeaderFileName>
       <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
@@ -182,7 +182,7 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
     <PostBuildEvent>
       <Message></Message>
       <Command>setlocal
-C:\Users\micha\vcpkg\vcpkg.exe z-applocal --target-binary=D:/Projects/CesiumEngine/build/windows-msvc/game/Release/CesiumGame.exe --installed-bin-dir=D:/Projects/CesiumEngine/build/windows-msvc/vcpkg_installed/x64-windows/bin
+C:\Users\micha\vcpkg\vcpkg.exe z-applocal --target-binary=D:/Projects/Frost/build/windows-msvc/game/Release/CesiumGame.exe --installed-bin-dir=D:/Projects/Frost/build/windows-msvc/vcpkg_installed/x64-windows/bin
 if %errorlevel% neq 0 goto :cmEnd
 :cmEnd
 endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
@@ -197,8 +197,8 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
       <AdditionalOptions>%(AdditionalOptions) /machine:x64</AdditionalOptions>
       <GenerateDebugInformation>false</GenerateDebugInformation>
       <IgnoreSpecificDefaultLibraries>%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
-      <ImportLibrary>D:/Projects/CesiumEngine/build/windows-msvc/game/Release/CesiumGame.lib</ImportLibrary>
-      <ProgramDataBaseFile>D:/Projects/CesiumEngine/build/windows-msvc/game/Release/CesiumGame.pdb</ProgramDataBaseFile>
+      <ImportLibrary>D:/Projects/Frost/build/windows-msvc/game/Release/CesiumGame.lib</ImportLibrary>
+      <ProgramDataBaseFile>D:/Projects/Frost/build/windows-msvc/game/Release/CesiumGame.pdb</ProgramDataBaseFile>
       <SubSystem>Console</SubSystem>
     </Link>
     <ProjectReference>
@@ -207,8 +207,8 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">
     <ClCompile>
-      <AdditionalIncludeDirectories>D:\Projects\CesiumEngine\engine\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <AdditionalOptions>%(AdditionalOptions) /external:I "C:/VulkanSDK/1.4.350.0/Include" /external:I "D:/Projects/CesiumEngine/build/windows-msvc/vcpkg_installed/x64-windows/include" /Zc:__cplusplus</AdditionalOptions>
+      <AdditionalIncludeDirectories>D:\Projects\Frost\engine\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>%(AdditionalOptions) /external:I "C:/VulkanSDK/1.4.350.0/Include" /external:I "D:/Projects/Frost/build/windows-msvc/vcpkg_installed/x64-windows/include" /Zc:__cplusplus</AdditionalOptions>
       <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
       <ConformanceMode>true</ConformanceMode>
       <ExceptionHandling>Sync</ExceptionHandling>
@@ -229,10 +229,10 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
     </ClCompile>
     <ResourceCompile>
       <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;CMAKE_INTDIR=\"MinSizeRel\"</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>D:\Projects\CesiumEngine\engine\include;C:\VulkanSDK\1.4.350.0\Include;D:\Projects\CesiumEngine\build\windows-msvc\vcpkg_installed\x64-windows\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>D:\Projects\Frost\engine\include;C:\VulkanSDK\1.4.350.0\Include;D:\Projects\Frost\build\windows-msvc\vcpkg_installed\x64-windows\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
     <Midl>
-      <AdditionalIncludeDirectories>D:\Projects\CesiumEngine\engine\include;C:\VulkanSDK\1.4.350.0\Include;D:\Projects\CesiumEngine\build\windows-msvc\vcpkg_installed\x64-windows\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>D:\Projects\Frost\engine\include;C:\VulkanSDK\1.4.350.0\Include;D:\Projects\Frost\build\windows-msvc\vcpkg_installed\x64-windows\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
       <HeaderFileName>%(Filename).h</HeaderFileName>
       <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
@@ -242,7 +242,7 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
     <PostBuildEvent>
       <Message></Message>
       <Command>setlocal
-C:\Users\micha\vcpkg\vcpkg.exe z-applocal --target-binary=D:/Projects/CesiumEngine/build/windows-msvc/game/MinSizeRel/CesiumGame.exe --installed-bin-dir=D:/Projects/CesiumEngine/build/windows-msvc/vcpkg_installed/x64-windows/bin
+C:\Users\micha\vcpkg\vcpkg.exe z-applocal --target-binary=D:/Projects/Frost/build/windows-msvc/game/MinSizeRel/CesiumGame.exe --installed-bin-dir=D:/Projects/Frost/build/windows-msvc/vcpkg_installed/x64-windows/bin
 if %errorlevel% neq 0 goto :cmEnd
 :cmEnd
 endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
@@ -257,8 +257,8 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
       <AdditionalOptions>%(AdditionalOptions) /machine:x64</AdditionalOptions>
       <GenerateDebugInformation>false</GenerateDebugInformation>
       <IgnoreSpecificDefaultLibraries>%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
-      <ImportLibrary>D:/Projects/CesiumEngine/build/windows-msvc/game/MinSizeRel/CesiumGame.lib</ImportLibrary>
-      <ProgramDataBaseFile>D:/Projects/CesiumEngine/build/windows-msvc/game/MinSizeRel/CesiumGame.pdb</ProgramDataBaseFile>
+      <ImportLibrary>D:/Projects/Frost/build/windows-msvc/game/MinSizeRel/CesiumGame.lib</ImportLibrary>
+      <ProgramDataBaseFile>D:/Projects/Frost/build/windows-msvc/game/MinSizeRel/CesiumGame.pdb</ProgramDataBaseFile>
       <SubSystem>Console</SubSystem>
     </Link>
     <ProjectReference>
@@ -267,8 +267,8 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">
     <ClCompile>
-      <AdditionalIncludeDirectories>D:\Projects\CesiumEngine\engine\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <AdditionalOptions>%(AdditionalOptions) /external:I "C:/VulkanSDK/1.4.350.0/Include" /external:I "D:/Projects/CesiumEngine/build/windows-msvc/vcpkg_installed/x64-windows/include" /Zc:__cplusplus</AdditionalOptions>
+      <AdditionalIncludeDirectories>D:\Projects\Frost\engine\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>%(AdditionalOptions) /external:I "C:/VulkanSDK/1.4.350.0/Include" /external:I "D:/Projects/Frost/build/windows-msvc/vcpkg_installed/x64-windows/include" /Zc:__cplusplus</AdditionalOptions>
       <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
       <ConformanceMode>true</ConformanceMode>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
@@ -288,10 +288,10 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
     </ClCompile>
     <ResourceCompile>
       <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;CMAKE_INTDIR=\"RelWithDebInfo\"</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>D:\Projects\CesiumEngine\engine\include;C:\VulkanSDK\1.4.350.0\Include;D:\Projects\CesiumEngine\build\windows-msvc\vcpkg_installed\x64-windows\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>D:\Projects\Frost\engine\include;C:\VulkanSDK\1.4.350.0\Include;D:\Projects\Frost\build\windows-msvc\vcpkg_installed\x64-windows\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
     <Midl>
-      <AdditionalIncludeDirectories>D:\Projects\CesiumEngine\engine\include;C:\VulkanSDK\1.4.350.0\Include;D:\Projects\CesiumEngine\build\windows-msvc\vcpkg_installed\x64-windows\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>D:\Projects\Frost\engine\include;C:\VulkanSDK\1.4.350.0\Include;D:\Projects\Frost\build\windows-msvc\vcpkg_installed\x64-windows\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
       <HeaderFileName>%(Filename).h</HeaderFileName>
       <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
@@ -301,7 +301,7 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
     <PostBuildEvent>
       <Message></Message>
       <Command>setlocal
-C:\Users\micha\vcpkg\vcpkg.exe z-applocal --target-binary=D:/Projects/CesiumEngine/build/windows-msvc/game/RelWithDebInfo/CesiumGame.exe --installed-bin-dir=D:/Projects/CesiumEngine/build/windows-msvc/vcpkg_installed/x64-windows/bin
+C:\Users\micha\vcpkg\vcpkg.exe z-applocal --target-binary=D:/Projects/Frost/build/windows-msvc/game/RelWithDebInfo/CesiumGame.exe --installed-bin-dir=D:/Projects/Frost/build/windows-msvc/vcpkg_installed/x64-windows/bin
 if %errorlevel% neq 0 goto :cmEnd
 :cmEnd
 endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
@@ -316,8 +316,8 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
       <AdditionalOptions>%(AdditionalOptions) /machine:x64</AdditionalOptions>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <IgnoreSpecificDefaultLibraries>%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
-      <ImportLibrary>D:/Projects/CesiumEngine/build/windows-msvc/game/RelWithDebInfo/CesiumGame.lib</ImportLibrary>
-      <ProgramDataBaseFile>D:/Projects/CesiumEngine/build/windows-msvc/game/RelWithDebInfo/CesiumGame.pdb</ProgramDataBaseFile>
+      <ImportLibrary>D:/Projects/Frost/build/windows-msvc/game/RelWithDebInfo/CesiumGame.lib</ImportLibrary>
+      <ProgramDataBaseFile>D:/Projects/Frost/build/windows-msvc/game/RelWithDebInfo/CesiumGame.pdb</ProgramDataBaseFile>
       <SubSystem>Console</SubSystem>
     </Link>
     <ProjectReference>
@@ -325,11 +325,11 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
     </ProjectReference>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <CustomBuild Include="D:\Projects\CesiumEngine\game\CMakeLists.txt">
+    <CustomBuild Include="D:\Projects\Frost\game\CMakeLists.txt">
       <UseUtf8Encoding>Always</UseUtf8Encoding>
-      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Building Custom Rule D:/Projects/CesiumEngine/game/CMakeLists.txt</Message>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Building Custom Rule D:/Projects/Frost/game/CMakeLists.txt</Message>
       <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">setlocal
-"C:\Program Files\CMake\bin\cmake.exe" -SD:/Projects/CesiumEngine -BD:/Projects/CesiumEngine/build/windows-msvc --check-stamp-file D:/Projects/CesiumEngine/build/windows-msvc/game/CMakeFiles/generate.stamp
+"C:\Program Files\CMake\bin\cmake.exe" -SD:/Projects/Frost -BD:/Projects/Frost/build/windows-msvc --check-stamp-file D:/Projects/Frost/build/windows-msvc/game/CMakeFiles/generate.stamp
 if %errorlevel% neq 0 goto :cmEnd
 :cmEnd
 endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
@@ -337,12 +337,12 @@ endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
 exit /b %1
 :cmDone
 if %errorlevel% neq 0 goto :VCEnd</Command>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">D:\Projects\CesiumEngine\cmake\Shaders.cmake;%(AdditionalInputs)</AdditionalInputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">D:\Projects\CesiumEngine\build\windows-msvc\game\CMakeFiles\generate.stamp</Outputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">D:\Projects\Frost\cmake\Shaders.cmake;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">D:\Projects\Frost\build\windows-msvc\game\CMakeFiles\generate.stamp</Outputs>
       <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</LinkObjects>
-      <Message Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Building Custom Rule D:/Projects/CesiumEngine/game/CMakeLists.txt</Message>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Building Custom Rule D:/Projects/Frost/game/CMakeLists.txt</Message>
       <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">setlocal
-"C:\Program Files\CMake\bin\cmake.exe" -SD:/Projects/CesiumEngine -BD:/Projects/CesiumEngine/build/windows-msvc --check-stamp-file D:/Projects/CesiumEngine/build/windows-msvc/game/CMakeFiles/generate.stamp
+"C:\Program Files\CMake\bin\cmake.exe" -SD:/Projects/Frost -BD:/Projects/Frost/build/windows-msvc --check-stamp-file D:/Projects/Frost/build/windows-msvc/game/CMakeFiles/generate.stamp
 if %errorlevel% neq 0 goto :cmEnd
 :cmEnd
 endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
@@ -350,12 +350,12 @@ endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
 exit /b %1
 :cmDone
 if %errorlevel% neq 0 goto :VCEnd</Command>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">D:\Projects\CesiumEngine\cmake\Shaders.cmake;%(AdditionalInputs)</AdditionalInputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">D:\Projects\CesiumEngine\build\windows-msvc\game\CMakeFiles\generate.stamp</Outputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">D:\Projects\Frost\cmake\Shaders.cmake;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">D:\Projects\Frost\build\windows-msvc\game\CMakeFiles\generate.stamp</Outputs>
       <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</LinkObjects>
-      <Message Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">Building Custom Rule D:/Projects/CesiumEngine/game/CMakeLists.txt</Message>
+      <Message Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">Building Custom Rule D:/Projects/Frost/game/CMakeLists.txt</Message>
       <Command Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">setlocal
-"C:\Program Files\CMake\bin\cmake.exe" -SD:/Projects/CesiumEngine -BD:/Projects/CesiumEngine/build/windows-msvc --check-stamp-file D:/Projects/CesiumEngine/build/windows-msvc/game/CMakeFiles/generate.stamp
+"C:\Program Files\CMake\bin\cmake.exe" -SD:/Projects/Frost -BD:/Projects/Frost/build/windows-msvc --check-stamp-file D:/Projects/Frost/build/windows-msvc/game/CMakeFiles/generate.stamp
 if %errorlevel% neq 0 goto :cmEnd
 :cmEnd
 endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
@@ -363,12 +363,12 @@ endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
 exit /b %1
 :cmDone
 if %errorlevel% neq 0 goto :VCEnd</Command>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">D:\Projects\CesiumEngine\cmake\Shaders.cmake;%(AdditionalInputs)</AdditionalInputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">D:\Projects\CesiumEngine\build\windows-msvc\game\CMakeFiles\generate.stamp</Outputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">D:\Projects\Frost\cmake\Shaders.cmake;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">D:\Projects\Frost\build\windows-msvc\game\CMakeFiles\generate.stamp</Outputs>
       <LinkObjects Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">false</LinkObjects>
-      <Message Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">Building Custom Rule D:/Projects/CesiumEngine/game/CMakeLists.txt</Message>
+      <Message Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">Building Custom Rule D:/Projects/Frost/game/CMakeLists.txt</Message>
       <Command Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">setlocal
-"C:\Program Files\CMake\bin\cmake.exe" -SD:/Projects/CesiumEngine -BD:/Projects/CesiumEngine/build/windows-msvc --check-stamp-file D:/Projects/CesiumEngine/build/windows-msvc/game/CMakeFiles/generate.stamp
+"C:\Program Files\CMake\bin\cmake.exe" -SD:/Projects/Frost -BD:/Projects/Frost/build/windows-msvc --check-stamp-file D:/Projects/Frost/build/windows-msvc/game/CMakeFiles/generate.stamp
 if %errorlevel% neq 0 goto :cmEnd
 :cmEnd
 endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
@@ -376,31 +376,31 @@ endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
 exit /b %1
 :cmDone
 if %errorlevel% neq 0 goto :VCEnd</Command>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">D:\Projects\CesiumEngine\cmake\Shaders.cmake;%(AdditionalInputs)</AdditionalInputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">D:\Projects\CesiumEngine\build\windows-msvc\game\CMakeFiles\generate.stamp</Outputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">D:\Projects\Frost\cmake\Shaders.cmake;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">D:\Projects\Frost\build\windows-msvc\game\CMakeFiles\generate.stamp</Outputs>
       <LinkObjects Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">false</LinkObjects>
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="D:\Projects\CesiumEngine\game\src\Main.cpp" />
-    <ClCompile Include="D:\Projects\CesiumEngine\game\src\GameApplication.cpp" />
-    <ClInclude Include="D:\Projects\CesiumEngine\game\src\GameApplication.hpp" />
+    <ClCompile Include="D:\Projects\Frost\game\src\Main.cpp" />
+    <ClCompile Include="D:\Projects\Frost\game\src\GameApplication.cpp" />
+    <ClInclude Include="D:\Projects\Frost\game\src\GameApplication.hpp" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="D:\Projects\CesiumEngine\build\windows-msvc\ZERO_CHECK.vcxproj">
-      <Project>{2D84953B-9EA7-3B3A-B68C-D0101266C446}</Project>
+    <ProjectReference Include="D:\Projects\Frost\build\windows-msvc\ZERO_CHECK.vcxproj">
+      <Project>{CA5629BB-E98F-381C-902D-91E791F22ED7}</Project>
       <Name>ZERO_CHECK</Name>
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </ProjectReference>
-    <ProjectReference Include="D:\Projects\CesiumEngine\build\windows-msvc\game\CesiumGameShaders.vcxproj">
-      <Project>{2AB08CB5-4A2B-3213-BFEA-BDAC6F3E23CA}</Project>
+    <ProjectReference Include="D:\Projects\Frost\build\windows-msvc\game\CesiumGameShaders.vcxproj">
+      <Project>{C5C19532-6218-3133-994B-6737B6F16934}</Project>
       <Name>CesiumGameShaders</Name>
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </ProjectReference>
-    <ProjectReference Include="D:\Projects\CesiumEngine\build\windows-msvc\engine\FrostEngine.vcxproj">
-      <Project>{FC6CFE9B-3A58-3672-9EC3-17EEDC8521EF}</Project>
+    <ProjectReference Include="D:\Projects\Frost\build\windows-msvc\engine\FrostEngine.vcxproj">
+      <Project>{C05CEF2F-9A6E-346A-A0A0-166FC80B6ADA}</Project>
       <Name>FrostEngine</Name>
     </ProjectReference>
   </ItemGroup>

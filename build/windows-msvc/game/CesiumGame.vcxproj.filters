@@ -1,27 +1,27 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <ClCompile Include="D:\Projects\CesiumEngine\game\src\Main.cpp">
+    <ClCompile Include="D:\Projects\Frost\game\src\Main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Projects\CesiumEngine\game\src\GameApplication.cpp">
+    <ClCompile Include="D:\Projects\Frost\game\src\GameApplication.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="D:\Projects\CesiumEngine\game\src\GameApplication.hpp">
+    <ClInclude Include="D:\Projects\Frost\game\src\GameApplication.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <CustomBuild Include="D:\Projects\CesiumEngine\game\CMakeLists.txt" />
+    <CustomBuild Include="D:\Projects\Frost\game\CMakeLists.txt" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Header Files">
-      <UniqueIdentifier>{8348000B-A586-310E-AFD1-FF6DBD4FA93B}</UniqueIdentifier>
+      <UniqueIdentifier>{088F1069-F569-38DA-B351-C35CA578B1AA}</UniqueIdentifier>
     </Filter>
     <Filter Include="Source Files">
-      <UniqueIdentifier>{397D6D5F-01EB-3578-81E2-CAF94664F9FE}</UniqueIdentifier>
+      <UniqueIdentifier>{8C3C12FB-AA7F-3E64-B2E2-514EFB2CB1E9}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

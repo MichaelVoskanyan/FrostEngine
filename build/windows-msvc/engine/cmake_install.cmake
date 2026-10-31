@@ -1,4 +1,4 @@
-# Install script for directory: D:/Projects/CesiumEngine/engine
+# Install script for directory: D:/Projects/Frost/engine
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)

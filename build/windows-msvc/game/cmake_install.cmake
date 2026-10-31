@@ -1,4 +1,4 @@
-# Install script for directory: D:/Projects/CesiumEngine/game
+# Install script for directory: D:/Projects/Frost/game
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)

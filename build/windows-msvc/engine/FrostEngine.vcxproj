@@ -22,7 +22,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{FC6CFE9B-3A58-3672-9EC3-17EEDC8521EF}</ProjectGuid>
+    <ProjectGuid>{C05CEF2F-9A6E-346A-A0A0-166FC80B6ADA}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <VcpkgEnabled>false</VcpkgEnabled>
     <WindowsTargetPlatformVersion>10.0.26100.0</WindowsTargetPlatformVersion>
@@ -60,27 +60,27 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup>
     <_ProjectFileVersion>10.0.20506.1</_ProjectFileVersion>
-    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">D:\Projects\CesiumEngine\build\windows-msvc\engine\Debug\</OutDir>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">D:\Projects\Frost\build\windows-msvc\engine\Debug\</OutDir>
     <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">FrostEngine.dir\Debug\</IntDir>
     <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">FrostEngined</TargetName>
     <TargetExt Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">.lib</TargetExt>
-    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">D:\Projects\CesiumEngine\build\windows-msvc\engine\Release\</OutDir>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">D:\Projects\Frost\build\windows-msvc\engine\Release\</OutDir>
     <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">FrostEngine.dir\Release\</IntDir>
     <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">FrostEngine</TargetName>
     <TargetExt Condition="'$(Configuration)|$(Platform)'=='Release|x64'">.lib</TargetExt>
-    <OutDir Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">D:\Projects\CesiumEngine\build\windows-msvc\engine\MinSizeRel\</OutDir>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">D:\Projects\Frost\build\windows-msvc\engine\MinSizeRel\</OutDir>
     <IntDir Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">FrostEngine.dir\MinSizeRel\</IntDir>
     <TargetName Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">FrostEngine</TargetName>
     <TargetExt Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">.lib</TargetExt>
-    <OutDir Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">D:\Projects\CesiumEngine\build\windows-msvc\engine\RelWithDebInfo\</OutDir>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">D:\Projects\Frost\build\windows-msvc\engine\RelWithDebInfo\</OutDir>
     <IntDir Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">FrostEngine.dir\RelWithDebInfo\</IntDir>
     <TargetName Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">FrostEngine</TargetName>
     <TargetExt Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">.lib</TargetExt>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
-      <AdditionalIncludeDirectories>D:\Projects\CesiumEngine\engine\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <AdditionalOptions>%(AdditionalOptions) /external:I "C:/VulkanSDK/1.4.350.0/Include" /external:I "D:/Projects/CesiumEngine/build/windows-msvc/vcpkg_installed/x64-windows/include" /external:I "D:/Projects/CesiumEngine/build/windows-msvc/vcpkg_installed/x64-windows/include/vma" /Zc:__cplusplus</AdditionalOptions>
+      <AdditionalIncludeDirectories>D:\Projects\Frost\engine\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>%(AdditionalOptions) /external:I "C:/VulkanSDK/1.4.350.0/Include" /external:I "D:/Projects/Frost/build/windows-msvc/vcpkg_installed/x64-windows/include" /external:I "D:/Projects/Frost/build/windows-msvc/vcpkg_installed/x64-windows/include/vma" /Zc:__cplusplus</AdditionalOptions>
       <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <ConformanceMode>true</ConformanceMode>
@@ -101,10 +101,10 @@
     </ClCompile>
     <ResourceCompile>
       <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_DEBUG;_WINDOWS;GLFW_DLL;CMAKE_INTDIR=\"Debug\"</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>D:\Projects\CesiumEngine\engine\include;C:\VulkanSDK\1.4.350.0\Include;D:\Projects\CesiumEngine\build\windows-msvc\vcpkg_installed\x64-windows\include;D:\Projects\CesiumEngine\build\windows-msvc\vcpkg_installed\x64-windows\include\vma;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>D:\Projects\Frost\engine\include;C:\VulkanSDK\1.4.350.0\Include;D:\Projects\Frost\build\windows-msvc\vcpkg_installed\x64-windows\include;D:\Projects\Frost\build\windows-msvc\vcpkg_installed\x64-windows\include\vma;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
     <Midl>
-      <AdditionalIncludeDirectories>D:\Projects\CesiumEngine\engine\include;C:\VulkanSDK\1.4.350.0\Include;D:\Projects\CesiumEngine\build\windows-msvc\vcpkg_installed\x64-windows\include;D:\Projects\CesiumEngine\build\windows-msvc\vcpkg_installed\x64-windows\include\vma;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>D:\Projects\Frost\engine\include;C:\VulkanSDK\1.4.350.0\Include;D:\Projects\Frost\build\windows-msvc\vcpkg_installed\x64-windows\include;D:\Projects\Frost\build\windows-msvc\vcpkg_installed\x64-windows\include\vma;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
       <HeaderFileName>%(Filename).h</HeaderFileName>
       <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
@@ -117,8 +117,8 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
-      <AdditionalIncludeDirectories>D:\Projects\CesiumEngine\engine\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <AdditionalOptions>%(AdditionalOptions) /external:I "C:/VulkanSDK/1.4.350.0/Include" /external:I "D:/Projects/CesiumEngine/build/windows-msvc/vcpkg_installed/x64-windows/include" /external:I "D:/Projects/CesiumEngine/build/windows-msvc/vcpkg_installed/x64-windows/include/vma" /Zc:__cplusplus</AdditionalOptions>
+      <AdditionalIncludeDirectories>D:\Projects\Frost\engine\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>%(AdditionalOptions) /external:I "C:/VulkanSDK/1.4.350.0/Include" /external:I "D:/Projects/Frost/build/windows-msvc/vcpkg_installed/x64-windows/include" /external:I "D:/Projects/Frost/build/windows-msvc/vcpkg_installed/x64-windows/include/vma" /Zc:__cplusplus</AdditionalOptions>
       <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
       <ConformanceMode>true</ConformanceMode>
       <ExceptionHandling>Sync</ExceptionHandling>
@@ -139,10 +139,10 @@
     </ClCompile>
     <ResourceCompile>
       <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;GLFW_DLL;CMAKE_INTDIR=\"Release\"</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>D:\Projects\CesiumEngine\engine\include;C:\VulkanSDK\1.4.350.0\Include;D:\Projects\CesiumEngine\build\windows-msvc\vcpkg_installed\x64-windows\include;D:\Projects\CesiumEngine\build\windows-msvc\vcpkg_installed\x64-windows\include\vma;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>D:\Projects\Frost\engine\include;C:\VulkanSDK\1.4.350.0\Include;D:\Projects\Frost\build\windows-msvc\vcpkg_installed\x64-windows\include;D:\Projects\Frost\build\windows-msvc\vcpkg_installed\x64-windows\include\vma;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
     <Midl>
-      <AdditionalIncludeDirectories>D:\Projects\CesiumEngine\engine\include;C:\VulkanSDK\1.4.350.0\Include;D:\Projects\CesiumEngine\build\windows-msvc\vcpkg_installed\x64-windows\include;D:\Projects\CesiumEngine\build\windows-msvc\vcpkg_installed\x64-windows\include\vma;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>D:\Projects\Frost\engine\include;C:\VulkanSDK\1.4.350.0\Include;D:\Projects\Frost\build\windows-msvc\vcpkg_installed\x64-windows\include;D:\Projects\Frost\build\windows-msvc\vcpkg_installed\x64-windows\include\vma;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
       <HeaderFileName>%(Filename).h</HeaderFileName>
       <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
@@ -155,8 +155,8 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">
     <ClCompile>
-      <AdditionalIncludeDirectories>D:\Projects\CesiumEngine\engine\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <AdditionalOptions>%(AdditionalOptions) /external:I "C:/VulkanSDK/1.4.350.0/Include" /external:I "D:/Projects/CesiumEngine/build/windows-msvc/vcpkg_installed/x64-windows/include" /external:I "D:/Projects/CesiumEngine/build/windows-msvc/vcpkg_installed/x64-windows/include/vma" /Zc:__cplusplus</AdditionalOptions>
+      <AdditionalIncludeDirectories>D:\Projects\Frost\engine\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>%(AdditionalOptions) /external:I "C:/VulkanSDK/1.4.350.0/Include" /external:I "D:/Projects/Frost/build/windows-msvc/vcpkg_installed/x64-windows/include" /external:I "D:/Projects/Frost/build/windows-msvc/vcpkg_installed/x64-windows/include/vma" /Zc:__cplusplus</AdditionalOptions>
       <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
       <ConformanceMode>true</ConformanceMode>
       <ExceptionHandling>Sync</ExceptionHandling>
@@ -177,10 +177,10 @@
     </ClCompile>
     <ResourceCompile>
       <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;GLFW_DLL;CMAKE_INTDIR=\"MinSizeRel\"</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>D:\Projects\CesiumEngine\engine\include;C:\VulkanSDK\1.4.350.0\Include;D:\Projects\CesiumEngine\build\windows-msvc\vcpkg_installed\x64-windows\include;D:\Projects\CesiumEngine\build\windows-msvc\vcpkg_installed\x64-windows\include\vma;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>D:\Projects\Frost\engine\include;C:\VulkanSDK\1.4.350.0\Include;D:\Projects\Frost\build\windows-msvc\vcpkg_installed\x64-windows\include;D:\Projects\Frost\build\windows-msvc\vcpkg_installed\x64-windows\include\vma;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
     <Midl>
-      <AdditionalIncludeDirectories>D:\Projects\CesiumEngine\engine\include;C:\VulkanSDK\1.4.350.0\Include;D:\Projects\CesiumEngine\build\windows-msvc\vcpkg_installed\x64-windows\include;D:\Projects\CesiumEngine\build\windows-msvc\vcpkg_installed\x64-windows\include\vma;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>D:\Projects\Frost\engine\include;C:\VulkanSDK\1.4.350.0\Include;D:\Projects\Frost\build\windows-msvc\vcpkg_installed\x64-windows\include;D:\Projects\Frost\build\windows-msvc\vcpkg_installed\x64-windows\include\vma;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
       <HeaderFileName>%(Filename).h</HeaderFileName>
       <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
@@ -193,8 +193,8 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">
     <ClCompile>
-      <AdditionalIncludeDirectories>D:\Projects\CesiumEngine\engine\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <AdditionalOptions>%(AdditionalOptions) /external:I "C:/VulkanSDK/1.4.350.0/Include" /external:I "D:/Projects/CesiumEngine/build/windows-msvc/vcpkg_installed/x64-windows/include" /external:I "D:/Projects/CesiumEngine/build/windows-msvc/vcpkg_installed/x64-windows/include/vma" /Zc:__cplusplus</AdditionalOptions>
+      <AdditionalIncludeDirectories>D:\Projects\Frost\engine\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>%(AdditionalOptions) /external:I "C:/VulkanSDK/1.4.350.0/Include" /external:I "D:/Projects/Frost/build/windows-msvc/vcpkg_installed/x64-windows/include" /external:I "D:/Projects/Frost/build/windows-msvc/vcpkg_installed/x64-windows/include/vma" /Zc:__cplusplus</AdditionalOptions>
       <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
       <ConformanceMode>true</ConformanceMode>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
@@ -214,10 +214,10 @@
     </ClCompile>
     <ResourceCompile>
       <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;GLFW_DLL;CMAKE_INTDIR=\"RelWithDebInfo\"</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>D:\Projects\CesiumEngine\engine\include;C:\VulkanSDK\1.4.350.0\Include;D:\Projects\CesiumEngine\build\windows-msvc\vcpkg_installed\x64-windows\include;D:\Projects\CesiumEngine\build\windows-msvc\vcpkg_installed\x64-windows\include\vma;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>D:\Projects\Frost\engine\include;C:\VulkanSDK\1.4.350.0\Include;D:\Projects\Frost\build\windows-msvc\vcpkg_installed\x64-windows\include;D:\Projects\Frost\build\windows-msvc\vcpkg_installed\x64-windows\include\vma;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
     <Midl>
-      <AdditionalIncludeDirectories>D:\Projects\CesiumEngine\engine\include;C:\VulkanSDK\1.4.350.0\Include;D:\Projects\CesiumEngine\build\windows-msvc\vcpkg_installed\x64-windows\include;D:\Projects\CesiumEngine\build\windows-msvc\vcpkg_installed\x64-windows\include\vma;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>D:\Projects\Frost\engine\include;C:\VulkanSDK\1.4.350.0\Include;D:\Projects\Frost\build\windows-msvc\vcpkg_installed\x64-windows\include;D:\Projects\Frost\build\windows-msvc\vcpkg_installed\x64-windows\include\vma;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
       <HeaderFileName>%(Filename).h</HeaderFileName>
       <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
@@ -229,11 +229,11 @@
     </Lib>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <CustomBuild Include="D:\Projects\CesiumEngine\engine\CMakeLists.txt">
+    <CustomBuild Include="D:\Projects\Frost\engine\CMakeLists.txt">
       <UseUtf8Encoding>Always</UseUtf8Encoding>
-      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Building Custom Rule D:/Projects/CesiumEngine/engine/CMakeLists.txt</Message>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Building Custom Rule D:/Projects/Frost/engine/CMakeLists.txt</Message>
       <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">setlocal
-"C:\Program Files\CMake\bin\cmake.exe" -SD:/Projects/CesiumEngine -BD:/Projects/CesiumEngine/build/windows-msvc --check-stamp-file D:/Projects/CesiumEngine/build/windows-msvc/engine/CMakeFiles/generate.stamp
+"C:\Program Files\CMake\bin\cmake.exe" -SD:/Projects/Frost -BD:/Projects/Frost/build/windows-msvc --check-stamp-file D:/Projects/Frost/build/windows-msvc/engine/CMakeFiles/generate.stamp
 if %errorlevel% neq 0 goto :cmEnd
 :cmEnd
 endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
@@ -242,11 +242,11 @@ exit /b %1
 :cmDone
 if %errorlevel% neq 0 goto :VCEnd</Command>
       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">%(AdditionalInputs)</AdditionalInputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">D:\Projects\CesiumEngine\build\windows-msvc\engine\CMakeFiles\generate.stamp</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">D:\Projects\Frost\build\windows-msvc\engine\CMakeFiles\generate.stamp</Outputs>
       <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</LinkObjects>
-      <Message Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Building Custom Rule D:/Projects/CesiumEngine/engine/CMakeLists.txt</Message>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Building Custom Rule D:/Projects/Frost/engine/CMakeLists.txt</Message>
       <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">setlocal
-"C:\Program Files\CMake\bin\cmake.exe" -SD:/Projects/CesiumEngine -BD:/Projects/CesiumEngine/build/windows-msvc --check-stamp-file D:/Projects/CesiumEngine/build/windows-msvc/engine/CMakeFiles/generate.stamp
+"C:\Program Files\CMake\bin\cmake.exe" -SD:/Projects/Frost -BD:/Projects/Frost/build/windows-msvc --check-stamp-file D:/Projects/Frost/build/windows-msvc/engine/CMakeFiles/generate.stamp
 if %errorlevel% neq 0 goto :cmEnd
 :cmEnd
 endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
@@ -255,11 +255,11 @@ exit /b %1
 :cmDone
 if %errorlevel% neq 0 goto :VCEnd</Command>
       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">%(AdditionalInputs)</AdditionalInputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">D:\Projects\CesiumEngine\build\windows-msvc\engine\CMakeFiles\generate.stamp</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">D:\Projects\Frost\build\windows-msvc\engine\CMakeFiles\generate.stamp</Outputs>
       <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</LinkObjects>
-      <Message Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">Building Custom Rule D:/Projects/CesiumEngine/engine/CMakeLists.txt</Message>
+      <Message Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">Building Custom Rule D:/Projects/Frost/engine/CMakeLists.txt</Message>
       <Command Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">setlocal
-"C:\Program Files\CMake\bin\cmake.exe" -SD:/Projects/CesiumEngine -BD:/Projects/CesiumEngine/build/windows-msvc --check-stamp-file D:/Projects/CesiumEngine/build/windows-msvc/engine/CMakeFiles/generate.stamp
+"C:\Program Files\CMake\bin\cmake.exe" -SD:/Projects/Frost -BD:/Projects/Frost/build/windows-msvc --check-stamp-file D:/Projects/Frost/build/windows-msvc/engine/CMakeFiles/generate.stamp
 if %errorlevel% neq 0 goto :cmEnd
 :cmEnd
 endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
@@ -268,11 +268,11 @@ exit /b %1
 :cmDone
 if %errorlevel% neq 0 goto :VCEnd</Command>
       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">%(AdditionalInputs)</AdditionalInputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">D:\Projects\CesiumEngine\build\windows-msvc\engine\CMakeFiles\generate.stamp</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">D:\Projects\Frost\build\windows-msvc\engine\CMakeFiles\generate.stamp</Outputs>
       <LinkObjects Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">false</LinkObjects>
-      <Message Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">Building Custom Rule D:/Projects/CesiumEngine/engine/CMakeLists.txt</Message>
+      <Message Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">Building Custom Rule D:/Projects/Frost/engine/CMakeLists.txt</Message>
       <Command Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">setlocal
-"C:\Program Files\CMake\bin\cmake.exe" -SD:/Projects/CesiumEngine -BD:/Projects/CesiumEngine/build/windows-msvc --check-stamp-file D:/Projects/CesiumEngine/build/windows-msvc/engine/CMakeFiles/generate.stamp
+"C:\Program Files\CMake\bin\cmake.exe" -SD:/Projects/Frost -BD:/Projects/Frost/build/windows-msvc --check-stamp-file D:/Projects/Frost/build/windows-msvc/engine/CMakeFiles/generate.stamp
 if %errorlevel% neq 0 goto :cmEnd
 :cmEnd
 endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
@@ -281,43 +281,43 @@ exit /b %1
 :cmDone
 if %errorlevel% neq 0 goto :VCEnd</Command>
       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">%(AdditionalInputs)</AdditionalInputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">D:\Projects\CesiumEngine\build\windows-msvc\engine\CMakeFiles\generate.stamp</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">D:\Projects\Frost\build\windows-msvc\engine\CMakeFiles\generate.stamp</Outputs>
       <LinkObjects Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">false</LinkObjects>
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="D:\Projects\CesiumEngine\engine\src\Application.cpp" />
-    <ClCompile Include="D:\Projects\CesiumEngine\engine\src\Engine.cpp" />
-    <ClCompile Include="D:\Projects\CesiumEngine\engine\src\Platform\Window.cpp" />
-    <ClCompile Include="D:\Projects\CesiumEngine\engine\src\Renderer\Mesh.cpp" />
-    <ClCompile Include="D:\Projects\CesiumEngine\engine\src\Renderer\Renderer.cpp" />
-    <ClCompile Include="D:\Projects\CesiumEngine\engine\src\Renderer\Vertex.cpp" />
-    <ClCompile Include="D:\Projects\CesiumEngine\engine\src\Renderer\Vulkan\VulkanAllocator.cpp" />
-    <ClCompile Include="D:\Projects\CesiumEngine\engine\src\Renderer\Vulkan\VulkanBuffer.cpp" />
-    <ClCompile Include="D:\Projects\CesiumEngine\engine\src\Renderer\Vulkan\VulkanCommandPool.cpp" />
-    <ClCompile Include="D:\Projects\CesiumEngine\engine\src\Renderer\Vulkan\VulkanContext.cpp" />
-    <ClCompile Include="D:\Projects\CesiumEngine\engine\src\Renderer\Vulkan\VulkanPhysicalDevice.cpp" />
-    <ClCompile Include="D:\Projects\CesiumEngine\engine\src\Renderer\Vulkan\VulkanDevice.cpp" />
-    <ClCompile Include="D:\Projects\CesiumEngine\engine\src\Renderer\Vulkan\VulkanPipeline.cpp" />
-    <ClCompile Include="D:\Projects\CesiumEngine\engine\src\Renderer\Vulkan\VulkanSwapchain.cpp" />
-    <ClInclude Include="D:\Projects\CesiumEngine\engine\include\Frost\Application.hpp" />
-    <ClInclude Include="D:\Projects\CesiumEngine\engine\include\Frost\Engine.hpp" />
-    <ClInclude Include="D:\Projects\CesiumEngine\engine\include\Frost\Platform\Window.hpp" />
-    <ClInclude Include="D:\Projects\CesiumEngine\engine\include\Frost\Renderer\Mesh.hpp" />
-    <ClInclude Include="D:\Projects\CesiumEngine\engine\include\Frost\Renderer\Renderer.hpp" />
-    <ClInclude Include="D:\Projects\CesiumEngine\engine\include\Frost\Renderer\Vertex.hpp" />
-    <ClInclude Include="D:\Projects\CesiumEngine\engine\include\Frost\Renderer\Vulkan\VulkanAllocator.hpp" />
-    <ClInclude Include="D:\Projects\CesiumEngine\engine\include\Frost\Renderer\Vulkan\VulkanBuffer.hpp" />
-    <ClInclude Include="D:\Projects\CesiumEngine\engine\include\Frost\Renderer\Vulkan\VulkanCommandPool.hpp" />
-    <ClInclude Include="D:\Projects\CesiumEngine\engine\include\Frost\Renderer\Vulkan\VulkanContext.hpp" />
-    <ClInclude Include="D:\Projects\CesiumEngine\engine\include\Frost\Renderer\Vulkan\VulkanPhysicalDevice.hpp" />
-    <ClInclude Include="D:\Projects\CesiumEngine\engine\include\Frost\Renderer\Vulkan\VulkanDevice.hpp" />
-    <ClInclude Include="D:\Projects\CesiumEngine\engine\include\Frost\Renderer\Vulkan\VulkanPipeline.hpp" />
-    <ClInclude Include="D:\Projects\CesiumEngine\engine\include\Frost\Renderer\Vulkan\VulkanSwapchain.hpp" />
+    <ClCompile Include="D:\Projects\Frost\engine\src\Application.cpp" />
+    <ClCompile Include="D:\Projects\Frost\engine\src\Engine.cpp" />
+    <ClCompile Include="D:\Projects\Frost\engine\src\Platform\Window.cpp" />
+    <ClCompile Include="D:\Projects\Frost\engine\src\Renderer\Mesh.cpp" />
+    <ClCompile Include="D:\Projects\Frost\engine\src\Renderer\Renderer.cpp" />
+    <ClCompile Include="D:\Projects\Frost\engine\src\Renderer\Vertex.cpp" />
+    <ClCompile Include="D:\Projects\Frost\engine\src\Renderer\Vulkan\VulkanAllocator.cpp" />
+    <ClCompile Include="D:\Projects\Frost\engine\src\Renderer\Vulkan\VulkanBuffer.cpp" />
+    <ClCompile Include="D:\Projects\Frost\engine\src\Renderer\Vulkan\VulkanCommandPool.cpp" />
+    <ClCompile Include="D:\Projects\Frost\engine\src\Renderer\Vulkan\VulkanContext.cpp" />
+    <ClCompile Include="D:\Projects\Frost\engine\src\Renderer\Vulkan\VulkanPhysicalDevice.cpp" />
+    <ClCompile Include="D:\Projects\Frost\engine\src\Renderer\Vulkan\VulkanDevice.cpp" />
+    <ClCompile Include="D:\Projects\Frost\engine\src\Renderer\Vulkan\VulkanPipeline.cpp" />
+    <ClCompile Include="D:\Projects\Frost\engine\src\Renderer\Vulkan\VulkanSwapchain.cpp" />
+    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Application.hpp" />
+    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Engine.hpp" />
+    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Platform\Window.hpp" />
+    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Renderer\Mesh.hpp" />
+    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Renderer\Renderer.hpp" />
+    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Renderer\Vertex.hpp" />
+    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Renderer\Vulkan\VulkanAllocator.hpp" />
+    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Renderer\Vulkan\VulkanBuffer.hpp" />
+    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Renderer\Vulkan\VulkanCommandPool.hpp" />
+    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Renderer\Vulkan\VulkanContext.hpp" />
+    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Renderer\Vulkan\VulkanPhysicalDevice.hpp" />
+    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Renderer\Vulkan\VulkanDevice.hpp" />
+    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Renderer\Vulkan\VulkanPipeline.hpp" />
+    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Renderer\Vulkan\VulkanSwapchain.hpp" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="D:\Projects\CesiumEngine\build\windows-msvc\ZERO_CHECK.vcxproj">
-      <Project>{2D84953B-9EA7-3B3A-B68C-D0101266C446}</Project>
+    <ProjectReference Include="D:\Projects\Frost\build\windows-msvc\ZERO_CHECK.vcxproj">
+      <Project>{CA5629BB-E98F-381C-902D-91E791F22ED7}</Project>
       <Name>ZERO_CHECK</Name>
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>

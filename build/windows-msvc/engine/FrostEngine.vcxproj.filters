@@ -1,102 +1,102 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <ClCompile Include="D:\Projects\CesiumEngine\engine\src\Application.cpp">
+    <ClCompile Include="D:\Projects\Frost\engine\src\Application.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Projects\CesiumEngine\engine\src\Engine.cpp">
+    <ClCompile Include="D:\Projects\Frost\engine\src\Engine.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Projects\CesiumEngine\engine\src\Platform\Window.cpp">
+    <ClCompile Include="D:\Projects\Frost\engine\src\Platform\Window.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Projects\CesiumEngine\engine\src\Renderer\Mesh.cpp">
+    <ClCompile Include="D:\Projects\Frost\engine\src\Renderer\Mesh.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Projects\CesiumEngine\engine\src\Renderer\Renderer.cpp">
+    <ClCompile Include="D:\Projects\Frost\engine\src\Renderer\Renderer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Projects\CesiumEngine\engine\src\Renderer\Vertex.cpp">
+    <ClCompile Include="D:\Projects\Frost\engine\src\Renderer\Vertex.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Projects\CesiumEngine\engine\src\Renderer\Vulkan\VulkanAllocator.cpp">
+    <ClCompile Include="D:\Projects\Frost\engine\src\Renderer\Vulkan\VulkanAllocator.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Projects\CesiumEngine\engine\src\Renderer\Vulkan\VulkanBuffer.cpp">
+    <ClCompile Include="D:\Projects\Frost\engine\src\Renderer\Vulkan\VulkanBuffer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Projects\CesiumEngine\engine\src\Renderer\Vulkan\VulkanCommandPool.cpp">
+    <ClCompile Include="D:\Projects\Frost\engine\src\Renderer\Vulkan\VulkanCommandPool.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Projects\CesiumEngine\engine\src\Renderer\Vulkan\VulkanContext.cpp">
+    <ClCompile Include="D:\Projects\Frost\engine\src\Renderer\Vulkan\VulkanContext.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Projects\CesiumEngine\engine\src\Renderer\Vulkan\VulkanPhysicalDevice.cpp">
+    <ClCompile Include="D:\Projects\Frost\engine\src\Renderer\Vulkan\VulkanPhysicalDevice.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Projects\CesiumEngine\engine\src\Renderer\Vulkan\VulkanDevice.cpp">
+    <ClCompile Include="D:\Projects\Frost\engine\src\Renderer\Vulkan\VulkanDevice.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Projects\CesiumEngine\engine\src\Renderer\Vulkan\VulkanPipeline.cpp">
+    <ClCompile Include="D:\Projects\Frost\engine\src\Renderer\Vulkan\VulkanPipeline.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Projects\CesiumEngine\engine\src\Renderer\Vulkan\VulkanSwapchain.cpp">
+    <ClCompile Include="D:\Projects\Frost\engine\src\Renderer\Vulkan\VulkanSwapchain.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="D:\Projects\CesiumEngine\engine\include\Frost\Application.hpp">
+    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Application.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="D:\Projects\CesiumEngine\engine\include\Frost\Engine.hpp">
+    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Engine.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="D:\Projects\CesiumEngine\engine\include\Frost\Platform\Window.hpp">
+    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Platform\Window.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="D:\Projects\CesiumEngine\engine\include\Frost\Renderer\Mesh.hpp">
+    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Renderer\Mesh.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="D:\Projects\CesiumEngine\engine\include\Frost\Renderer\Renderer.hpp">
+    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Renderer\Renderer.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="D:\Projects\CesiumEngine\engine\include\Frost\Renderer\Vertex.hpp">
+    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Renderer\Vertex.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="D:\Projects\CesiumEngine\engine\include\Frost\Renderer\Vulkan\VulkanAllocator.hpp">
+    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Renderer\Vulkan\VulkanAllocator.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="D:\Projects\CesiumEngine\engine\include\Frost\Renderer\Vulkan\VulkanBuffer.hpp">
+    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Renderer\Vulkan\VulkanBuffer.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="D:\Projects\CesiumEngine\engine\include\Frost\Renderer\Vulkan\VulkanCommandPool.hpp">
+    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Renderer\Vulkan\VulkanCommandPool.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="D:\Projects\CesiumEngine\engine\include\Frost\Renderer\Vulkan\VulkanContext.hpp">
+    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Renderer\Vulkan\VulkanContext.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="D:\Projects\CesiumEngine\engine\include\Frost\Renderer\Vulkan\VulkanPhysicalDevice.hpp">
+    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Renderer\Vulkan\VulkanPhysicalDevice.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="D:\Projects\CesiumEngine\engine\include\Frost\Renderer\Vulkan\VulkanDevice.hpp">
+    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Renderer\Vulkan\VulkanDevice.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="D:\Projects\CesiumEngine\engine\include\Frost\Renderer\Vulkan\VulkanPipeline.hpp">
+    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Renderer\Vulkan\VulkanPipeline.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="D:\Projects\CesiumEngine\engine\include\Frost\Renderer\Vulkan\VulkanSwapchain.hpp">
+    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Renderer\Vulkan\VulkanSwapchain.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <CustomBuild Include="D:\Projects\CesiumEngine\engine\CMakeLists.txt" />
+    <CustomBuild Include="D:\Projects\Frost\engine\CMakeLists.txt" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Header Files">
-      <UniqueIdentifier>{8348000B-A586-310E-AFD1-FF6DBD4FA93B}</UniqueIdentifier>
+      <UniqueIdentifier>{088F1069-F569-38DA-B351-C35CA578B1AA}</UniqueIdentifier>
     </Filter>
     <Filter Include="Source Files">
-      <UniqueIdentifier>{397D6D5F-01EB-3578-81E2-CAF94664F9FE}</UniqueIdentifier>
+      <UniqueIdentifier>{8C3C12FB-AA7F-3E64-B2E2-514EFB2CB1E9}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

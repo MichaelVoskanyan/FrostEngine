@@ -26,20 +26,20 @@ C:/Program Files/CMake/share/cmake-3.29/Modules/Platform/Windows-MSVC.cmake
 C:/Program Files/CMake/share/cmake-3.29/Modules/Platform/Windows.cmake
 C:/Program Files/CMake/share/cmake-3.29/Modules/Platform/WindowsPaths.cmake
 C:/Users/micha/vcpkg/scripts/buildsystems/vcpkg.cmake
-D:/Projects/CesiumEngine/CMakeLists.txt
-D:/Projects/CesiumEngine/build/windows-msvc/CMakeFiles/3.29.5/CMakeCXXCompiler.cmake
-D:/Projects/CesiumEngine/build/windows-msvc/CMakeFiles/3.29.5/CMakeRCCompiler.cmake
-D:/Projects/CesiumEngine/build/windows-msvc/CMakeFiles/3.29.5/CMakeSystem.cmake
-D:/Projects/CesiumEngine/build/windows-msvc/vcpkg_installed/x64-windows/share/VulkanMemoryAllocator/VulkanMemoryAllocatorConfig.cmake
-D:/Projects/CesiumEngine/build/windows-msvc/vcpkg_installed/x64-windows/share/VulkanMemoryAllocator/VulkanMemoryAllocatorConfigVersion.cmake
-D:/Projects/CesiumEngine/build/windows-msvc/vcpkg_installed/x64-windows/share/glfw3/glfw3Config.cmake
-D:/Projects/CesiumEngine/build/windows-msvc/vcpkg_installed/x64-windows/share/glfw3/glfw3ConfigVersion.cmake
-D:/Projects/CesiumEngine/build/windows-msvc/vcpkg_installed/x64-windows/share/glfw3/glfw3Targets-debug.cmake
-D:/Projects/CesiumEngine/build/windows-msvc/vcpkg_installed/x64-windows/share/glfw3/glfw3Targets-release.cmake
-D:/Projects/CesiumEngine/build/windows-msvc/vcpkg_installed/x64-windows/share/glfw3/glfw3Targets.cmake
-D:/Projects/CesiumEngine/build/windows-msvc/vcpkg_installed/x64-windows/share/glm/glmConfig-debug.cmake
-D:/Projects/CesiumEngine/build/windows-msvc/vcpkg_installed/x64-windows/share/glm/glmConfig-release.cmake
-D:/Projects/CesiumEngine/build/windows-msvc/vcpkg_installed/x64-windows/share/glm/glmConfig.cmake
-D:/Projects/CesiumEngine/build/windows-msvc/vcpkg_installed/x64-windows/share/glm/glmConfigVersion.cmake
-D:/Projects/CesiumEngine/cmake/Dependencies.cmake
-D:/Projects/CesiumEngine/vcpkg.json
+D:/Projects/Frost/CMakeLists.txt
+D:/Projects/Frost/build/windows-msvc/CMakeFiles/3.29.5/CMakeCXXCompiler.cmake
+D:/Projects/Frost/build/windows-msvc/CMakeFiles/3.29.5/CMakeRCCompiler.cmake
+D:/Projects/Frost/build/windows-msvc/CMakeFiles/3.29.5/CMakeSystem.cmake
+D:/Projects/Frost/build/windows-msvc/vcpkg_installed/x64-windows/share/VulkanMemoryAllocator/VulkanMemoryAllocatorConfig.cmake
+D:/Projects/Frost/build/windows-msvc/vcpkg_installed/x64-windows/share/VulkanMemoryAllocator/VulkanMemoryAllocatorConfigVersion.cmake
+D:/Projects/Frost/build/windows-msvc/vcpkg_installed/x64-windows/share/glfw3/glfw3Config.cmake
+D:/Projects/Frost/build/windows-msvc/vcpkg_installed/x64-windows/share/glfw3/glfw3ConfigVersion.cmake
+D:/Projects/Frost/build/windows-msvc/vcpkg_installed/x64-windows/share/glfw3/glfw3Targets-debug.cmake
+D:/Projects/Frost/build/windows-msvc/vcpkg_installed/x64-windows/share/glfw3/glfw3Targets-release.cmake
+D:/Projects/Frost/build/windows-msvc/vcpkg_installed/x64-windows/share/glfw3/glfw3Targets.cmake
+D:/Projects/Frost/build/windows-msvc/vcpkg_installed/x64-windows/share/glm/glmConfig-debug.cmake
+D:/Projects/Frost/build/windows-msvc/vcpkg_installed/x64-windows/share/glm/glmConfig-release.cmake
+D:/Projects/Frost/build/windows-msvc/vcpkg_installed/x64-windows/share/glm/glmConfig.cmake
+D:/Projects/Frost/build/windows-msvc/vcpkg_installed/x64-windows/share/glm/glmConfigVersion.cmake
+D:/Projects/Frost/cmake/Dependencies.cmake
+D:/Projects/Frost/vcpkg.json

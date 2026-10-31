@@ -2,13 +2,16 @@
 <Project>
   <ProjectOutputs>
     <ProjectOutput>
-      <FullPath>D:\Projects\CesiumEngine\build\windows-msvc\x64\Debug\ZERO_CHECK</FullPath>
+      <FullPath>D:\Projects\Frost\build\windows-msvc\x64\Debug\ZERO_CHECK</FullPath>
     </ProjectOutput>
     <ProjectOutput>
-      <FullPath>D:\Projects\CesiumEngine\build\windows-msvc\game\Debug\CesiumGame.exe</FullPath>
+      <FullPath>D:\Projects\Frost\build\windows-msvc\game\x64\Debug\FrostGameShaders</FullPath>
     </ProjectOutput>
     <ProjectOutput>
-      <FullPath>D:\Projects\CesiumEngine\build\windows-msvc\x64\Debug\ALL_BUILD</FullPath>
+      <FullPath>D:\Projects\Frost\build\windows-msvc\game\Debug\FrostGame.exe</FullPath>
+    </ProjectOutput>
+    <ProjectOutput>
+      <FullPath>D:\Projects\Frost\build\windows-msvc\x64\Debug\ALL_BUILD</FullPath>
     </ProjectOutput>
   </ProjectOutputs>
   <ContentFiles />
