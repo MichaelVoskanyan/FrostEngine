@@ -12,6 +12,7 @@
 #include <limits>
 #include <sstream>
 #include <stdexcept>
+#include <utility>
 
 namespace {
 
@@ -31,17 +32,76 @@ namespace Frost {
     VulkanSwapchain::VulkanSwapchain(const VulkanContext& context, const VulkanPhysicalDevice& physicalDevice,
                                       const VulkanDevice& device, const Window& window)
         : m_Device(device.GetHandle()) {
-        CreateSwapchain(context, physicalDevice, window);
+        const SwapchainSupportDetails support = physicalDevice.QuerySwapchainSupport(context.GetSurface());
+        const VkExtent2D extent = ChooseExtent(support.capabilities, window);
+
+        if (extent.width == 0 || extent.height == 0) {
+            throw std::runtime_error("Cannot create a swapchain for a zero-area window surface (is the window minimized?).");
+        }
+
+        CreateSwapchain(context, physicalDevice, support, extent, VK_NULL_HANDLE);
         CreateImageViews();
     }
 
     VulkanSwapchain::~VulkanSwapchain() {
-        for (const VkImageView imageView : m_ImageViews) { vkDestroyImageView(m_Device, imageView, nullptr); }
-        m_ImageViews.clear();
+        DestroyImageViews();
 
         if (m_Swapchain != VK_NULL_HANDLE) {
             vkDestroySwapchainKHR(m_Device, m_Swapchain, nullptr);
             m_Swapchain = VK_NULL_HANDLE;
+        }
+    }
+
+    bool VulkanSwapchain::Recreate(const VulkanContext& context, const VulkanPhysicalDevice& physicalDevice,
+                                   const Window& window, Retired& retired) {
+        // Queried fresh: currentExtent tracks the window's current size, which is the point of a
+        // recreate. It is also the authoritative size (the window's own framebuffer size may lag
+        // behind the OS by a frame), so the zero-area check is made on it, and made before any
+        // destructive step below.
+        const SwapchainSupportDetails support = physicalDevice.QuerySwapchainSupport(context.GetSurface());
+        const VkExtent2D extent = ChooseExtent(support.capabilities, window);
+
+        if (extent.width == 0 || extent.height == 0) { return false; }
+
+        // Nothing old is destroyed here: the views and images may still be read by in-flight
+        // command buffers and the presentation engine. They are moved out to the caller, who
+        // destroys them once that is provably no longer the case.
+        Retired previous{.swapchain = m_Swapchain, .imageViews = std::move(m_ImageViews)};
+        m_ImageViews.clear();
+
+        try {
+            CreateSwapchain(context, physicalDevice, support, extent, previous.swapchain);
+        }
+        catch (...) {
+            // The old swapchain is retired by the failed call (Vulkan rule) but still owned by
+            // this object; put its views back so the destructor tears everything down normally.
+            //
+            // Error-handling policy: a failed vkCreateSwapchainKHR is treated as fatal by the
+            // renderer (the exception propagates and the process exits). This object is therefore
+            // left in a destroy-only state on purpose: the retired handle must not be acquired
+            // from, presented to, or passed as oldSwapchain again (VUID-VkSwapchainCreateInfoKHR-
+            // oldSwapchain-01933). Recovering in-process would need a fresh swapchain built with
+            // oldSwapchain = VK_NULL_HANDLE and, for VK_ERROR_SURFACE_LOST_KHR, a new surface.
+            m_ImageViews = std::move(previous.imageViews);
+            throw;
+        }
+
+        retired = std::move(previous);
+        CreateImageViews();
+
+        return true;
+    }
+
+    void VulkanSwapchain::DestroyRetired(const VkDevice device, Retired& retired) noexcept {
+        for (const VkImageView imageView : retired.imageViews) {
+            if (imageView != VK_NULL_HANDLE) { vkDestroyImageView(device, imageView, nullptr); }
+        }
+
+        retired.imageViews.clear();
+
+        if (retired.swapchain != VK_NULL_HANDLE) {
+            vkDestroySwapchainKHR(device, retired.swapchain, nullptr);
+            retired.swapchain = VK_NULL_HANDLE;
         }
     }
 
@@ -56,12 +116,10 @@ namespace Frost {
     const std::vector<VkImage>& VulkanSwapchain::GetImages() const noexcept { return m_Images; }
 
     void VulkanSwapchain::CreateSwapchain(const VulkanContext& context, const VulkanPhysicalDevice& physicalDevice,
-                                          const Window& window) {
-        const SwapchainSupportDetails support = physicalDevice.QuerySwapchainSupport(context.GetSurface());
-
+                                          const SwapchainSupportDetails& support, const VkExtent2D extent,
+                                          const VkSwapchainKHR oldSwapchain) {
         const VkSurfaceFormatKHR surfaceFormat = ChooseSurfaceFormat(support.formats);
         const VkPresentModeKHR presentMode = ChoosePresentMode(support.presentModes);
-        const VkExtent2D extent = ChooseExtent(support.capabilities, window);
 
         std::uint32_t imageCount = support.capabilities.minImageCount + 1;
         if (support.capabilities.maxImageCount > 0 && imageCount > support.capabilities.maxImageCount) {
@@ -91,24 +149,43 @@ namespace Frost {
                 .compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
                 .presentMode = presentMode,
                 .clipped = VK_TRUE,
-                .oldSwapchain = VK_NULL_HANDLE,
+                .oldSwapchain = oldSwapchain,
         };
 
-        const VkResult result = vkCreateSwapchainKHR(m_Device, &createInfo, nullptr, &m_Swapchain);
+        VkSwapchainKHR swapchain = VK_NULL_HANDLE;
+
+        const VkResult result = vkCreateSwapchainKHR(m_Device, &createInfo, nullptr, &swapchain);
         if (result != VK_SUCCESS) { throw VulkanError("vkCreateSwapchainKHR", result); }
 
+        // A non-null oldSwapchain is now retired (it can no longer be acquired from or presented
+        // to) but is deliberately not destroyed here; see Recreate().
+        m_Swapchain = swapchain;
         m_ImageFormat = surfaceFormat.format;
         m_Extent = extent;
 
+        // Checked: m_Images feeds per-image resources (views, render-finished semaphores) and the
+        // per-frame image-index lookup, so a silently wrong count would be an out-of-bounds access.
         std::uint32_t swapchainImageCount = 0;
-        vkGetSwapchainImagesKHR(m_Device, m_Swapchain, &swapchainImageCount, nullptr);
+        VkResult imagesResult = vkGetSwapchainImagesKHR(m_Device, m_Swapchain, &swapchainImageCount, nullptr);
+        if (imagesResult != VK_SUCCESS) { throw VulkanError("vkGetSwapchainImagesKHR", imagesResult); }
 
         m_Images.resize(swapchainImageCount);
-        vkGetSwapchainImagesKHR(m_Device, m_Swapchain, &swapchainImageCount, m_Images.data());
+        imagesResult = vkGetSwapchainImagesKHR(m_Device, m_Swapchain, &swapchainImageCount, m_Images.data());
+        if (imagesResult != VK_SUCCESS && imagesResult != VK_INCOMPLETE) {
+            throw VulkanError("vkGetSwapchainImagesKHR", imagesResult);
+        }
+    }
+
+    void VulkanSwapchain::DestroyImageViews() noexcept {
+        for (const VkImageView imageView : m_ImageViews) {
+            if (imageView != VK_NULL_HANDLE) { vkDestroyImageView(m_Device, imageView, nullptr); }
+        }
+
+        m_ImageViews.clear();
     }
 
     void VulkanSwapchain::CreateImageViews() {
-        m_ImageViews.resize(m_Images.size());
+        m_ImageViews.resize(m_Images.size(), VK_NULL_HANDLE);
 
         for (std::size_t i = 0; i < m_Images.size(); ++i) {
             const VkImageViewCreateInfo createInfo{

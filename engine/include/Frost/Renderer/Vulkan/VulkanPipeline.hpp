@@ -31,6 +31,12 @@ namespace Frost {
         [[nodiscard]]
         VkPipelineLayout GetLayout() const noexcept;
 
+        // The color attachment format this pipeline was compiled against. Viewport/scissor are
+        // dynamic, so a swapchain resize alone never invalidates the pipeline, but a format change
+        // (possible in principle on swapchain recreation) does.
+        [[nodiscard]]
+        VkFormat GetColorAttachmentFormat() const noexcept;
+
     private:
         [[nodiscard]]
         static std::vector<char> ReadFile(const std::string& path);
@@ -42,6 +48,7 @@ namespace Frost {
                             const std::string& vertexShaderPath, const std::string& fragmentShaderPath);
 
         VkDevice m_Device = VK_NULL_HANDLE;  // Non-owning; used to destroy the pipeline/layout.
+        VkFormat m_ColorAttachmentFormat = VK_FORMAT_UNDEFINED;
         VkPipelineLayout m_Layout = VK_NULL_HANDLE;
         VkPipeline m_Pipeline = VK_NULL_HANDLE;
     };

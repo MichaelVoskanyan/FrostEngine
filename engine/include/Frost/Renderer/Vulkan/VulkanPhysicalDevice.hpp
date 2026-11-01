@@ -49,6 +49,13 @@ namespace Frost {
         [[nodiscard]]
         static const std::vector<const char*>& RequiredExtensions();
 
+        // Name of the swapchain-maintenance1 device extension (KHR promotion preferred, else EXT)
+        // to enable, or nullptr if the device does not support it (or the instance lacks the
+        // surface-maintenance1 half). Non-null implies the swapchainMaintenance1 feature is
+        // supported and should be enabled by VulkanDevice. Optional: the renderer works without it.
+        [[nodiscard]]
+        const char* SwapchainMaintenance1Extension() const noexcept;
+
     private:
         [[nodiscard]]
         static std::vector<VkPhysicalDevice> EnumeratePhysicalDevices(VkInstance instance);
@@ -67,11 +74,17 @@ namespace Frost {
         [[nodiscard]]
         static bool CheckFeatureSupport(VkPhysicalDevice device);
 
+        // Picks the swapchain-maintenance1 extension name to enable, if the device advertises one
+        // (KHR or EXT) together with the feature, and the instance has surface-maintenance1.
+        [[nodiscard]]
+        static const char* DetectSwapchainMaintenance1(VkPhysicalDevice device, const VulkanContext& context);
+
         void SelectPhysicalDevice(const VulkanContext& context);
 
         VkPhysicalDevice m_PhysicalDevice = VK_NULL_HANDLE;
         VkPhysicalDeviceProperties m_Properties{};
         QueueFamilyIndices m_QueueFamilyIndices;
+        const char* m_SwapchainMaintenance1Extension = nullptr;
     };
 
 }  // namespace Frost

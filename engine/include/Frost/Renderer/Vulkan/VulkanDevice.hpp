@@ -29,12 +29,18 @@ namespace Frost {
         [[nodiscard]]
         VkQueue GetPresentQueue() const noexcept;
 
+        // True if swapchain-maintenance1 (KHR or EXT) was enabled on this device, i.e. presentation
+        // fences (VkSwapchainPresentFenceInfoEXT) may be attached to vkQueuePresentKHR.
+        [[nodiscard]]
+        bool HasSwapchainMaintenance1() const noexcept;
+
     private:
         void CreateLogicalDevice(const VulkanPhysicalDevice& physicalDevice);
 
         VkDevice m_Device = VK_NULL_HANDLE;
         VkQueue m_GraphicsQueue = VK_NULL_HANDLE;
         VkQueue m_PresentQueue = VK_NULL_HANDLE;
+        bool m_SwapchainMaintenance1 = false;
     };
 
 }  // namespace Frost

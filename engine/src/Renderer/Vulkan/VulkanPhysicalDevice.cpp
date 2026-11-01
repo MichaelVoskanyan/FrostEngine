@@ -3,6 +3,7 @@
 #include <Frost/Renderer/Vulkan/VulkanContext.hpp>
 
 #include <cstdint>
+#include <cstring>
 #include <set>
 #include <stdexcept>
 #include <string>
@@ -31,6 +32,10 @@ namespace Frost {
     const VkPhysicalDeviceProperties& VulkanPhysicalDevice::GetProperties() const noexcept { return m_Properties; }
 
     const std::vector<const char*>& VulkanPhysicalDevice::RequiredExtensions() { return kRequiredDeviceExtensions; }
+
+    const char* VulkanPhysicalDevice::SwapchainMaintenance1Extension() const noexcept {
+        return m_SwapchainMaintenance1Extension;
+    }
 
     SwapchainSupportDetails VulkanPhysicalDevice::QuerySwapchainSupport(const VkSurfaceKHR surface) const {
         SwapchainSupportDetails details;
@@ -66,6 +71,7 @@ namespace Frost {
             m_PhysicalDevice = device;
             m_QueueFamilyIndices = FindQueueFamilies(device, context.GetSurface());
             vkGetPhysicalDeviceProperties(device, &m_Properties);
+            m_SwapchainMaintenance1Extension = DetectSwapchainMaintenance1(device, context);
 
             return;
         }
@@ -141,6 +147,50 @@ namespace Frost {
         }
 
         return requiredExtensions.empty();
+    }
+
+    const char* VulkanPhysicalDevice::DetectSwapchainMaintenance1(const VkPhysicalDevice device,
+                                                                  const VulkanContext& context) {
+        // The device extension is only usable when the instance-level surface_maintenance1 half
+        // was enabled too.
+        if (!context.HasSurfaceMaintenance1()) { return nullptr; }
+
+        std::uint32_t extensionCount = 0;
+        vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, nullptr);
+
+        std::vector<VkExtensionProperties> availableExtensions(extensionCount);
+        vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, availableExtensions.data());
+
+        const char* extensionName = nullptr;
+        for (const VkExtensionProperties& extension : availableExtensions) {
+            if (std::strcmp(extension.extensionName, VK_KHR_SWAPCHAIN_MAINTENANCE_1_EXTENSION_NAME) == 0) {
+                extensionName = VK_KHR_SWAPCHAIN_MAINTENANCE_1_EXTENSION_NAME;
+                break;  // Prefer the promoted name when both are present.
+            }
+            if (std::strcmp(extension.extensionName, VK_EXT_SWAPCHAIN_MAINTENANCE_1_EXTENSION_NAME) == 0) {
+                extensionName = VK_EXT_SWAPCHAIN_MAINTENANCE_1_EXTENSION_NAME;
+            }
+        }
+
+        if (extensionName == nullptr) { return nullptr; }
+
+        // The EXT feature struct is a header alias of the KHR one (identical sType/layout), so it
+        // serves for either extension name.
+        VkPhysicalDeviceSwapchainMaintenance1FeaturesEXT maintenance1Features{
+                .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SWAPCHAIN_MAINTENANCE_1_FEATURES_EXT,
+                .pNext = nullptr,
+                .swapchainMaintenance1 = VK_FALSE,
+        };
+
+        VkPhysicalDeviceFeatures2 features2{
+                .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
+                .pNext = &maintenance1Features,
+                .features = {},
+        };
+
+        vkGetPhysicalDeviceFeatures2(device, &features2);
+
+        return maintenance1Features.swapchainMaintenance1 == VK_TRUE ? extensionName : nullptr;
     }
 
     bool VulkanPhysicalDevice::CheckFeatureSupport(const VkPhysicalDevice device) {

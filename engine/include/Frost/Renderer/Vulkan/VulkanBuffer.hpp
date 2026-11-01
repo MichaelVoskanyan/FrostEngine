@@ -20,9 +20,9 @@ namespace Frost {
     class VulkanBuffer final {
     public:
         // Creates a buffer backed by `allocator`. When `hostVisible` is true, the buffer is
-        // persistently mapped and host-coherent (a staging buffer, populated via CopyData);
-        // otherwise it is device-local, and can only be populated through CreateDeviceLocal's
-        // staging upload.
+        // persistently mapped (a staging buffer, populated via CopyData, which flushes the write so
+        // it is visible to the device whether or not the memory type is host-coherent); otherwise
+        // it is device-local, and can only be populated through CreateDeviceLocal's staging upload.
         VulkanBuffer(const VulkanAllocator& allocator, VkDeviceSize size, VkBufferUsageFlags usage,
                     bool hostVisible);
         ~VulkanBuffer();

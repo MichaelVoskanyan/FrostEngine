@@ -38,6 +38,8 @@ namespace Frost {
 
     VkQueue VulkanDevice::GetPresentQueue() const noexcept { return m_PresentQueue; }
 
+    bool VulkanDevice::HasSwapchainMaintenance1() const noexcept { return m_SwapchainMaintenance1; }
+
     void VulkanDevice::CreateLogicalDevice(const VulkanPhysicalDevice& physicalDevice) {
         const QueueFamilyIndices& indices = physicalDevice.GetQueueFamilyIndices();
 
@@ -65,9 +67,20 @@ namespace Frost {
         // device supports both. They are requested here via the VkPhysicalDeviceFeatures2 pNext
         // chain rather than the legacy pEnabledFeatures field, which the two are mutually exclusive
         // with (pEnabledFeatures must be null when pNext carries a VkPhysicalDeviceFeatures2).
+        // Optional: swapchain-maintenance1 (presentation fences). VulkanPhysicalDevice has already
+        // verified both the extension and its feature when it reports a name here.
+        const char* const swapchainMaintenance1 = physicalDevice.SwapchainMaintenance1Extension();
+        m_SwapchainMaintenance1 = swapchainMaintenance1 != nullptr;
+
+        VkPhysicalDeviceSwapchainMaintenance1FeaturesEXT maintenance1Features{
+                .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SWAPCHAIN_MAINTENANCE_1_FEATURES_EXT,
+                .pNext = nullptr,
+                .swapchainMaintenance1 = VK_TRUE,
+        };
+
         VkPhysicalDeviceVulkan13Features vulkan13Features{
                 .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES,
-                .pNext = nullptr,
+                .pNext = m_SwapchainMaintenance1 ? &maintenance1Features : nullptr,
                 .synchronization2 = VK_TRUE,
                 .dynamicRendering = VK_TRUE,
         };
@@ -77,7 +90,8 @@ namespace Frost {
                 .pNext = &vulkan13Features,
         };
 
-        const std::vector<const char*>& deviceExtensions = VulkanPhysicalDevice::RequiredExtensions();
+        std::vector<const char*> deviceExtensions = VulkanPhysicalDevice::RequiredExtensions();
+        if (m_SwapchainMaintenance1) { deviceExtensions.push_back(swapchainMaintenance1); }
 
         const VkDeviceCreateInfo createInfo{
                 .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,

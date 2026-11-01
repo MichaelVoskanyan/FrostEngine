@@ -74,6 +74,12 @@ namespace Frost {
         }
 
         std::memcpy(m_MappedData, data, size);
+
+        // VMA guarantees the mapping is HOST_VISIBLE, not HOST_COHERENT. Without a flush the
+        // written bytes can sit in host caches and the GPU-side copy reads stale memory, so the
+        // upload silently produces empty geometry. For coherent memory types this is a no-op.
+        const VkResult result = vmaFlushAllocation(m_AllocatorHandle, m_Allocation, 0, VK_WHOLE_SIZE);
+        if (result != VK_SUCCESS) { throw VulkanError("vmaFlushAllocation", result); }
     }
 
     std::unique_ptr<VulkanBuffer> VulkanBuffer::CreateDeviceLocal(const VulkanAllocator& allocator,

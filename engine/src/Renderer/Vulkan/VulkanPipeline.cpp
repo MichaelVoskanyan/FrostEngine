@@ -26,7 +26,7 @@ namespace Frost {
 
     VulkanPipeline::VulkanPipeline(const VulkanDevice& device, const VkFormat colorAttachmentFormat,
                                    const std::string& vertexShaderPath, const std::string& fragmentShaderPath)
-        : m_Device(device.GetHandle()) {
+        : m_Device(device.GetHandle()), m_ColorAttachmentFormat(colorAttachmentFormat) {
         CreatePipeline(device, colorAttachmentFormat, vertexShaderPath, fragmentShaderPath);
     }
 
@@ -45,6 +45,8 @@ namespace Frost {
     VkPipeline VulkanPipeline::GetHandle() const noexcept { return m_Pipeline; }
 
     VkPipelineLayout VulkanPipeline::GetLayout() const noexcept { return m_Layout; }
+
+    VkFormat VulkanPipeline::GetColorAttachmentFormat() const noexcept { return m_ColorAttachmentFormat; }
 
     std::vector<char> VulkanPipeline::ReadFile(const std::string& path) {
         std::ifstream file(path, std::ios::ate | std::ios::binary);

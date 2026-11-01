@@ -108,6 +108,8 @@ namespace Frost {
 
     VkSurfaceKHR VulkanContext::GetSurface() const noexcept { return m_Surface; }
 
+    bool VulkanContext::HasSurfaceMaintenance1() const noexcept { return m_SurfaceMaintenance1; }
+
     void VulkanContext::EnsureVulkan14Support() {
         std::uint32_t supportedVersion = VK_API_VERSION_1_0;
 
@@ -175,6 +177,8 @@ namespace Frost {
 
         if constexpr (kEnableValidationLayers) { extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME); }
 
+        AppendOptionalInstanceExtensions(extensions);
+
         const VkApplicationInfo appInfo{.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
                                         .pNext = nullptr,
                                         .pApplicationName = "Frost Application",
@@ -200,6 +204,35 @@ namespace Frost {
 
         const VkResult result = vkCreateInstance(&createInfo, nullptr, &m_Instance);
         if (result != VK_SUCCESS) { throw VulkanError("vkCreateInstance", result); }
+    }
+
+    void VulkanContext::AppendOptionalInstanceExtensions(std::vector<const char*>& extensions) {
+        std::uint32_t count = 0;
+        vkEnumerateInstanceExtensionProperties(nullptr, &count, nullptr);
+
+        std::vector<VkExtensionProperties> available(count);
+        vkEnumerateInstanceExtensionProperties(nullptr, &count, available.data());
+
+        const auto has = [&available](const char* const name) {
+            return std::any_of(available.begin(), available.end(), [name](const VkExtensionProperties& extension) {
+                return std::strcmp(name, extension.extensionName) == 0;
+            });
+        };
+
+        // surface_maintenance1 (the KHR promotion or the original EXT; same behavior) requires
+        // get_surface_capabilities2. Both are needed for the device-level swapchain_maintenance1
+        // extension that gives the renderer presentation fences.
+        if (!has(VK_KHR_GET_SURFACE_CAPABILITIES_2_EXTENSION_NAME)) { return; }
+
+        const char* surfaceMaintenance1 = nullptr;
+        if (has(VK_KHR_SURFACE_MAINTENANCE_1_EXTENSION_NAME)) { surfaceMaintenance1 = VK_KHR_SURFACE_MAINTENANCE_1_EXTENSION_NAME; }
+        else if (has(VK_EXT_SURFACE_MAINTENANCE_1_EXTENSION_NAME)) { surfaceMaintenance1 = VK_EXT_SURFACE_MAINTENANCE_1_EXTENSION_NAME; }
+
+        if (surfaceMaintenance1 == nullptr) { return; }
+
+        extensions.push_back(VK_KHR_GET_SURFACE_CAPABILITIES_2_EXTENSION_NAME);
+        extensions.push_back(surfaceMaintenance1);
+        m_SurfaceMaintenance1 = true;
     }
 
     void VulkanContext::SetupDebugMessenger() {
