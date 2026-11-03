@@ -44,3 +44,18 @@ frost_compile_shaders(FrostGame
     ${CMAKE_SOURCE_DIR}/shaders/basic.vert
     ${CMAKE_SOURCE_DIR}/shaders/basic.frag
 )
+
+include(${CMAKE_SOURCE_DIR}/cmake/Assets.cmake)
+
+frost_copy_assets(FrostGame
+    ${CMAKE_SOURCE_DIR}/assets/Glock19X.glb
+    ${CMAKE_SOURCE_DIR}/assets/Glock19.gltf
+    ${CMAKE_SOURCE_DIR}/assets/Glock19.bin
+    ${CMAKE_SOURCE_DIR}/assets/broken.gltf
+    ${CMAKE_SOURCE_DIR}/assets/broken.bin
+    ${CMAKE_SOURCE_DIR}/assets/black64.png
+    ${CMAKE_SOURCE_DIR}/assets/mr_metal_smooth.png
+    ${CMAKE_SOURCE_DIR}/assets/mr_metal_rough.png
+    ${CMAKE_SOURCE_DIR}/assets/mr_rough.png
+    ${CMAKE_SOURCE_DIR}/assets/normal_grip.png
+)

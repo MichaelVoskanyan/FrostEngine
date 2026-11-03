@@ -25,6 +25,7 @@ C:/Program Files/CMake/share/cmake-3.29/Modules/Platform/Windows-MSVC-CXX.cmake
 C:/Program Files/CMake/share/cmake-3.29/Modules/Platform/Windows-MSVC.cmake
 C:/Program Files/CMake/share/cmake-3.29/Modules/Platform/Windows.cmake
 C:/Program Files/CMake/share/cmake-3.29/Modules/Platform/WindowsPaths.cmake
+C:/Program Files/CMake/share/cmake-3.29/Modules/SelectLibraryConfigurations.cmake
 C:/Users/micha/vcpkg/scripts/buildsystems/vcpkg.cmake
 D:/Projects/Frost/CMakeLists.txt
 D:/Projects/Frost/build/windows-msvc/CMakeFiles/3.29.5/CMakeCXXCompiler.cmake
@@ -41,5 +42,7 @@ D:/Projects/Frost/build/windows-msvc/vcpkg_installed/x64-windows/share/glm/glmCo
 D:/Projects/Frost/build/windows-msvc/vcpkg_installed/x64-windows/share/glm/glmConfig-release.cmake
 D:/Projects/Frost/build/windows-msvc/vcpkg_installed/x64-windows/share/glm/glmConfig.cmake
 D:/Projects/Frost/build/windows-msvc/vcpkg_installed/x64-windows/share/glm/glmConfigVersion.cmake
+D:/Projects/Frost/build/windows-msvc/vcpkg_installed/x64-windows/share/stb/FindStb.cmake
+D:/Projects/Frost/build/windows-msvc/vcpkg_installed/x64-windows/share/stb/vcpkg-cmake-wrapper.cmake
 D:/Projects/Frost/cmake/Dependencies.cmake
 D:/Projects/Frost/vcpkg.json

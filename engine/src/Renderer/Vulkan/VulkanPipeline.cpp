@@ -1,5 +1,6 @@
 #include <Frost/Renderer/Vulkan/VulkanPipeline.hpp>
 
+#include <Frost/Renderer/ShaderData.hpp>
 #include <Frost/Renderer/Vertex.hpp>
 #include <Frost/Renderer/Vulkan/VulkanDevice.hpp>
 
@@ -25,9 +26,12 @@ namespace {
 namespace Frost {
 
     VulkanPipeline::VulkanPipeline(const VulkanDevice& device, const VkFormat colorAttachmentFormat,
-                                   const std::string& vertexShaderPath, const std::string& fragmentShaderPath)
+                                   const VkDescriptorSetLayout frameSetLayout,
+                                   const VkDescriptorSetLayout materialSetLayout, const std::string& vertexShaderPath,
+                                   const std::string& fragmentShaderPath)
         : m_Device(device.GetHandle()), m_ColorAttachmentFormat(colorAttachmentFormat) {
-        CreatePipeline(device, colorAttachmentFormat, vertexShaderPath, fragmentShaderPath);
+        CreatePipeline(device, colorAttachmentFormat, frameSetLayout, materialSetLayout, vertexShaderPath,
+                       fragmentShaderPath);
     }
 
     VulkanPipeline::~VulkanPipeline() {
@@ -84,6 +88,8 @@ namespace Frost {
     }
 
     void VulkanPipeline::CreatePipeline(const VulkanDevice& device, const VkFormat colorAttachmentFormat,
+                                        const VkDescriptorSetLayout frameSetLayout,
+                                        const VkDescriptorSetLayout materialSetLayout,
                                         const std::string& vertexShaderPath, const std::string& fragmentShaderPath) {
         const VkShaderModule vertexModule = CreateShaderModule(device, ReadFile(vertexShaderPath));
         const VkShaderModule fragmentModule = CreateShaderModule(device, ReadFile(fragmentShaderPath));
@@ -106,7 +112,7 @@ namespace Frost {
         };
 
         const VkVertexInputBindingDescription bindingDescription = Vertex::GetBindingDescription();
-        const std::array<VkVertexInputAttributeDescription, 4> attributeDescriptions =
+        const std::array<VkVertexInputAttributeDescription, Vertex::kAttributeCount> attributeDescriptions =
                 Vertex::GetAttributeDescriptions();
 
         const VkPipelineVertexInputStateCreateInfo vertexInputState{
@@ -218,18 +224,21 @@ namespace Frost {
                 .pDynamicStates = dynamicStates.data(),
         };
 
-        const VkPushConstantRange pushConstantRange{
+        constexpr VkPushConstantRange pushConstantRange{
                 .stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
                 .offset = 0,
-                .size = sizeof(float) * 16,  // sizeof(glm::mat4), without needing a glm include here.
+                .size = sizeof(MeshPushConstants),
         };
+
+        // Set indices are the array positions: 0 = per-frame, 1 = material (see the shaders).
+        const std::array<VkDescriptorSetLayout, 2> setLayouts = {frameSetLayout, materialSetLayout};
 
         const VkPipelineLayoutCreateInfo layoutInfo{
                 .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
                 .pNext = nullptr,
                 .flags = 0,
-                .setLayoutCount = 0,
-                .pSetLayouts = nullptr,
+                .setLayoutCount = static_cast<std::uint32_t>(setLayouts.size()),
+                .pSetLayouts = setLayouts.data(),
                 .pushConstantRangeCount = 1,
                 .pPushConstantRanges = &pushConstantRange,
         };

@@ -1,25 +1,40 @@
 #include <Frost/Renderer/Renderer.hpp>
 
+#include <Frost/Assets/GltfImporter.hpp>
+#include <Frost/Assets/Image.hpp>
+#include <Frost/Assets/ImportError.hpp>
 #include <Frost/Platform/Window.hpp>
+#include <Frost/Renderer/Material.hpp>
+#include <Frost/Renderer/MaterialSystem.hpp>
 #include <Frost/Renderer/Mesh.hpp>
-#include <Frost/Renderer/Vertex.hpp>
+#include <Frost/Renderer/ShaderData.hpp>
+#include <Frost/Renderer/Texture.hpp>
 #include <Frost/Renderer/Vulkan/VulkanAllocator.hpp>
+#include <Frost/Renderer/Vulkan/VulkanBuffer.hpp>
 #include <Frost/Renderer/Vulkan/VulkanCommandPool.hpp>
 #include <Frost/Renderer/Vulkan/VulkanContext.hpp>
+#include <Frost/Renderer/Vulkan/VulkanDescriptorAllocator.hpp>
 #include <Frost/Renderer/Vulkan/VulkanDevice.hpp>
 #include <Frost/Renderer/Vulkan/VulkanPhysicalDevice.hpp>
 #include <Frost/Renderer/Vulkan/VulkanPipeline.hpp>
 #include <Frost/Renderer/Vulkan/VulkanSwapchain.hpp>
 
+#include <glm/gtc/matrix_transform.hpp>
 #include <glm/mat4x4.hpp>
+#include <glm/matrix.hpp>
 
+#include <array>
 #include <cstdint>
 #include <iostream>
 #include <limits>
 #include <memory>
+#include <optional>
 #include <sstream>
 #include <stdexcept>
+#include <string>
+#include <unordered_map>
 #include <utility>
+#include <vector>
 
 namespace {
 
@@ -28,6 +43,45 @@ namespace {
     // matters when the presentation engine has gone away (e.g. surface lost) and guards against
     // hanging the process on exit.
     constexpr std::uint64_t kShutdownPresentTimeoutNs = 2'000'000'000;  // 2 s
+
+    // The model drawn until a scene system exists. Relative to the working directory, like the
+    // shader paths; cmake/Assets.cmake stages it next to the executable. The same model ships in
+    // both glTF containers: Glock19X.glb (self-contained) and Glock19.gltf + Glock19.bin (JSON with
+    // an external buffer), plus broken.gltf + broken.bin (a truncated buffer) to try the
+    // import-failure path: the failure is logged and the engine runs on with nothing to draw.
+    constexpr const char* kTestMeshPath = "assets/Glock19.gltf";
+
+    // Hand-built materials for the test model, which ships with (almost) no materials of its
+    // own: exercises the manual path (ImageImporter -> MaterialSystem -> Mesh::SetMaterial) and
+    // the corners of the metallic-roughness model. Each texture path may be null (slot left at
+    // its neutral default); the metallic-roughness textures carry the same values as the factors
+    // (G = roughness, B = metallic), so both paths are exercised. Sub-meshes not listed here keep
+    // whatever the file specified (or the default material).
+    struct TestMaterial {
+        const char* subMesh;
+        const char* baseColorTexture;
+        const char* metallicRoughnessTexture;
+        const char* normalTexture;
+        float metallic;
+        float roughness;
+    };
+
+    constexpr std::array<TestMaterial, 5> kTestMaterials = {{
+            // Polished black metal: fully metallic, no roughness (a mirror, so without an
+            // environment to reflect it stays dark apart from the light's highlight).
+            {"slide", "assets/black64.png", "assets/mr_metal_smooth.png", nullptr, 1.0f, 0.0f},
+            // Rough dielectrics. The grip also gets the only normal map (a generated bump pattern).
+            {"Grip", nullptr, "assets/mr_rough.png", "assets/normal_grip.png", 0.0f, 1.0f},
+            {"FrontSight", nullptr, "assets/mr_rough.png", nullptr, 0.0f, 1.0f},
+            {"RearSight", nullptr, "assets/mr_rough.png", nullptr, 0.0f, 1.0f},
+            // Rough metal: both at full.
+            {"Barrel", nullptr, "assets/mr_metal_rough.png", nullptr, 1.0f, 1.0f},
+    }};
+
+    // The test model is authored at real-world scale (a pistol, ~0.4 units long, centered near the
+    // origin). Its mesh transform scales it up so it fills a good part of the view under the
+    // placeholder projection (see UpdateFrameUniforms); goes away with the first real camera.
+    constexpr float kTestMeshScale = 4.0f;
 
     [[nodiscard]]
     std::runtime_error VulkanError(const char* const operation, const VkResult result) {
@@ -49,8 +103,11 @@ namespace Frost {
         m_Allocator = std::make_unique<VulkanAllocator>(*m_Context, *m_PhysicalDevice, *m_Device);
         m_Swapchain = std::make_unique<VulkanSwapchain>(*m_Context, *m_PhysicalDevice, *m_Device, window);
         m_CommandPool = std::make_unique<VulkanCommandPool>(*m_PhysicalDevice, *m_Device);
+        m_DescriptorAllocator = std::make_unique<VulkanDescriptorAllocator>(*m_Device);
 
         m_Pipeline = std::make_unique<VulkanPipeline>(*m_Device, m_Swapchain->GetImageFormat(),
+                                                      m_DescriptorAllocator->GetFrameSetLayout(),
+                                                      m_DescriptorAllocator->GetMaterialSetLayout(),
                                                       "shaders/basic.vert.spv", "shaders/basic.frag.spv");
 
         m_CommandBuffers = m_CommandPool->AllocateCommandBuffers(*m_Device, kFramesInFlight);
@@ -63,10 +120,25 @@ namespace Frost {
         // the unique_ptr members above unwind on their own.
         try {
             CreateSyncObjects();
-            m_TestMesh = CreateTestMesh(*m_Allocator, *m_Device, *m_CommandPool);
+            CreateFrameUniformBuffers();
+
+            m_MaterialSystem =
+                    std::make_unique<MaterialSystem>(*m_Allocator, *m_Device, *m_CommandPool, *m_DescriptorAllocator);
+
+            // Content problems (a missing or broken asset) are not fatal to the renderer: report
+            // them and run with an empty scene. Anything else that throws here is an engine
+            // failure and propagates.
+            try {
+                m_TestMesh = LoadTestMesh();
+            }
+            catch (const ImportError& e) {
+                std::cerr << "[Frost::Renderer] Could not load the test model; nothing will be drawn. " << e.what()
+                          << '\n';
+            }
         }
         catch (...) {
             vkDeviceWaitIdle(m_Device->GetHandle());
+            DestroyFrameUniformBuffers();
             DestroySyncObjects();
             DestroyPresentFences();
             throw;
@@ -99,37 +171,191 @@ namespace Frost {
 
         m_Swapchain.reset();
 
+        DestroyFrameUniformBuffers();
         DestroySyncObjects();
         DestroyPresentFences();
     }
 
-    std::unique_ptr<Mesh> Renderer::CreateTestMesh(const VulkanAllocator& allocator, const VulkanDevice& device,
-                                                   const VulkanCommandPool& commandPool) {
-        // Temporary hardcoded geometry to prove the buffer/pipeline chain end to end; real content
-        // arrives once model loading exists. A single triangle in the XY plane, rendered with an
-        // identity MVP (no camera/projection exists yet either), so it appears centered on screen.
-        //
-        // Vertices are wound counter-clockwise in the +Y-up space that RecordCommandBuffer's
-        // flipped viewport establishes (top, bottom-left, bottom-right), matching the pipeline's
-        // CCW front-face + back-face culling so the triangle is front-facing and survives culling.
-        const std::vector<Vertex> vertices = {
-                Vertex{.position = {0.0f, 0.5f, 0.0f},
-                      .normal = {0.0f, 0.0f, 1.0f},
-                      .uv = {0.5f, 1.0f},
-                      .color = {1.0f, 0.0f, 0.0f, 1.0f}},
-                Vertex{.position = {-0.5f, -0.5f, 0.0f},
-                      .normal = {0.0f, 0.0f, 1.0f},
-                      .uv = {0.0f, 0.0f},
-                      .color = {0.0f, 1.0f, 0.0f, 1.0f}},
-                Vertex{.position = {0.5f, -0.5f, 0.0f},
-                      .normal = {0.0f, 0.0f, 1.0f},
-                      .uv = {1.0f, 0.0f},
-                      .color = {0.0f, 0.0f, 1.0f, 1.0f}},
+    std::unique_ptr<Mesh> Renderer::UploadMesh(const MeshData& data) const {
+        auto mesh = std::make_unique<Mesh>(*m_Allocator, *m_Device, *m_CommandPool, data);
+
+        // One Texture per imported texture and one Material per imported material, shared by
+        // everything that references them.
+        std::vector<std::shared_ptr<Texture>> textures;
+        textures.reserve(data.textures.size());
+        for (const TextureData& textureData : data.textures) {
+            textures.push_back(m_MaterialSystem->CreateTexture(textureData.image, textureData.settings));
+        }
+
+        auto textureAt = [&textures](const std::int32_t index) -> std::shared_ptr<Texture> {
+            if (index < 0) { return nullptr; }
+            if (static_cast<std::size_t>(index) >= textures.size()) {
+                throw std::runtime_error("Mesh data references a texture index that does not exist.");
+            }
+            return textures[static_cast<std::size_t>(index)];
         };
 
-        const std::vector<std::uint32_t> indices = {0, 1, 2};
+        std::vector<std::shared_ptr<Material>> materials;
+        materials.reserve(data.materials.size());
+        for (const MaterialData& materialData : data.materials) {
+            materials.push_back(m_MaterialSystem->CreateMaterial(
+                    materialData.parameters,
+                    MaterialTextures{.baseColor = textureAt(materialData.baseColorTexture),
+                                     .metallicRoughness = textureAt(materialData.metallicRoughnessTexture),
+                                     .normal = textureAt(materialData.normalTexture),
+                                     .occlusion = textureAt(materialData.occlusionTexture),
+                                     .emissive = textureAt(materialData.emissiveTexture)}));
+        }
 
-        return std::make_unique<Mesh>(allocator, device, commandPool, vertices, indices);
+        for (std::size_t i = 0; i < data.subMeshes.size(); ++i) {
+            const std::int32_t materialIndex = data.subMeshes[i].materialIndex;
+            if (materialIndex < 0) { continue; }
+
+            if (static_cast<std::size_t>(materialIndex) >= materials.size()) {
+                throw std::runtime_error("Mesh data references a material index that does not exist.");
+            }
+            mesh->SetMaterial(i, materials[static_cast<std::size_t>(materialIndex)]);
+        }
+
+        return mesh;
+    }
+
+    std::unique_ptr<Mesh> Renderer::LoadTestMesh() const {
+        // Stand-in for a scene/asset system: one model, loaded once. GltfImporter walks the
+        // file's node hierarchy and bakes every node's transform into the vertices, so the parts
+        // of the model (each a separate glTF mesh/node) arrive as sub-meshes of a single Mesh,
+        // already posed relative to each other, along with whatever materials the file has.
+        std::unique_ptr<Mesh> mesh = UploadMesh(GltfImporter::Import(kTestMeshPath));
+
+        // Engine-side placement of the model: for now just the scale that makes it visible.
+        mesh->SetTransform(glm::scale(glm::mat4(1.0f), glm::vec3(kTestMeshScale)));
+
+        // Hand-built materials (see kTestMaterials). Images are imported on their own and
+        // uploaded once each, however many materials share them; a missing or unreadable image
+        // is logged and its slot left at the default, so the model still renders.
+        std::unordered_map<std::string, std::shared_ptr<Texture>> loadedTextures;
+        auto loadTexture = [&](const char* const path, const bool srgb) -> std::shared_ptr<Texture> {
+            if (path == nullptr) { return nullptr; }
+            if (const auto loaded = loadedTextures.find(path); loaded != loadedTextures.end()) {
+                return loaded->second;
+            }
+
+            std::shared_ptr<Texture> texture;
+            try {
+                texture = m_MaterialSystem->CreateTexture(ImageImporter::Import(path), TextureSettings{.srgb = srgb});
+            }
+            catch (const ImportError& e) {
+                std::cerr << "[Frost::Renderer] Could not load test texture '" << path
+                          << "'; leaving that material slot at its default. " << e.what() << '\n';
+            }
+
+            loadedTextures.emplace(path, texture);
+            return texture;
+        };
+
+        for (const TestMaterial& test : kTestMaterials) {
+            const std::optional<std::size_t> subMesh = mesh->FindSubMesh(test.subMesh);
+            if (!subMesh.has_value()) {
+                std::cerr << "[Frost::Renderer] Test model has no sub-mesh named '" << test.subMesh
+                          << "'; skipping its test material.\n";
+                continue;
+            }
+
+            mesh->SetMaterial(*subMesh, m_MaterialSystem->CreateMaterial(
+                                                MaterialParameters{.metallicFactor = test.metallic,
+                                                                   .roughnessFactor = test.roughness},
+                                                MaterialTextures{
+                                                        .baseColor = loadTexture(test.baseColorTexture, true),
+                                                        .metallicRoughness =
+                                                                loadTexture(test.metallicRoughnessTexture, false),
+                                                        .normal = loadTexture(test.normalTexture, false),
+                                                        .occlusion = nullptr,
+                                                        .emissive = nullptr,
+                                                }));
+        }
+
+        return mesh;
+    }
+
+    void Renderer::CreateFrameUniformBuffers() {
+        m_FrameUniforms.resize(kFramesInFlight);
+
+        for (FrameUniformBuffer& frame : m_FrameUniforms) {
+            // Host-visible (persistently mapped) rather than device-local: it is rewritten every
+            // frame and read once, so a staging upload would cost more than it saves.
+            frame.buffer = std::make_unique<VulkanBuffer>(*m_Allocator, sizeof(FrameUniforms),
+                                                          VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, true);
+            frame.descriptorSet = m_DescriptorAllocator->Allocate(m_DescriptorAllocator->GetFrameSetLayout());
+
+            const VkDescriptorBufferInfo bufferInfo{
+                    .buffer = frame.buffer->GetHandle(),
+                    .offset = 0,
+                    .range = sizeof(FrameUniforms),
+            };
+
+            const VkWriteDescriptorSet write{
+                    .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+                    .pNext = nullptr,
+                    .dstSet = frame.descriptorSet,
+                    .dstBinding = 0,
+                    .dstArrayElement = 0,
+                    .descriptorCount = 1,
+                    .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                    .pImageInfo = nullptr,
+                    .pBufferInfo = &bufferInfo,
+                    .pTexelBufferView = nullptr,
+            };
+
+            vkUpdateDescriptorSets(m_Device->GetHandle(), 1, &write, 0, nullptr);
+
+            // Valid contents from the start (identity matrices), should a frame ever be recorded
+            // before its first update.
+            const FrameUniforms initial{};
+            frame.buffer->CopyData(&initial, sizeof(initial));
+        }
+    }
+
+    void Renderer::DestroyFrameUniformBuffers() noexcept {
+        for (FrameUniformBuffer& frame : m_FrameUniforms) {
+            if (frame.descriptorSet != VK_NULL_HANDLE) {
+                m_DescriptorAllocator->Free(frame.descriptorSet);
+                frame.descriptorSet = VK_NULL_HANDLE;
+            }
+            frame.buffer.reset();
+        }
+
+        m_FrameUniforms.clear();
+    }
+
+    void Renderer::UpdateFrameUniforms(const std::uint32_t frameIndex) const {
+        // No camera yet: the view is the identity (the viewer sits at the origin looking down -Z,
+        // +Y up, matching the flipped viewport in RecordCommandBuffer). The projection is the
+        // placeholder that keeps the picture sane until one exists: an orthographic projection
+        // that maps the *shorter* framebuffer axis to [-1, 1] and widens the longer one by the
+        // aspect ratio, so the model keeps its proportions, stays centered and is never clipped at
+        // any window shape; its depth range [-1, 1] -> [0, 1] (Vulkan's) also keeps geometry
+        // slightly behind the origin from being clipped by the near plane.
+        const VkExtent2D extent = m_Swapchain->GetExtent();
+        const float aspect = static_cast<float>(extent.width) / static_cast<float>(extent.height);
+
+        const float halfWidth = aspect >= 1.0f ? aspect : 1.0f;
+        const float halfHeight = aspect >= 1.0f ? 1.0f : 1.0f / aspect;
+
+        // One fixed directional light from the viewer's upper left, bright enough that a white
+        // diffuse surface facing it reads as white (Lambert divides by pi), and a little flat
+        // ambient so faces the light misses are not pure black.
+        const glm::mat4 view(1.0f);
+
+        const FrameUniforms uniforms{
+                .view = view,
+                .projection = glm::orthoRH_ZO(-halfWidth, halfWidth, -halfHeight, halfHeight, -1.0f, 1.0f),
+                .cameraPosition = glm::inverse(view)[3],
+                .lightDirection = glm::vec4(glm::normalize(glm::vec3(0.4f, -0.6f, -0.7f)), 0.0f),
+                .lightColor = glm::vec4(glm::vec3(3.0f), 1.0f),
+                .ambientColor = glm::vec4(glm::vec3(0.12f), 1.0f),
+        };
+
+        m_FrameUniforms[frameIndex].buffer->CopyData(&uniforms, sizeof(uniforms));
     }
 
     void Renderer::CreateSyncObjects() {
@@ -249,6 +475,8 @@ namespace Frost {
         // in-flight command buffers, so it retires with the swapchain rather than being destroyed.
         if (m_Pipeline->GetColorAttachmentFormat() != m_Swapchain->GetImageFormat()) {
             auto pipeline = std::make_unique<VulkanPipeline>(*m_Device, m_Swapchain->GetImageFormat(),
+                                                             m_DescriptorAllocator->GetFrameSetLayout(),
+                                                             m_DescriptorAllocator->GetMaterialSetLayout(),
                                                              "shaders/basic.vert.spv", "shaders/basic.frag.spv");
             m_Retired.back().pipeline = std::move(m_Pipeline);
             m_Pipeline = std::move(pipeline);
@@ -498,6 +726,10 @@ namespace Frost {
         result = vkResetCommandBuffer(commandBuffer, 0);
         if (result != VK_SUCCESS) { throw VulkanError("vkResetCommandBuffer", result); }
 
+        // Safe to overwrite: the fence wait above proved the last frame that used this slot's
+        // buffer has completed.
+        UpdateFrameUniforms(m_CurrentFrame);
+
         RecordCommandBuffer(commandBuffer, imageIndex);
 
         // Keyed by the image just acquired, not by m_CurrentFrame: a successful acquire of this
@@ -675,25 +907,15 @@ namespace Frost {
         const VkRect2D scissor{.offset = {0, 0}, .extent = extent};
         vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
-        // With an identity MVP the mesh lives directly in NDC, which spans the whole framebuffer,
-        // so it would stretch with the window. Until a camera exists, stand in for the projection
-        // with an orthographic scale that maps the *shorter* framebuffer axis to [-1, 1] and widens
-        // the longer one by the aspect ratio: the triangle keeps its proportions, stays centered
-        // (the scale is about the origin), and is never clipped at any window shape.
-        const float aspect = static_cast<float>(extent.width) / static_cast<float>(extent.height);
+        // Per-frame constants (set 0) for every draw of this frame; Mesh::Draw supplies the
+        // per-draw push constants and the per-sub-mesh texture set.
+        const VkDescriptorSet frameSet = m_FrameUniforms[m_CurrentFrame].descriptorSet;
+        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_Pipeline->GetLayout(), 0, 1,
+                                &frameSet, 0, nullptr);
 
-        glm::mat4 mvp(1.0f);
-        if (aspect >= 1.0f) {
-            mvp[0][0] = 1.0f / aspect;  // Landscape: compress X so one world unit is square.
+        if (m_TestMesh != nullptr) {
+            m_TestMesh->Draw(commandBuffer, m_Pipeline->GetLayout(), *m_MaterialSystem->GetDefaultMaterial());
         }
-        else {
-            mvp[1][1] = aspect;  // Portrait: compress Y instead.
-        }
-
-        vkCmdPushConstants(commandBuffer, m_Pipeline->GetLayout(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4),
-                           &mvp);
-
-        m_TestMesh->Draw(commandBuffer);
 
         vkCmdEndRendering(commandBuffer);
 

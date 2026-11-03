@@ -3,6 +3,7 @@ Compiler found: C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Tools
 The following packages are already installed:
     glfw3:x64-windows@3.4#1
     glm:x64-windows@1.0.3
+    stb:x64-windows@2024-07-29#1
   * vcpkg-cmake:x64-windows@2024-04-23
   * vcpkg-cmake-config:x64-windows@2024-05-23
     vulkan-memory-allocator:x64-windows@3.4.0
@@ -26,6 +27,10 @@ The package glm provides CMake targets:
     find_package(glm CONFIG REQUIRED)
     target_link_libraries(main PRIVATE glm::glm-header-only)
 
+The package stb provides CMake targets:
+
+    find_package(Stb REQUIRED)
+    target_include_directories(main PRIVATE ${Stb_INCLUDE_DIR})
 VulkanMemoryAllocator provides official find_package support. However, it requires the user to provide the include directory containing `vulkan/vulkan.h`. There are multiple ways to achieve this and VulkanMemoryAllocator is compatible with all of them.
 
     find_package(Vulkan) # https://cmake.org/cmake/help/latest/module/FindVulkan.html, CMake 3.21+
@@ -46,4 +51,4 @@ or
 
 See the documentation for more information on setting up your project: https://gpuopen-librariesandsdks.github.io/VulkanMemoryAllocator/html/index.html
 
-All requested installations completed successfully in: 224 us
+All requested installations completed successfully in: 133 us

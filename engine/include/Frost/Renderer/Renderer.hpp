@@ -16,15 +16,21 @@ namespace Frost {
     class VulkanPhysicalDevice;
     class VulkanDevice;
     class VulkanAllocator;
+    class VulkanBuffer;
     class VulkanCommandPool;
+    class VulkanDescriptorAllocator;
     class VulkanPipeline;
+    class MaterialSystem;
     class Mesh;
+    struct MeshData;
 
     // Top-level render system owned by Engine. Owns the full Vulkan bring-up chain
     // (instance/surface -> physical device -> logical device -> allocator -> swapchain) plus the
-    // frame loop itself: a command pool, per-frame sync objects, a dynamic-rendering pipeline, and
-    // (temporarily) a single hardcoded test mesh so the chain can be verified end to end before a
-    // model/asset system exists to feed it real geometry.
+    // frame loop itself: a command pool, per-frame sync objects and uniform buffers (view and
+    // projection matrices and the one fixed light, see FrameUniforms), a descriptor allocator, a
+    // dynamic-rendering pipeline, the material system, and (temporarily) a single test mesh
+    // imported from a glTF asset so the chain can be verified end to end before a scene/asset
+    // system exists to decide what is drawn.
     //
     // The swapchain is rebuilt whenever the window reports a framebuffer resize or the presentation
     // engine reports the current one out of date/suboptimal; frames are skipped while the window is
@@ -34,8 +40,8 @@ namespace Frost {
     // and the presentation engine is done with its presents (see ReleaseRetiredResources).
     //
     // Known gaps, deferred to follow-up passes: no depth buffer, no scene/entity abstraction
-    // (Tick() always draws the one test mesh, with only an aspect-ratio-correcting projection in
-    // place of a real camera).
+    // (Tick() always draws the one test mesh), no camera (the per-frame view matrix is identity and
+    // the projection a fixed aspect-ratio-correcting orthographic one; see UpdateFrameUniforms).
     class Renderer final {
     public:
         // The window is held by reference for the renderer's lifetime (Engine guarantees it
@@ -63,6 +69,14 @@ namespace Frost {
             // Frame number (1-based, see m_SubmittedFrame) of the submission inFlight guards; 0
             // until the slot's first submit.
             std::uint64_t frameNumber = 0;
+        };
+
+        // Per frame-in-flight uniform buffer holding FrameUniforms, and the set 0 descriptor set
+        // pointing at it. Host-visible and rewritten by UpdateFrameUniforms once the slot's fence
+        // proves the previous frame that read it has finished.
+        struct FrameUniformBuffer {
+            std::unique_ptr<VulkanBuffer> buffer;
+            VkDescriptorSet descriptorSet = VK_NULL_HANDLE;
         };
 
         // Everything a swapchain recreation replaces, kept alive until it is provably unused.
@@ -96,12 +110,28 @@ namespace Frost {
         // this means presentation fences are not signaling and the pool is leaking one per frame.
         static constexpr std::size_t kLivePresentFenceWarningCount = 64;
 
+        // Uploads imported geometry as a Mesh, creating a Texture/Material for each of its
+        // MeshData::textures/materials and attaching the materials to the sub-meshes that
+        // reference them.
         [[nodiscard]]
-        static std::unique_ptr<Mesh> CreateTestMesh(const VulkanAllocator& allocator, const VulkanDevice& device,
-                                                    const VulkanCommandPool& commandPool);
+        std::unique_ptr<Mesh> UploadMesh(const MeshData& data) const;
+
+        // Imports the test model (see kTestMeshPath in Renderer.cpp) through GltfImporter, uploads
+        // it, and assigns hand-built materials (from separately imported images) to its sub-meshes
+        // (see kTestMaterials). Throws ImportError if the model is missing or unreadable (the
+        // constructor logs that and carries on without a mesh); a bad texture is logged and that
+        // slot left unset.
+        [[nodiscard]]
+        std::unique_ptr<Mesh> LoadTestMesh() const;
 
         void CreateSyncObjects();
         void DestroySyncObjects() noexcept;
+
+        void CreateFrameUniformBuffers();
+        void DestroyFrameUniformBuffers() noexcept;
+
+        // Writes this frame's FrameUniforms (view and projection) into the given slot's buffer.
+        void UpdateFrameUniforms(std::uint32_t frameIndex) const;
 
         // Split out of the above because they are also redone on swapchain recreation: the
         // render-finished semaphores are per swapchain image, and the image count may change.
@@ -150,10 +180,17 @@ namespace Frost {
         std::unique_ptr<VulkanAllocator> m_Allocator;
         std::unique_ptr<VulkanSwapchain> m_Swapchain;
         std::unique_ptr<VulkanCommandPool> m_CommandPool;
+        // Outlives every Texture (they return their descriptor sets to it) and the pipeline (whose
+        // layout is built from its set layout).
+        std::unique_ptr<VulkanDescriptorAllocator> m_DescriptorAllocator;
         std::unique_ptr<VulkanPipeline> m_Pipeline;
-        std::unique_ptr<Mesh> m_TestMesh;
+        // Creates textures/materials and owns the defaults (bound for sub-meshes without a
+        // material); references the allocator, device, command pool and descriptor allocator above.
+        std::unique_ptr<MaterialSystem> m_MaterialSystem;
+        std::unique_ptr<Mesh> m_TestMesh;  // Null if the test model failed to import.
 
         std::vector<VkCommandBuffer> m_CommandBuffers;
+        std::vector<FrameUniformBuffer> m_FrameUniforms;  // One per frame in flight.
 
         // Semaphores/fences are plain Vulkan handles (not RAII types), so they are explicitly
         // destroyed by DestroySyncObjects() in ~Renderer(), before the unique_ptr members above

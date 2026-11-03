@@ -4,16 +4,34 @@
     <ClCompile Include="D:\Projects\Frost\engine\src\Application.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="D:\Projects\Frost\engine\src\Assets\GltfImporter.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Projects\Frost\engine\src\Assets\Image.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Projects\Frost\engine\src\Assets\Json.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="D:\Projects\Frost\engine\src\Engine.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="D:\Projects\Frost\engine\src\Platform\Window.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="D:\Projects\Frost\engine\src\Renderer\Material.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Projects\Frost\engine\src\Renderer\MaterialSystem.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="D:\Projects\Frost\engine\src\Renderer\Mesh.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="D:\Projects\Frost\engine\src\Renderer\Renderer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Projects\Frost\engine\src\Renderer\Texture.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="D:\Projects\Frost\engine\src\Renderer\Vertex.cpp">
@@ -31,10 +49,16 @@
     <ClCompile Include="D:\Projects\Frost\engine\src\Renderer\Vulkan\VulkanContext.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="D:\Projects\Frost\engine\src\Renderer\Vulkan\VulkanDescriptorAllocator.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="D:\Projects\Frost\engine\src\Renderer\Vulkan\VulkanPhysicalDevice.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="D:\Projects\Frost\engine\src\Renderer\Vulkan\VulkanDevice.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Projects\Frost\engine\src\Renderer\Vulkan\VulkanImage.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="D:\Projects\Frost\engine\src\Renderer\Vulkan\VulkanPipeline.cpp">
@@ -45,7 +69,19 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="D:\Projects\Frost\engine\src\Assets\Json.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Application.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Assets\GltfImporter.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Assets\Image.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Assets\ImportError.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Engine.hpp">
@@ -54,10 +90,22 @@
     <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Platform\Window.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Renderer\Material.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Renderer\MaterialSystem.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Renderer\Mesh.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Renderer\Renderer.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Renderer\ShaderData.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Renderer\Texture.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Renderer\Vertex.hpp">
@@ -75,10 +123,16 @@
     <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Renderer\Vulkan\VulkanContext.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Renderer\Vulkan\VulkanDescriptorAllocator.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Renderer\Vulkan\VulkanPhysicalDevice.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Renderer\Vulkan\VulkanDevice.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Renderer\Vulkan\VulkanImage.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Renderer\Vulkan\VulkanPipeline.hpp">

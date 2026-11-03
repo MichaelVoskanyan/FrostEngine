@@ -7,6 +7,7 @@
 #include <glm/vec4.hpp>
 
 #include <array>
+#include <cstdint>
 
 namespace Frost {
 
@@ -18,12 +19,18 @@ namespace Frost {
         glm::vec3 normal{0.0f};
         glm::vec2 uv{0.0f};
         glm::vec4 color{1.0f};
+        // Tangent-space basis for normal mapping: xyz = tangent (the surface direction along which
+        // u increases), w = +1/-1 handedness of the bitangent (bitangent = cross(normal, tangent) *
+        // w), as in glTF. Zero xyz means "unknown"; the shader then skips normal mapping.
+        glm::vec4 tangent{0.0f};
+
+        static constexpr std::uint32_t kAttributeCount = 5;
 
         [[nodiscard]]
         static VkVertexInputBindingDescription GetBindingDescription() noexcept;
 
         [[nodiscard]]
-        static std::array<VkVertexInputAttributeDescription, 4> GetAttributeDescriptions() noexcept;
+        static std::array<VkVertexInputAttributeDescription, kAttributeCount> GetAttributeDescriptions() noexcept;
     };
 
 }  // namespace Frost

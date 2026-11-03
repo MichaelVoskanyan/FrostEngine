@@ -10,12 +10,15 @@ namespace Frost {
     class VulkanDevice;
 
     // A single graphics pipeline built for dynamic rendering (no VkRenderPass/VkFramebuffer):
-    // fixed vertex input layout (see Vertex), a single mat4 push constant (model-view-projection),
-    // and one color attachment matching the swapchain's format. Depth testing is not wired up yet
-    // (no depth image/attachment exists).
+    // fixed vertex input layout (see Vertex), per-draw push constants (MeshPushConstants, pushed by
+    // Mesh::Draw), two descriptor sets (set 0: per-frame uniforms, bound once per frame by
+    // Renderer; set 1: the material, bound per sub-mesh by Mesh::Draw; both layouts owned by
+    // VulkanDescriptorAllocator), and one color attachment matching the swapchain's format. Depth
+    // testing is not wired up yet (no depth image/attachment exists).
     class VulkanPipeline final {
     public:
         VulkanPipeline(const VulkanDevice& device, VkFormat colorAttachmentFormat,
+                      VkDescriptorSetLayout frameSetLayout, VkDescriptorSetLayout materialSetLayout,
                       const std::string& vertexShaderPath, const std::string& fragmentShaderPath);
         ~VulkanPipeline();
 
@@ -45,6 +48,7 @@ namespace Frost {
         VkShaderModule CreateShaderModule(const VulkanDevice& device, const std::vector<char>& code) const;
 
         void CreatePipeline(const VulkanDevice& device, VkFormat colorAttachmentFormat,
+                            VkDescriptorSetLayout frameSetLayout, VkDescriptorSetLayout materialSetLayout,
                             const std::string& vertexShaderPath, const std::string& fragmentShaderPath);
 
         VkDevice m_Device = VK_NULL_HANDLE;  // Non-owning; used to destroy the pipeline/layout.

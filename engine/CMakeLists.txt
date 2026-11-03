@@ -4,17 +4,26 @@ add_library(Frost::Engine ALIAS FrostEngine)
 target_sources(FrostEngine
     PRIVATE
         src/Application.cpp
+        src/Assets/GltfImporter.cpp
+        src/Assets/Image.cpp
+        src/Assets/Json.cpp
+        src/Assets/Json.hpp
         src/Engine.cpp
         src/Platform/Window.cpp
+        src/Renderer/Material.cpp
+        src/Renderer/MaterialSystem.cpp
         src/Renderer/Mesh.cpp
         src/Renderer/Renderer.cpp
+        src/Renderer/Texture.cpp
         src/Renderer/Vertex.cpp
         src/Renderer/Vulkan/VulkanAllocator.cpp
         src/Renderer/Vulkan/VulkanBuffer.cpp
         src/Renderer/Vulkan/VulkanCommandPool.cpp
         src/Renderer/Vulkan/VulkanContext.cpp
+        src/Renderer/Vulkan/VulkanDescriptorAllocator.cpp
         src/Renderer/Vulkan/VulkanPhysicalDevice.cpp
         src/Renderer/Vulkan/VulkanDevice.cpp
+        src/Renderer/Vulkan/VulkanImage.cpp
         src/Renderer/Vulkan/VulkanPipeline.cpp
         src/Renderer/Vulkan/VulkanSwapchain.cpp
 
@@ -24,17 +33,26 @@ target_sources(FrostEngine
             include
         FILES
             include/Frost/Application.hpp
+            include/Frost/Assets/GltfImporter.hpp
+            include/Frost/Assets/Image.hpp
+            include/Frost/Assets/ImportError.hpp
             include/Frost/Engine.hpp
             include/Frost/Platform/Window.hpp
+            include/Frost/Renderer/Material.hpp
+            include/Frost/Renderer/MaterialSystem.hpp
             include/Frost/Renderer/Mesh.hpp
             include/Frost/Renderer/Renderer.hpp
+            include/Frost/Renderer/ShaderData.hpp
+            include/Frost/Renderer/Texture.hpp
             include/Frost/Renderer/Vertex.hpp
             include/Frost/Renderer/Vulkan/VulkanAllocator.hpp
             include/Frost/Renderer/Vulkan/VulkanBuffer.hpp
             include/Frost/Renderer/Vulkan/VulkanCommandPool.hpp
             include/Frost/Renderer/Vulkan/VulkanContext.hpp
+            include/Frost/Renderer/Vulkan/VulkanDescriptorAllocator.hpp
             include/Frost/Renderer/Vulkan/VulkanPhysicalDevice.hpp
             include/Frost/Renderer/Vulkan/VulkanDevice.hpp
+            include/Frost/Renderer/Vulkan/VulkanImage.hpp
             include/Frost/Renderer/Vulkan/VulkanPipeline.hpp
             include/Frost/Renderer/Vulkan/VulkanSwapchain.hpp
 )
@@ -47,6 +65,13 @@ target_compile_features(FrostEngine
 target_include_directories(FrostEngine
     PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+)
+
+# stb_image is header-only and only included by src/Assets/Image.cpp; SYSTEM keeps its warnings
+# out of the engine's -Wall/-W4 builds.
+target_include_directories(FrostEngine
+    SYSTEM PRIVATE
+        ${Stb_INCLUDE_DIR}
 )
 
 target_link_libraries(FrostEngine

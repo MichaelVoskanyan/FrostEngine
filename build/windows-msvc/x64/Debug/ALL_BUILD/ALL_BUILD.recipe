@@ -5,6 +5,9 @@
       <FullPath>D:\Projects\Frost\build\windows-msvc\x64\Debug\ZERO_CHECK</FullPath>
     </ProjectOutput>
     <ProjectOutput>
+      <FullPath>D:\Projects\Frost\build\windows-msvc\game\x64\Debug\FrostGameAssets</FullPath>
+    </ProjectOutput>
+    <ProjectOutput>
       <FullPath>D:\Projects\Frost\build\windows-msvc\game\x64\Debug\FrostGameShaders</FullPath>
     </ProjectOutput>
     <ProjectOutput>
