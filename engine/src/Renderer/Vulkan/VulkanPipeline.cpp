@@ -26,12 +26,12 @@ namespace {
 namespace Frost {
 
     VulkanPipeline::VulkanPipeline(const VulkanDevice& device, const VkFormat colorAttachmentFormat,
-                                   const VkDescriptorSetLayout frameSetLayout,
+                                   const VkFormat depthAttachmentFormat, const VkDescriptorSetLayout frameSetLayout,
                                    const VkDescriptorSetLayout materialSetLayout, const std::string& vertexShaderPath,
                                    const std::string& fragmentShaderPath)
         : m_Device(device.GetHandle()), m_ColorAttachmentFormat(colorAttachmentFormat) {
-        CreatePipeline(device, colorAttachmentFormat, frameSetLayout, materialSetLayout, vertexShaderPath,
-                       fragmentShaderPath);
+        CreatePipeline(device, colorAttachmentFormat, depthAttachmentFormat, frameSetLayout, materialSetLayout,
+                       vertexShaderPath, fragmentShaderPath);
     }
 
     VulkanPipeline::~VulkanPipeline() {
@@ -88,6 +88,7 @@ namespace Frost {
     }
 
     void VulkanPipeline::CreatePipeline(const VulkanDevice& device, const VkFormat colorAttachmentFormat,
+                                        const VkFormat depthAttachmentFormat,
                                         const VkDescriptorSetLayout frameSetLayout,
                                         const VkDescriptorSetLayout materialSetLayout,
                                         const std::string& vertexShaderPath, const std::string& fragmentShaderPath) {
@@ -173,15 +174,17 @@ namespace Frost {
                 .alphaToOneEnable = VK_FALSE,
         };
 
-        // No depth attachment yet, so depth test/write stay disabled; see VulkanPipeline's header
-        // comment. A depth image/attachment is a follow-up pass.
-        constexpr VkPipelineDepthStencilStateCreateInfo depthStencilState{
+        // Reversed-Z (see the header): nearer fragments have *greater* depth. GREATER_OR_EQUAL
+        // rather than GREATER so coplanar geometry drawn later (decals, editor overlays) still wins.
+        const bool hasDepth = depthAttachmentFormat != VK_FORMAT_UNDEFINED;
+
+        const VkPipelineDepthStencilStateCreateInfo depthStencilState{
                 .sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
                 .pNext = nullptr,
                 .flags = 0,
-                .depthTestEnable = VK_FALSE,
-                .depthWriteEnable = VK_FALSE,
-                .depthCompareOp = VK_COMPARE_OP_ALWAYS,
+                .depthTestEnable = hasDepth ? VK_TRUE : VK_FALSE,
+                .depthWriteEnable = hasDepth ? VK_TRUE : VK_FALSE,
+                .depthCompareOp = hasDepth ? VK_COMPARE_OP_GREATER_OR_EQUAL : VK_COMPARE_OP_ALWAYS,
                 .depthBoundsTestEnable = VK_FALSE,
                 .stencilTestEnable = VK_FALSE,
                 .front = {},
@@ -256,7 +259,7 @@ namespace Frost {
                 .viewMask = 0,
                 .colorAttachmentCount = 1,
                 .pColorAttachmentFormats = &colorAttachmentFormat,
-                .depthAttachmentFormat = VK_FORMAT_UNDEFINED,
+                .depthAttachmentFormat = depthAttachmentFormat,
                 .stencilAttachmentFormat = VK_FORMAT_UNDEFINED,
         };
 

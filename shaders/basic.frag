@@ -12,10 +12,26 @@ layout(set = 0, binding = 0) uniform FrameUniforms {
     mat4 view;
     mat4 projection;
     vec4 cameraPosition;
-    vec4 lightDirection;  // Direction the light travels, world space, normalized.
-    vec4 lightColor;      // rgb = color * intensity.
-    vec4 ambientColor;    // rgb; stand-in for image-based lighting.
+    vec4 ambientColor;  // rgb; stand-in for image-based lighting.
+    uvec4 lightCount;   // x = number of valid entries in `lights`.
 } frame;
+
+// The frame's lights (set 0, binding 1), written by the renderer from whatever the application
+// submitted this frame. Mirrored by Frost::GpuLight.
+const uint kLightDirectional = 0u;
+const uint kLightPoint = 1u;
+const uint kLightSpot = 2u;
+
+struct Light {
+    vec4 positionRange;  // xyz world position (point/spot), w range.
+    vec4 directionType;  // xyz direction the light travels (unit), w type (kLight*).
+    vec4 color;          // rgb = linear color * intensity.
+    vec4 spotCone;       // x cos(outer half-angle), y 1 / (cos(inner) - cos(outer)).
+};
+
+layout(std430, set = 0, binding = 1) readonly buffer LightBuffer {
+    Light lights[];
+};
 
 // Set 1 is the material (see VulkanDescriptorAllocator / Frost::Material): its parameters at
 // binding 0, its textures after that in MaterialTextures order. Mesh::Draw binds each sub-mesh's
@@ -59,6 +75,23 @@ vec3 ShadingNormal() {
     tangentNormal.xy *= material.normalScale;
 
     return normalize(mat3(t, b, n) * tangentNormal);
+}
+
+// Inverse-square falloff (physically correct for a point source), windowed so it reaches exactly
+// zero at the light's range instead of trailing off forever: (1 - (d/r)^4)^2, the window used by
+// Frostbite and Unreal. The 1 cm floor keeps a surface touching the light from blowing up.
+float DistanceAttenuation(float distanceSquared, float range) {
+    const float inverseSquare = 1.0 / max(distanceSquared, 0.0001);
+    const float ratio = distanceSquared / max(range * range, 0.0001);
+    const float window = clamp(1.0 - ratio * ratio, 0.0, 1.0);
+    return inverseSquare * window * window;
+}
+
+// Spot cone: full strength inside the inner cone, a smooth fade to zero at the outer cone.
+float SpotAttenuation(vec3 lightTravel, vec3 toLight, vec4 spotCone) {
+    const float cosAngle = dot(lightTravel, -toLight);
+    const float t = clamp((cosAngle - spotCone.x) * spotCone.y, 0.0, 1.0);
+    return t * t;
 }
 
 // Metallic-roughness BRDF as specified by glTF (Appendix B): Lambert diffuse plus a GGX specular
@@ -109,11 +142,34 @@ void main() {
     const vec3 orthographicToViewer = vec3(frame.view[0][2], frame.view[1][2], frame.view[2][2]);
     const vec3 v = normalize(frame.projection[3][3] == 1.0 ? orthographicToViewer
                                                            : frame.cameraPosition.xyz - fragWorldPosition);
-    const vec3 l = normalize(-frame.lightDirection.xyz);
-
-    // One directional light, plus a flat ambient term (occluded) standing in for environment
+    // Every light of the frame, plus a flat ambient term (occluded) standing in for environment
     // lighting until image-based lighting exists; emissive light is added unlit.
-    const vec3 direct = Brdf(n, v, l, diffuseColor, f0, roughness) * frame.lightColor.rgb;
+    vec3 direct = vec3(0.0);
+    for (uint i = 0u; i < frame.lightCount.x; ++i) {
+        const Light light = lights[i];
+        const uint type = uint(light.directionType.w + 0.5);
+        const vec3 travel = light.directionType.xyz;
+
+        vec3 l;
+        float attenuation = 1.0;
+
+        if (type == kLightDirectional) {
+            l = -travel;
+        }
+        else {
+            const vec3 toLight = light.positionRange.xyz - fragWorldPosition;
+            const float distanceSquared = dot(toLight, toLight);
+            if (distanceSquared >= light.positionRange.w * light.positionRange.w) { continue; }  // Out of range.
+
+            l = toLight * inversesqrt(max(distanceSquared, 1e-8));
+            attenuation = DistanceAttenuation(distanceSquared, light.positionRange.w);
+            if (type == kLightSpot) { attenuation *= SpotAttenuation(travel, l, light.spotCone); }
+        }
+
+        if (attenuation <= 0.0) { continue; }
+        direct += Brdf(n, v, l, diffuseColor, f0, roughness) * light.color.rgb * attenuation;
+    }
+
     const vec3 ambient = frame.ambientColor.rgb * (diffuseColor + f0) * occlusion;
 
     outColor = vec4(direct + ambient + emissive, baseColor.a);

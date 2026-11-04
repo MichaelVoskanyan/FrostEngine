@@ -23,14 +23,24 @@ namespace {
 namespace Frost {
 
     VulkanDescriptorAllocator::VulkanDescriptorAllocator(const VulkanDevice& device) : m_Device(device.GetHandle()) {
-        // The fragment stage reads the view matrix too (see basic.frag).
-        constexpr VkDescriptorSetLayoutBinding frameBinding{
-                .binding = 0,
-                .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                .descriptorCount = 1,
-                .stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
-                .pImmutableSamplers = nullptr,
-        };
+        // Binding 0: FrameUniforms (the fragment stage reads the view matrix too, see basic.frag).
+        // Binding 1: the frame's lights (GpuLight array), read only by the fragment stage.
+        constexpr std::array<VkDescriptorSetLayoutBinding, 2> frameBindings = {{
+                {
+                        .binding = 0,
+                        .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                        .descriptorCount = 1,
+                        .stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
+                        .pImmutableSamplers = nullptr,
+                },
+                {
+                        .binding = 1,
+                        .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                        .descriptorCount = 1,
+                        .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
+                        .pImmutableSamplers = nullptr,
+                },
+        }};
 
         // Binding 0: MaterialUniforms; bindings 1...: the texture slots, in MaterialTextures order.
         std::array<VkDescriptorSetLayoutBinding, 1 + MaterialTextures::kSlotCount> materialBindings{};
@@ -51,7 +61,7 @@ namespace Frost {
             };
         }
 
-        m_FrameSetLayout = CreateLayout(&frameBinding, 1);
+        m_FrameSetLayout = CreateLayout(frameBindings.data(), static_cast<std::uint32_t>(frameBindings.size()));
 
         try {
             m_MaterialSetLayout =
@@ -103,9 +113,10 @@ namespace Frost {
     }
 
     VkDescriptorPool VulkanDescriptorAllocator::CreatePool() {
-        // Sized so that kSetsPerPool sets of the larger (material) layout fit.
-        constexpr std::array<VkDescriptorPoolSize, 2> poolSizes = {
+        // Sized so that kSetsPerPool sets of either layout fit.
+        constexpr std::array<VkDescriptorPoolSize, 3> poolSizes = {
                 VkDescriptorPoolSize{.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, .descriptorCount = kSetsPerPool},
+                VkDescriptorPoolSize{.type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, .descriptorCount = kSetsPerPool},
                 VkDescriptorPoolSize{.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
                                      .descriptorCount = kSetsPerPool * MaterialTextures::kSlotCount},
         };

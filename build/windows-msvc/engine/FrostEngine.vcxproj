@@ -287,12 +287,22 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="D:\Projects\Frost\engine\src\Application.cpp" />
+    <ClCompile Include="D:\Projects\Frost\engine\src\Assets\AssetFile.cpp" />
+    <ClCompile Include="D:\Projects\Frost\engine\src\Assets\AssetId.cpp" />
+    <ClCompile Include="D:\Projects\Frost\engine\src\Assets\AssetImporter.cpp" />
+    <ClCompile Include="D:\Projects\Frost\engine\src\Assets\AssetManager.cpp" />
+    <ClCompile Include="D:\Projects\Frost\engine\src\Assets\AssetRegistry.cpp" />
     <ClCompile Include="D:\Projects\Frost\engine\src\Assets\GltfImporter.cpp" />
     <ClCompile Include="D:\Projects\Frost\engine\src\Assets\Image.cpp" />
     <ClCompile Include="D:\Projects\Frost\engine\src\Assets\Json.cpp" />
     <ClInclude Include="D:\Projects\Frost\engine\src\Assets\Json.hpp" />
     <ClCompile Include="D:\Projects\Frost\engine\src\Engine.cpp" />
+    <ClCompile Include="D:\Projects\Frost\engine\src\ImGui\ImGuiLayer.cpp" />
+    <ClCompile Include="D:\Projects\Frost\engine\src\Platform\Input.cpp" />
     <ClCompile Include="D:\Projects\Frost\engine\src\Platform\Window.cpp" />
+    <ClCompile Include="D:\Projects\Frost\engine\src\Project\Project.cpp" />
+    <ClCompile Include="D:\Projects\Frost\engine\src\Renderer\Camera.cpp" />
+    <ClCompile Include="D:\Projects\Frost\engine\src\Renderer\Light.cpp" />
     <ClCompile Include="D:\Projects\Frost\engine\src\Renderer\Material.cpp" />
     <ClCompile Include="D:\Projects\Frost\engine\src\Renderer\MaterialSystem.cpp" />
     <ClCompile Include="D:\Projects\Frost\engine\src\Renderer\Mesh.cpp" />
@@ -309,15 +319,31 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
     <ClCompile Include="D:\Projects\Frost\engine\src\Renderer\Vulkan\VulkanImage.cpp" />
     <ClCompile Include="D:\Projects\Frost\engine\src\Renderer\Vulkan\VulkanPipeline.cpp" />
     <ClCompile Include="D:\Projects\Frost\engine\src\Renderer\Vulkan\VulkanSwapchain.cpp" />
+    <ClCompile Include="D:\Projects\Frost\engine\src\Scene\GameObject.cpp" />
+    <ClCompile Include="D:\Projects\Frost\engine\src\Scene\Level.cpp" />
+    <ClCompile Include="D:\Projects\Frost\engine\src\Scene\LevelSerializer.cpp" />
     <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Application.hpp" />
+    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Assets\AssetFile.hpp" />
+    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Assets\AssetId.hpp" />
+    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Assets\AssetImporter.hpp" />
+    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Assets\AssetManager.hpp" />
+    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Assets\AssetRegistry.hpp" />
+    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Assets\AssetType.hpp" />
     <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Assets\GltfImporter.hpp" />
     <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Assets\Image.hpp" />
     <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Assets\ImportError.hpp" />
     <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Engine.hpp" />
+    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\ImGui\ImGuiLayer.hpp" />
+    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Platform\Filesystem.hpp" />
+    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Platform\Input.hpp" />
     <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Platform\Window.hpp" />
+    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Project\Project.hpp" />
+    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Renderer\Camera.hpp" />
+    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Renderer\Light.hpp" />
     <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Renderer\Material.hpp" />
     <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Renderer\MaterialSystem.hpp" />
     <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Renderer\Mesh.hpp" />
+    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Renderer\RenderOverlay.hpp" />
     <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Renderer\Renderer.hpp" />
     <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Renderer\ShaderData.hpp" />
     <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Renderer\Texture.hpp" />
@@ -332,6 +358,10 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
     <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Renderer\Vulkan\VulkanImage.hpp" />
     <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Renderer\Vulkan\VulkanPipeline.hpp" />
     <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Renderer\Vulkan\VulkanSwapchain.hpp" />
+    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Scene\Bounds.hpp" />
+    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Scene\GameObject.hpp" />
+    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Scene\Level.hpp" />
+    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Scene\LevelSerializer.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="D:\Projects\Frost\build\windows-msvc\ZERO_CHECK.vcxproj">

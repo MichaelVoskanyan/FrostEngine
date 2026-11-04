@@ -2,11 +2,17 @@
 
 #include <vulkan/vulkan.h>
 
+#include <Frost/Renderer/Camera.hpp>
+#include <Frost/Renderer/Light.hpp>
 #include <Frost/Renderer/Vulkan/VulkanSwapchain.hpp>
+
+#include <glm/mat4x4.hpp>
+#include <glm/vec3.hpp>
 
 #include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <vector>
 
 namespace Frost {
@@ -20,30 +26,61 @@ namespace Frost {
     class VulkanCommandPool;
     class VulkanDescriptorAllocator;
     class VulkanPipeline;
+    class VulkanImage;
+    class Material;
     class MaterialSystem;
     class Mesh;
+    class RenderOverlay;
     struct MeshData;
 
     // Top-level render system owned by Engine. Owns the full Vulkan bring-up chain
     // (instance/surface -> physical device -> logical device -> allocator -> swapchain) plus the
-    // frame loop itself: a command pool, per-frame sync objects and uniform buffers (view and
-    // projection matrices and the one fixed light, see FrameUniforms), a descriptor allocator, a
-    // dynamic-rendering pipeline, the material system, and (temporarily) a single test mesh
-    // imported from a glTF asset so the chain can be verified end to end before a scene/asset
-    // system exists to decide what is drawn.
+    // frame loop itself: a command pool, per-frame sync objects, uniform buffers (view and
+    // projection matrices, ambient light; see FrameUniforms) and light buffers (see GpuLight), a
+    // descriptor allocator, a depth buffer, a dynamic-rendering pipeline and the material system.
+    //
+    // What is drawn is decided by the application each frame: every Submit() between two Tick()s
+    // is one draw of a mesh (with its own transform and optional material overrides), and Tick()
+    // records them all. Lighting works the same way: every SubmitLight() adds one light to that
+    // frame (uploaded to the shaders' light buffer), on top of a flat ambient term
+    // (SetAmbientLight). There are no built-in lights: a frame with none submitted is lit by the
+    // ambient term alone. Submitted meshes/materials are kept alive by the renderer until the GPU
+    // has finished the frame that drew them, so callers may drop their own references (delete an
+    // object, unload an asset) at any time.
     //
     // The swapchain is rebuilt whenever the window reports a framebuffer resize or the presentation
     // engine reports the current one out of date/suboptimal; frames are skipped while the window is
     // minimized (zero-area framebuffer). Rebuilding never stalls the GPU: the replaced swapchain,
-    // its views, its per-image semaphores (and the pipeline, if its format changed) are parked in
-    // m_Retired and destroyed later, once frame-fence bookkeeping proves the GPU is done with them
-    // and the presentation engine is done with its presents (see ReleaseRetiredResources).
+    // its views, its per-image semaphores, the depth image (and the pipeline, if its format
+    // changed) are parked in m_Retired and destroyed later, once frame-fence bookkeeping proves the
+    // GPU is done with them and the presentation engine is done with its presents (see
+    // ReleaseRetiredResources).
     //
-    // Known gaps, deferred to follow-up passes: no depth buffer, no scene/entity abstraction
-    // (Tick() always draws the one test mesh), no camera (the per-frame view matrix is identity and
-    // the projection a fixed aspect-ratio-correcting orthographic one; see UpdateFrameUniforms).
+    // The view is taken from the Camera most recently given to SetCamera(); until one is set, a
+    // placeholder is used (identity view, fixed aspect-ratio-correcting orthographic projection;
+    // see UpdateFrameUniforms). The scene covers the whole swapchain image unless a sub-rectangle
+    // is set with SetSceneViewport() (the editor renders the scene into its viewport panel's
+    // area). An optional RenderOverlay (SetOverlay) is recorded after the scene each frame, into
+    // the same rendering scope; the editor's ImGui UI is drawn that way.
     class Renderer final {
     public:
+        // Frames that may be recorded/submitted before the GPU is known to have finished the
+        // oldest of them. Anything that writes per-frame GPU resources (see RenderOverlay) must
+        // multi-buffer them at least this deep.
+        static constexpr std::uint32_t kFramesInFlight = 2;
+
+        // Lights per frame the light buffer holds; SubmitLight() calls past this are ignored (with
+        // a one-time warning).
+        static constexpr std::uint32_t kMaxLights = 1024;
+
+        // A rectangle of the swapchain image in framebuffer pixels, origin at the top-left.
+        struct SceneViewport {
+            std::int32_t x = 0;
+            std::int32_t y = 0;
+            std::uint32_t width = 0;
+            std::uint32_t height = 0;
+        };
+
         // The window is held by reference for the renderer's lifetime (Engine guarantees it
         // outlives the renderer); non-const because resize notifications are consumed from it.
         explicit Renderer(Window& window);
@@ -55,11 +92,72 @@ namespace Frost {
         Renderer(Renderer&&) = delete;
         Renderer& operator=(Renderer&&) = delete;
 
+        // Records and presents one frame containing everything Submit()ted since the previous call.
+        // The submissions are consumed even if no frame is produced (e.g. while minimized).
         void Tick();
 
-    private:
-        static constexpr std::uint32_t kFramesInFlight = 2;
+        // Queues one draw of `mesh` for the next Tick(): `transform` is its model matrix, and a
+        // non-null materialOverrides[i] replaces sub-mesh i's material (see Mesh::Draw). Call once
+        // per object per frame. The renderer shares ownership of the mesh and materials until the
+        // GPU is done with the frame that draws them.
+        void Submit(std::shared_ptr<const Mesh> mesh, const glm::mat4& transform,
+                    std::vector<std::shared_ptr<Material>> materialOverrides = {});
 
+        // Adds a light to the next Tick()'s frame. Call once per light per frame.
+        void SubmitLight(const Light& light);
+
+        // The flat ambient light (linear RGB) added to every surface from now on, standing in for
+        // indirect/environment lighting. Black until set.
+        void SetAmbientLight(const glm::vec3& color) noexcept;
+
+        // Uploads imported geometry as a Mesh, creating a Texture/Material for each of its
+        // MeshData::textures/materials and attaching the materials to the sub-meshes that
+        // reference them. Blocks until the upload has completed. Throws std::invalid_argument for
+        // malformed data (see Mesh).
+        [[nodiscard]]
+        std::shared_ptr<Mesh> CreateMesh(const MeshData& data) const;
+
+        // Creates textures and materials (e.g. material overrides built in the editor).
+        [[nodiscard]]
+        const MaterialSystem& GetMaterialSystem() const noexcept;
+
+        // Restricts scene rendering to a sub-rectangle of the window (clamped to the swapchain
+        // extent), or resets it to the whole window (std::nullopt). The camera's aspect ratio then
+        // follows the rectangle. The overlay still covers the whole window.
+        void SetSceneViewport(const std::optional<SceneViewport>& viewport) noexcept;
+
+        // The camera subsequent frames are rendered from. Copied (a Camera is a small value), so
+        // the caller updates it by calling this again, typically once per frame. The projection's
+        // aspect ratio comes from the swapchain extent at the time the frame is recorded.
+        void SetCamera(const Camera& camera);
+
+        // Registers the overlay recorded on top of the scene each frame, or clears it (nullptr).
+        // Non-owning: the overlay must stay alive until it is cleared or the renderer is
+        // destroyed, and must itself wait for the GPU before destroying resources that frames in
+        // flight may still use.
+        void SetOverlay(RenderOverlay* overlay) noexcept;
+
+        // Read-only access for systems that create GPU resources against this renderer's device
+        // (e.g. ImGuiLayer). Valid for the renderer's lifetime.
+        [[nodiscard]]
+        const VulkanContext& GetContext() const noexcept;
+
+        [[nodiscard]]
+        const VulkanPhysicalDevice& GetPhysicalDevice() const noexcept;
+
+        [[nodiscard]]
+        const VulkanDevice& GetDevice() const noexcept;
+
+        // Color format of the swapchain images (what an overlay renders into). Stable in practice,
+        // but may change when the swapchain is rebuilt; overlays receive the current one per frame.
+        [[nodiscard]]
+        VkFormat GetSwapchainImageFormat() const noexcept;
+
+        // Format of the depth attachment bound alongside the swapchain image. Fixed at startup.
+        [[nodiscard]]
+        VkFormat GetDepthFormat() const noexcept;
+
+    private:
         // Per frame-in-flight. The render-finished semaphore deliberately does not live here: it is
         // consumed by the presentation engine, whose lifetime is tied to the swapchain image rather
         // than to the frame slot, so it is kept per swapchain image in m_RenderFinished instead.
@@ -71,17 +169,28 @@ namespace Frost {
             std::uint64_t frameNumber = 0;
         };
 
-        // Per frame-in-flight uniform buffer holding FrameUniforms, and the set 0 descriptor set
-        // pointing at it. Host-visible and rewritten by UpdateFrameUniforms once the slot's fence
-        // proves the previous frame that read it has finished.
+        // Per frame-in-flight uniform buffer holding FrameUniforms, the storage buffer holding the
+        // frame's GpuLights (room for kMaxLights), and the set 0 descriptor set pointing at both.
+        // Host-visible and rewritten by UpdateFrameUniforms once the slot's fence proves the
+        // previous frame that read them has finished.
         struct FrameUniformBuffer {
             std::unique_ptr<VulkanBuffer> buffer;
+            std::unique_ptr<VulkanBuffer> lightBuffer;
             VkDescriptorSet descriptorSet = VK_NULL_HANDLE;
+        };
+
+        // One Submit(): what to draw and with what. Holds shared ownership so the mesh/materials
+        // outlive every command buffer that references them.
+        struct DrawCommand {
+            std::shared_ptr<const Mesh> mesh;
+            glm::mat4 transform{1.0f};
+            std::vector<std::shared_ptr<Material>> materialOverrides;
         };
 
         // Everything a swapchain recreation replaces, kept alive until it is provably unused.
         struct RetiredResources {
             VulkanSwapchain::Retired swapchain;
+            std::unique_ptr<VulkanImage> depthImage;   // Sized to that swapchain's extent.
             std::vector<VkSemaphore> renderFinished;   // That swapchain's per-image semaphores.
             std::unique_ptr<VulkanPipeline> pipeline;  // Only if the pipeline had to be rebuilt.
             std::vector<VkFence> presentFences;        // Presentation fences of presents on it (extension path).
@@ -110,19 +219,18 @@ namespace Frost {
         // this means presentation fences are not signaling and the pool is leaking one per frame.
         static constexpr std::size_t kLivePresentFenceWarningCount = 64;
 
-        // Uploads imported geometry as a Mesh, creating a Texture/Material for each of its
-        // MeshData::textures/materials and attaching the materials to the sub-meshes that
-        // reference them.
+        // The first depth format (best precision first) the device supports as a depth attachment.
+        // D16_UNORM is guaranteed by the spec, so this always succeeds.
         [[nodiscard]]
-        std::unique_ptr<Mesh> UploadMesh(const MeshData& data) const;
+        VkFormat ChooseDepthFormat() const;
 
-        // Imports the test model (see kTestMeshPath in Renderer.cpp) through GltfImporter, uploads
-        // it, and assigns hand-built materials (from separately imported images) to its sub-meshes
-        // (see kTestMaterials). Throws ImportError if the model is missing or unreadable (the
-        // constructor logs that and carries on without a mesh); a bad texture is logged and that
-        // slot left unset.
+        // (Re)creates m_DepthImage at the swapchain's current extent.
+        void CreateDepthImage();
+
+        // The part of the swapchain image the scene is drawn into this frame: m_SceneViewport
+        // clamped to the extent, or the whole extent if unset. May be empty (zero area).
         [[nodiscard]]
-        std::unique_ptr<Mesh> LoadTestMesh() const;
+        VkRect2D GetSceneRect() const noexcept;
 
         void CreateSyncObjects();
         void DestroySyncObjects() noexcept;
@@ -130,8 +238,11 @@ namespace Frost {
         void CreateFrameUniformBuffers();
         void DestroyFrameUniformBuffers() noexcept;
 
-        // Writes this frame's FrameUniforms (view and projection) into the given slot's buffer.
-        void UpdateFrameUniforms(std::uint32_t frameIndex) const;
+        // Writes this frame's FrameUniforms (view and projection from m_Camera, or the placeholder
+        // if none has been set, the ambient light and the light count) and its lights into the
+        // given slot's buffers. The projection is built for the aspect ratio of `sceneRect`.
+        void UpdateFrameUniforms(std::uint32_t frameIndex, const VkRect2D& sceneRect,
+                                 const std::vector<Light>& lights) const;
 
         // Split out of the above because they are also redone on swapchain recreation: the
         // render-finished semaphores are per swapchain image, and the image count may change.
@@ -158,15 +269,16 @@ namespace Frost {
         void RecycleSignaledPresentFences(std::vector<VkFence>& fences);
         void DestroyPresentFences() noexcept;
 
-        void RecordCommandBuffer(VkCommandBuffer commandBuffer, std::uint32_t imageIndex) const;
+        void RecordCommandBuffer(VkCommandBuffer commandBuffer, std::uint32_t imageIndex,
+                                 const VkRect2D& sceneRect) const;
 
         // Records a single image layout transition. The stage/access masks must describe the work
         // that produces the image in oldLayout (src) and the work that consumes it in newLayout
         // (dst) so the transition is correctly ordered against both; see RecordCommandBuffer.
-        static void TransitionImage(VkCommandBuffer commandBuffer, VkImage image, VkImageLayout oldLayout,
-                                    VkImageLayout newLayout, VkPipelineStageFlags2 srcStageMask,
-                                    VkAccessFlags2 srcAccessMask, VkPipelineStageFlags2 dstStageMask,
-                                    VkAccessFlags2 dstAccessMask);
+        static void TransitionImage(VkCommandBuffer commandBuffer, VkImage image, VkImageAspectFlags aspectMask,
+                                    VkImageLayout oldLayout, VkImageLayout newLayout,
+                                    VkPipelineStageFlags2 srcStageMask, VkAccessFlags2 srcAccessMask,
+                                    VkPipelineStageFlags2 dstStageMask, VkAccessFlags2 dstAccessMask);
 
         Window& m_Window;  // Non-owning; see the constructor.
 
@@ -179,6 +291,12 @@ namespace Frost {
         std::unique_ptr<VulkanDevice> m_Device;
         std::unique_ptr<VulkanAllocator> m_Allocator;
         std::unique_ptr<VulkanSwapchain> m_Swapchain;
+        // One depth image, shared by all frames in flight: frames execute in submission order on
+        // the one graphics queue, and RecordCommandBuffer's barrier orders each frame's depth
+        // clear after the previous frame's depth writes. Rebuilt (and the old one retired) with
+        // the swapchain, whose extent it must match.
+        VkFormat m_DepthFormat = VK_FORMAT_UNDEFINED;
+        std::unique_ptr<VulkanImage> m_DepthImage;
         std::unique_ptr<VulkanCommandPool> m_CommandPool;
         // Outlives every Texture (they return their descriptor sets to it) and the pipeline (whose
         // layout is built from its set layout).
@@ -187,7 +305,22 @@ namespace Frost {
         // Creates textures/materials and owns the defaults (bound for sub-meshes without a
         // material); references the allocator, device, command pool and descriptor allocator above.
         std::unique_ptr<MaterialSystem> m_MaterialSystem;
-        std::unique_ptr<Mesh> m_TestMesh;  // Null if the test model failed to import.
+
+        std::optional<Camera> m_Camera;                // Unset until SetCamera(); see UpdateFrameUniforms.
+        std::optional<SceneViewport> m_SceneViewport;  // Unset = whole window; see SetSceneViewport.
+        RenderOverlay* m_Overlay = nullptr;           // Non-owning; see SetOverlay.
+
+        // Draws submitted since the last Tick(), and per frame-in-flight slot the draws that slot's
+        // command buffer was recorded with. A slot's list is only replaced after its fence wait,
+        // which is what makes dropping those references safe.
+        std::vector<DrawCommand> m_PendingDraws;
+        std::vector<std::vector<DrawCommand>> m_FrameDraws;
+
+        // Lights submitted since the last Tick() (copied into the frame's light buffer, so they need
+        // no lifetime tracking), and the ambient term.
+        std::vector<Light> m_PendingLights;
+        glm::vec3 m_AmbientLight{0.0f};
+        bool m_LightLimitWarned = false;
 
         std::vector<VkCommandBuffer> m_CommandBuffers;
         std::vector<FrameUniformBuffer> m_FrameUniforms;  // One per frame in flight.

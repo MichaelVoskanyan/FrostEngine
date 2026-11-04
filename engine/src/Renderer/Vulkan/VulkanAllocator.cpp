@@ -33,7 +33,7 @@ namespace Frost {
         createInfo.physicalDevice = physicalDevice.GetHandle();
         createInfo.device = device.GetHandle();
         createInfo.instance = context.GetInstance();
-        createInfo.vulkanApiVersion = VK_API_VERSION_1_4;
+        createInfo.vulkanApiVersion = VulkanContext::kApiVersion;
 
         const VkResult result = vmaCreateAllocator(&createInfo, &m_Allocator);
         if (result != VK_SUCCESS) { throw VulkanError("vmaCreateAllocator", result); }

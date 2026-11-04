@@ -7,10 +7,11 @@
 #include <variant>
 #include <vector>
 
-// Minimal, dependency-free JSON reader (RFC 8259) for the engine's asset importers. It parses a
-// complete document into an immutable tree of Values; there is no serialization, no streaming,
-// and no schema support. It is deliberately small: asset formats that embed JSON (glTF) only need
-// to look values up by key/index and read numbers, strings, and booleans out of them.
+// Minimal, dependency-free JSON reader/writer (RFC 8259) for the engine's asset formats. It parses
+// a complete document into an immutable tree of Values, and writes such a tree back out; there is
+// no streaming and no schema support. It is deliberately small: formats that embed JSON (glTF,
+// Frost's level files) only need to look values up by key/index and read numbers, strings, and
+// booleans out of them, or build a tree of them to save.
 namespace Frost::Json {
 
     class Value;
@@ -73,5 +74,11 @@ namespace Frost::Json {
     // message) on malformed input, including trailing non-whitespace after the root value.
     [[nodiscard]]
     Value Parse(std::string_view text);
+
+    // Serializes a value as a JSON document, pretty-printed with `indent` spaces per level (0 for
+    // a single line). Numbers are written in their shortest round-trip form; non-finite numbers,
+    // which JSON cannot represent, are written as null. Strings are expected to be UTF-8.
+    [[nodiscard]]
+    std::string Write(const Value& value, int indent = 2);
 
 }  // namespace Frost::Json

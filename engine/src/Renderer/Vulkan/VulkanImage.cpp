@@ -123,7 +123,7 @@ namespace Frost {
                                .g = VK_COMPONENT_SWIZZLE_IDENTITY,
                                .b = VK_COMPONENT_SWIZZLE_IDENTITY,
                                .a = VK_COMPONENT_SWIZZLE_IDENTITY},
-                .subresourceRange = {.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+                .subresourceRange = {.aspectMask = AspectMaskFor(format),
                                      .baseMipLevel = 0,
                                      .levelCount = mipLevels,
                                      .baseArrayLayer = 0,
@@ -151,6 +151,24 @@ namespace Frost {
             m_Image = VK_NULL_HANDLE;
             m_Allocation = nullptr;
         }
+    }
+
+    bool VulkanImage::IsDepthFormat(const VkFormat format) noexcept {
+        switch (format) {
+            case VK_FORMAT_D16_UNORM:
+            case VK_FORMAT_X8_D24_UNORM_PACK32:
+            case VK_FORMAT_D32_SFLOAT:
+            case VK_FORMAT_D16_UNORM_S8_UINT:
+            case VK_FORMAT_D24_UNORM_S8_UINT:
+            case VK_FORMAT_D32_SFLOAT_S8_UINT: return true;
+            default: return false;
+        }
+    }
+
+    VkImageAspectFlags VulkanImage::AspectMaskFor(const VkFormat format) noexcept {
+        // The depth aspect only, even for combined depth/stencil formats: the view is used as a
+        // depth attachment, and the engine does not use stencil.
+        return IsDepthFormat(format) ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT;
     }
 
     VkImage VulkanImage::GetHandle() const noexcept { return m_Image; }

@@ -185,7 +185,7 @@ namespace Frost {
                                         .applicationVersion = VK_MAKE_API_VERSION(0, 0, 1, 0),
                                         .pEngineName = "Frost Engine",
                                         .engineVersion = VK_MAKE_API_VERSION(0, 0, 1, 0),
-                                        .apiVersion = VK_API_VERSION_1_4};
+                                        .apiVersion = kApiVersion};
 
         // Kept alive through the vkCreateInstance call below so it can be chained via pNext; this
         // lets validation catch errors in vkCreateInstance/vkDestroyInstance themselves, which run

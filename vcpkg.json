@@ -5,6 +5,14 @@
   "dependencies": [
     "glfw3",
     "glm",
+    {
+      "name": "imgui",
+      "features": [
+        "docking-experimental",
+        "glfw-binding",
+        "vulkan-binding"
+      ]
+    },
     "stb",
     "vulkan-memory-allocator"
   ]

@@ -1,0 +1,110 @@
+{
+  "format": "FrostLevel",
+  "version": 1,
+  "name": "Test Level",
+  "environment": {
+    "ambientColor": [1, 1, 1],
+    "ambientIntensity": 0.12
+  },
+  "objects": [
+    {
+      "id": 2,
+      "name": "Sun",
+      "transform": {
+        "position": [0, 2, 2],
+        "rotation": [-36.6569, -29.7449, 0],
+        "scale": [1, 1, 1]
+      },
+      "light": {
+        "type": "directional",
+        "enabled": true,
+        "color": [1, 1, 1],
+        "useTemperature": false,
+        "temperature": 6500,
+        "intensity": 3,
+        "range": 10,
+        "innerConeAngle": 20,
+        "outerConeAngle": 30
+      }
+    },
+    {
+      "id": 1,
+      "name": "Glock19",
+      "transform": {
+        "position": [0, 0, 0],
+        "rotation": [0, 0, 0],
+        "scale": [4, 4, 4]
+      },
+      "mesh": "Glock19.gltf",
+      "materials": [
+        {
+          "subMesh": 4,
+          "subMeshName": "slide",
+          "baseColorFactor": [1, 1, 1, 1],
+          "metallic": 1,
+          "roughness": 0,
+          "normalScale": 1,
+          "occlusionStrength": 1,
+          "emissiveFactor": [0, 0, 0],
+          "textures": {
+            "baseColor": "black64.png",
+            "metallicRoughness": "mr_metal_smooth.png"
+          }
+        },
+        {
+          "subMesh": 2,
+          "subMeshName": "Grip",
+          "baseColorFactor": [1, 1, 1, 1],
+          "metallic": 0,
+          "roughness": 1,
+          "normalScale": 1,
+          "occlusionStrength": 1,
+          "emissiveFactor": [0, 0, 0],
+          "textures": {
+            "metallicRoughness": "mr_rough.png",
+            "normal": "normal_grip.png"
+          }
+        },
+        {
+          "subMesh": 1,
+          "subMeshName": "FrontSight",
+          "baseColorFactor": [1, 1, 1, 1],
+          "metallic": 0,
+          "roughness": 1,
+          "normalScale": 1,
+          "occlusionStrength": 1,
+          "emissiveFactor": [0, 0, 0],
+          "textures": {
+            "metallicRoughness": "mr_rough.png"
+          }
+        },
+        {
+          "subMesh": 3,
+          "subMeshName": "RearSight",
+          "baseColorFactor": [1, 1, 1, 1],
+          "metallic": 0,
+          "roughness": 1,
+          "normalScale": 1,
+          "occlusionStrength": 1,
+          "emissiveFactor": [0, 0, 0],
+          "textures": {
+            "metallicRoughness": "mr_rough.png"
+          }
+        },
+        {
+          "subMesh": 0,
+          "subMeshName": "Barrel",
+          "baseColorFactor": [1, 1, 1, 1],
+          "metallic": 1,
+          "roughness": 1,
+          "normalScale": 1,
+          "occlusionStrength": 1,
+          "emissiveFactor": [0, 0, 0],
+          "textures": {
+            "metallicRoughness": "mr_metal_rough.png"
+          }
+        }
+      ]
+    }
+  ]
+}

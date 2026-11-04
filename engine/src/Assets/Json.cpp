@@ -7,6 +7,7 @@
 #include <cstdlib>
 #include <sstream>
 #include <stdexcept>
+#include <string>
 #include <system_error>
 
 namespace {
@@ -19,6 +20,97 @@ namespace {
     // deep; the limit exists so that a malicious or corrupt file cannot overflow the stack through
     // the recursive descent below.
     constexpr std::size_t kMaxDepth = 256;
+
+    void WriteString(std::string& out, const std::string_view text) {
+        out.push_back('"');
+        for (const char c : text) {
+            switch (c) {
+                case '"': out += "\\\""; break;
+                case '\\': out += "\\\\"; break;
+                case '\b': out += "\\b"; break;
+                case '\f': out += "\\f"; break;
+                case '\n': out += "\\n"; break;
+                case '\r': out += "\\r"; break;
+                case '\t': out += "\\t"; break;
+                default:
+                    if (static_cast<unsigned char>(c) < 0x20) {
+                        // Other control characters must be escaped; everything else (including
+                        // multi-byte UTF-8 sequences) is written through unchanged.
+                        constexpr char kHex[] = "0123456789abcdef";
+                        out += "\\u00";
+                        out.push_back(kHex[(static_cast<unsigned char>(c) >> 4) & 0xF]);
+                        out.push_back(kHex[static_cast<unsigned char>(c) & 0xF]);
+                    }
+                    else {
+                        out.push_back(c);
+                    }
+            }
+        }
+        out.push_back('"');
+    }
+
+    void WriteNumber(std::string& out, const double number) {
+        if (!std::isfinite(number)) {
+            out += "null";
+            return;
+        }
+
+        // Shortest representation that parses back to exactly the same double.
+        char buffer[32];
+        const std::to_chars_result result = std::to_chars(buffer, buffer + sizeof(buffer), number);
+        out.append(buffer, result.ptr);
+    }
+
+    void WriteValue(std::string& out, const Value& value, const int indent, const int depth) {
+        const auto newline = [&](const int level) {
+            if (indent <= 0) { return; }
+            out.push_back('\n');
+            out.append(static_cast<std::size_t>(level) * static_cast<std::size_t>(indent), ' ');
+        };
+
+        if (value.IsNull()) { out += "null"; }
+        else if (value.IsBoolean()) { out += value.AsBoolean() ? "true" : "false"; }
+        else if (value.IsNumber()) { WriteNumber(out, value.AsNumber()); }
+        else if (value.IsString()) { WriteString(out, value.AsString()); }
+        else if (value.IsArray()) {
+            const Array& array = value.AsArray();
+            if (array.empty()) {
+                out += "[]";
+                return;
+            }
+
+            // Arrays of plain numbers (vectors, colors) stay on one line; they read far better.
+            bool scalarsOnly = true;
+            for (const Value& element : array) { scalarsOnly = scalarsOnly && element.IsNumber(); }
+
+            out.push_back('[');
+            for (std::size_t i = 0; i < array.size(); ++i) {
+                if (i > 0) { out += scalarsOnly && indent > 0 ? ", " : ","; }
+                if (!scalarsOnly) { newline(depth + 1); }
+                WriteValue(out, array[i], indent, depth + 1);
+            }
+            if (!scalarsOnly) { newline(depth); }
+            out.push_back(']');
+        }
+        else {
+            const Object& object = value.AsObject();
+            if (object.empty()) {
+                out += "{}";
+                return;
+            }
+
+            out.push_back('{');
+            for (std::size_t i = 0; i < object.size(); ++i) {
+                if (i > 0) { out.push_back(','); }
+                newline(depth + 1);
+                WriteString(out, object[i].first);
+                out += indent > 0 ? ": " : ":";
+                WriteValue(out, object[i].second, indent, depth + 1);
+            }
+            newline(depth);
+            out.push_back('}');
+        }
+    }
 
     class Parser final {
     public:
@@ -369,6 +461,13 @@ namespace Frost::Json {
     Value Parse(const std::string_view text) {
         Parser parser(text);
         return parser.ParseDocument();
+    }
+
+    std::string Write(const Value& value, const int indent) {
+        std::string out;
+        WriteValue(out, value, indent, 0);
+        if (indent > 0) { out.push_back('\n'); }
+        return out;
     }
 
 }  // namespace Frost::Json

@@ -13,13 +13,16 @@ namespace Frost {
     // fixed vertex input layout (see Vertex), per-draw push constants (MeshPushConstants, pushed by
     // Mesh::Draw), two descriptor sets (set 0: per-frame uniforms, bound once per frame by
     // Renderer; set 1: the material, bound per sub-mesh by Mesh::Draw; both layouts owned by
-    // VulkanDescriptorAllocator), and one color attachment matching the swapchain's format. Depth
-    // testing is not wired up yet (no depth image/attachment exists).
+    // VulkanDescriptorAllocator), one color attachment matching the swapchain's format, and a depth
+    // attachment. Depth uses the reversed-Z convention (near plane at 1, far plane at 0, compare
+    // GREATER_OR_EQUAL, cleared to 0), which spreads floating-point depth precision far more
+    // evenly over distance than the classic mapping; Camera's projection produces it. Passing
+    // VK_FORMAT_UNDEFINED as the depth format builds a pipeline without depth testing.
     class VulkanPipeline final {
     public:
-        VulkanPipeline(const VulkanDevice& device, VkFormat colorAttachmentFormat,
-                      VkDescriptorSetLayout frameSetLayout, VkDescriptorSetLayout materialSetLayout,
-                      const std::string& vertexShaderPath, const std::string& fragmentShaderPath);
+        VulkanPipeline(const VulkanDevice& device, VkFormat colorAttachmentFormat, VkFormat depthAttachmentFormat,
+                       VkDescriptorSetLayout frameSetLayout, VkDescriptorSetLayout materialSetLayout,
+                       const std::string& vertexShaderPath, const std::string& fragmentShaderPath);
         ~VulkanPipeline();
 
         VulkanPipeline(const VulkanPipeline&) = delete;
@@ -47,7 +50,7 @@ namespace Frost {
         [[nodiscard]]
         VkShaderModule CreateShaderModule(const VulkanDevice& device, const std::vector<char>& code) const;
 
-        void CreatePipeline(const VulkanDevice& device, VkFormat colorAttachmentFormat,
+        void CreatePipeline(const VulkanDevice& device, VkFormat colorAttachmentFormat, VkFormat depthAttachmentFormat,
                             VkDescriptorSetLayout frameSetLayout, VkDescriptorSetLayout materialSetLayout,
                             const std::string& vertexShaderPath, const std::string& fragmentShaderPath);
 

@@ -90,12 +90,18 @@ namespace Frost {
 
     void Mesh::Draw(const VkCommandBuffer commandBuffer, const VkPipelineLayout pipelineLayout,
                     const Material& fallbackMaterial) const {
+        Draw(commandBuffer, pipelineLayout, m_Transform, {}, fallbackMaterial);
+    }
+
+    void Mesh::Draw(const VkCommandBuffer commandBuffer, const VkPipelineLayout pipelineLayout,
+                    const glm::mat4& transform, const std::span<const std::shared_ptr<Material>> materialOverrides,
+                    const Material& fallbackMaterial) const {
         // Per-draw constants. The normal matrix is the inverse-transpose of the model's linear
         // part, so normals stay perpendicular under non-uniform scale; a singular transform has no
         // meaningful normals anyway, so fall back to the linear part rather than produce NaNs.
-        const glm::mat3 linear(m_Transform);
+        const glm::mat3 linear(transform);
         const MeshPushConstants pushConstants{
-                .model = m_Transform,
+                .model = transform,
                 .normalMatrix = glm::determinant(linear) != 0.0f ? glm::mat4(glm::inverseTranspose(linear))
                                                                  : glm::mat4(linear),
         };
@@ -112,10 +118,14 @@ namespace Frost {
 
         for (std::size_t i = 0; i < m_SubMeshes.size(); ++i) {
             const SubMesh& subMesh = m_SubMeshes[i];
-            const Material& material = m_Materials[i] != nullptr ? *m_Materials[i] : fallbackMaterial;
+
+            // Override, else the mesh's own material, else the fallback.
+            const Material* material = i < materialOverrides.size() ? materialOverrides[i].get() : nullptr;
+            if (material == nullptr) { material = m_Materials[i].get(); }
+            if (material == nullptr) { material = &fallbackMaterial; }
 
             // Consecutive sub-meshes commonly share a material; skip the redundant rebind.
-            const VkDescriptorSet set = material.GetDescriptorSet();
+            const VkDescriptorSet set = material->GetDescriptorSet();
             if (set != boundSet) {
                 vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout,
                                         kMaterialSetIndex, 1, &set, 0, nullptr);

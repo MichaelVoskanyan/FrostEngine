@@ -2,6 +2,7 @@
 
 #include <vulkan/vulkan.h>
 
+#include <cstdint>
 #include <vector>
 
 namespace Frost {
@@ -13,6 +14,10 @@ namespace Frost {
     // in the classes layered on top of it (VulkanPhysicalDevice, VulkanDevice, VulkanSwapchain).
     class VulkanContext final {
     public:
+        // The Vulkan API version the instance is created for (VkApplicationInfo::apiVersion). Other
+        // code that needs to know it (VMA, the ImGui backend) reads it from here.
+        static constexpr std::uint32_t kApiVersion = VK_API_VERSION_1_4;
+
         explicit VulkanContext(const Window& window);
         ~VulkanContext();
 

@@ -18,7 +18,8 @@ namespace Frost {
 
     // RAII wrapper around a device-local 2D VkImage, its VmaAllocation and a VkImageView covering
     // every mip level. The constructor only allocates; CreateTexture2D is the upload path textures
-    // use.
+    // use. Depth formats are supported too (the view then covers the depth aspect), for the
+    // renderer's depth buffer.
     class VulkanImage final {
     public:
         VulkanImage(const VulkanAllocator& allocator, const VulkanDevice& device, VkExtent2D extent, VkFormat format,
@@ -45,6 +46,14 @@ namespace Frost {
 
         [[nodiscard]]
         std::uint32_t GetMipLevels() const noexcept;
+
+        [[nodiscard]]
+        static bool IsDepthFormat(VkFormat format) noexcept;
+
+        // The aspect an image of this format is viewed/transitioned with: DEPTH for depth formats
+        // (stencil is not used), COLOR otherwise.
+        [[nodiscard]]
+        static VkImageAspectFlags AspectMaskFor(VkFormat format) noexcept;
 
         // Number of mip levels in a full chain for the given size (1 for a 1x1 image).
         [[nodiscard]]

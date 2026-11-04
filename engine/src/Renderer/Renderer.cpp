@@ -1,12 +1,10 @@
 #include <Frost/Renderer/Renderer.hpp>
 
-#include <Frost/Assets/GltfImporter.hpp>
-#include <Frost/Assets/Image.hpp>
-#include <Frost/Assets/ImportError.hpp>
 #include <Frost/Platform/Window.hpp>
 #include <Frost/Renderer/Material.hpp>
 #include <Frost/Renderer/MaterialSystem.hpp>
 #include <Frost/Renderer/Mesh.hpp>
+#include <Frost/Renderer/RenderOverlay.hpp>
 #include <Frost/Renderer/ShaderData.hpp>
 #include <Frost/Renderer/Texture.hpp>
 #include <Frost/Renderer/Vulkan/VulkanAllocator.hpp>
@@ -15,6 +13,7 @@
 #include <Frost/Renderer/Vulkan/VulkanContext.hpp>
 #include <Frost/Renderer/Vulkan/VulkanDescriptorAllocator.hpp>
 #include <Frost/Renderer/Vulkan/VulkanDevice.hpp>
+#include <Frost/Renderer/Vulkan/VulkanImage.hpp>
 #include <Frost/Renderer/Vulkan/VulkanPhysicalDevice.hpp>
 #include <Frost/Renderer/Vulkan/VulkanPipeline.hpp>
 #include <Frost/Renderer/Vulkan/VulkanSwapchain.hpp>
@@ -23,6 +22,7 @@
 #include <glm/mat4x4.hpp>
 #include <glm/matrix.hpp>
 
+#include <algorithm>
 #include <array>
 #include <cstdint>
 #include <iostream>
@@ -31,8 +31,6 @@
 #include <optional>
 #include <sstream>
 #include <stdexcept>
-#include <string>
-#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -44,44 +42,13 @@ namespace {
     // hanging the process on exit.
     constexpr std::uint64_t kShutdownPresentTimeoutNs = 2'000'000'000;  // 2 s
 
-    // The model drawn until a scene system exists. Relative to the working directory, like the
-    // shader paths; cmake/Assets.cmake stages it next to the executable. The same model ships in
-    // both glTF containers: Glock19X.glb (self-contained) and Glock19.gltf + Glock19.bin (JSON with
-    // an external buffer), plus broken.gltf + broken.bin (a truncated buffer) to try the
-    // import-failure path: the failure is logged and the engine runs on with nothing to draw.
-    constexpr const char* kTestMeshPath = "assets/Glock19.gltf";
+    // Depth attachment candidates, best first: 32-bit float (the format reversed-Z is designed
+    // for), then 24-bit fixed point, then 16-bit, which every implementation must support.
+    constexpr std::array<VkFormat, 3> kDepthFormatCandidates = {VK_FORMAT_D32_SFLOAT, VK_FORMAT_X8_D24_UNORM_PACK32,
+                                                                VK_FORMAT_D16_UNORM};
 
-    // Hand-built materials for the test model, which ships with (almost) no materials of its
-    // own: exercises the manual path (ImageImporter -> MaterialSystem -> Mesh::SetMaterial) and
-    // the corners of the metallic-roughness model. Each texture path may be null (slot left at
-    // its neutral default); the metallic-roughness textures carry the same values as the factors
-    // (G = roughness, B = metallic), so both paths are exercised. Sub-meshes not listed here keep
-    // whatever the file specified (or the default material).
-    struct TestMaterial {
-        const char* subMesh;
-        const char* baseColorTexture;
-        const char* metallicRoughnessTexture;
-        const char* normalTexture;
-        float metallic;
-        float roughness;
-    };
-
-    constexpr std::array<TestMaterial, 5> kTestMaterials = {{
-            // Polished black metal: fully metallic, no roughness (a mirror, so without an
-            // environment to reflect it stays dark apart from the light's highlight).
-            {"slide", "assets/black64.png", "assets/mr_metal_smooth.png", nullptr, 1.0f, 0.0f},
-            // Rough dielectrics. The grip also gets the only normal map (a generated bump pattern).
-            {"Grip", nullptr, "assets/mr_rough.png", "assets/normal_grip.png", 0.0f, 1.0f},
-            {"FrontSight", nullptr, "assets/mr_rough.png", nullptr, 0.0f, 1.0f},
-            {"RearSight", nullptr, "assets/mr_rough.png", nullptr, 0.0f, 1.0f},
-            // Rough metal: both at full.
-            {"Barrel", nullptr, "assets/mr_metal_rough.png", nullptr, 1.0f, 1.0f},
-    }};
-
-    // The test model is authored at real-world scale (a pistol, ~0.4 units long, centered near the
-    // origin). Its mesh transform scales it up so it fills a good part of the view under the
-    // placeholder projection (see UpdateFrameUniforms); goes away with the first real camera.
-    constexpr float kTestMeshScale = 4.0f;
+    // Reversed-Z: the far plane is at depth 0, so that is what "nothing drawn yet" is.
+    constexpr float kDepthClearValue = 0.0f;
 
     [[nodiscard]]
     std::runtime_error VulkanError(const char* const operation, const VkResult result) {
@@ -105,7 +72,10 @@ namespace Frost {
         m_CommandPool = std::make_unique<VulkanCommandPool>(*m_PhysicalDevice, *m_Device);
         m_DescriptorAllocator = std::make_unique<VulkanDescriptorAllocator>(*m_Device);
 
-        m_Pipeline = std::make_unique<VulkanPipeline>(*m_Device, m_Swapchain->GetImageFormat(),
+        m_DepthFormat = ChooseDepthFormat();
+        CreateDepthImage();
+
+        m_Pipeline = std::make_unique<VulkanPipeline>(*m_Device, m_Swapchain->GetImageFormat(), m_DepthFormat,
                                                       m_DescriptorAllocator->GetFrameSetLayout(),
                                                       m_DescriptorAllocator->GetMaterialSetLayout(),
                                                       "shaders/basic.vert.spv", "shaders/basic.frag.spv");
@@ -125,16 +95,7 @@ namespace Frost {
             m_MaterialSystem =
                     std::make_unique<MaterialSystem>(*m_Allocator, *m_Device, *m_CommandPool, *m_DescriptorAllocator);
 
-            // Content problems (a missing or broken asset) are not fatal to the renderer: report
-            // them and run with an empty scene. Anything else that throws here is an engine
-            // failure and propagates.
-            try {
-                m_TestMesh = LoadTestMesh();
-            }
-            catch (const ImportError& e) {
-                std::cerr << "[Frost::Renderer] Could not load the test model; nothing will be drawn. " << e.what()
-                          << '\n';
-            }
+            m_FrameDraws.resize(kFramesInFlight);
         }
         catch (...) {
             vkDeviceWaitIdle(m_Device->GetHandle());
@@ -149,6 +110,11 @@ namespace Frost {
         // Shutdown is the one place a full idle is appropriate: nothing below may be destroyed
         // while the device could still be using it, and there is no later frame to defer to.
         vkDeviceWaitIdle(m_Device->GetHandle());
+
+        // The renderer's own references to submitted meshes/materials. Anything still shared with
+        // the application is the application's to release (before the renderer, see Engine).
+        m_PendingDraws.clear();
+        m_FrameDraws.clear();
 
         // Retired swapchains first (each bundle destroys its swapchain before its semaphores), then
         // the live swapchain, then the live semaphores, then the presentation fences none of them
@@ -176,8 +142,20 @@ namespace Frost {
         DestroyPresentFences();
     }
 
-    std::unique_ptr<Mesh> Renderer::UploadMesh(const MeshData& data) const {
-        auto mesh = std::make_unique<Mesh>(*m_Allocator, *m_Device, *m_CommandPool, data);
+    void Renderer::SetCamera(const Camera& camera) { m_Camera = camera; }
+
+    void Renderer::SetOverlay(RenderOverlay* const overlay) noexcept { m_Overlay = overlay; }
+
+    const VulkanContext& Renderer::GetContext() const noexcept { return *m_Context; }
+
+    const VulkanPhysicalDevice& Renderer::GetPhysicalDevice() const noexcept { return *m_PhysicalDevice; }
+
+    const VulkanDevice& Renderer::GetDevice() const noexcept { return *m_Device; }
+
+    VkFormat Renderer::GetSwapchainImageFormat() const noexcept { return m_Swapchain->GetImageFormat(); }
+
+    std::shared_ptr<Mesh> Renderer::CreateMesh(const MeshData& data) const {
+        auto mesh = std::make_shared<Mesh>(*m_Allocator, *m_Device, *m_CommandPool, data);
 
         // One Texture per imported texture and one Material per imported material, shared by
         // everything that references them.
@@ -220,61 +198,74 @@ namespace Frost {
         return mesh;
     }
 
-    std::unique_ptr<Mesh> Renderer::LoadTestMesh() const {
-        // Stand-in for a scene/asset system: one model, loaded once. GltfImporter walks the
-        // file's node hierarchy and bakes every node's transform into the vertices, so the parts
-        // of the model (each a separate glTF mesh/node) arrive as sub-meshes of a single Mesh,
-        // already posed relative to each other, along with whatever materials the file has.
-        std::unique_ptr<Mesh> mesh = UploadMesh(GltfImporter::Import(kTestMeshPath));
+    void Renderer::Submit(std::shared_ptr<const Mesh> mesh, const glm::mat4& transform,
+                          std::vector<std::shared_ptr<Material>> materialOverrides) {
+        if (mesh == nullptr) { return; }
 
-        // Engine-side placement of the model: for now just the scale that makes it visible.
-        mesh->SetTransform(glm::scale(glm::mat4(1.0f), glm::vec3(kTestMeshScale)));
+        m_PendingDraws.push_back(DrawCommand{.mesh = std::move(mesh),
+                                             .transform = transform,
+                                             .materialOverrides = std::move(materialOverrides)});
+    }
 
-        // Hand-built materials (see kTestMaterials). Images are imported on their own and
-        // uploaded once each, however many materials share them; a missing or unreadable image
-        // is logged and its slot left at the default, so the model still renders.
-        std::unordered_map<std::string, std::shared_ptr<Texture>> loadedTextures;
-        auto loadTexture = [&](const char* const path, const bool srgb) -> std::shared_ptr<Texture> {
-            if (path == nullptr) { return nullptr; }
-            if (const auto loaded = loadedTextures.find(path); loaded != loadedTextures.end()) {
-                return loaded->second;
+    void Renderer::SubmitLight(const Light& light) {
+        if (m_PendingLights.size() >= kMaxLights) {
+            if (!m_LightLimitWarned) {
+                m_LightLimitWarned = true;
+                std::cerr << "[Frost::Renderer] More than " << kMaxLights
+                          << " lights submitted in one frame; the extra lights are ignored.\n";
             }
-
-            std::shared_ptr<Texture> texture;
-            try {
-                texture = m_MaterialSystem->CreateTexture(ImageImporter::Import(path), TextureSettings{.srgb = srgb});
-            }
-            catch (const ImportError& e) {
-                std::cerr << "[Frost::Renderer] Could not load test texture '" << path
-                          << "'; leaving that material slot at its default. " << e.what() << '\n';
-            }
-
-            loadedTextures.emplace(path, texture);
-            return texture;
-        };
-
-        for (const TestMaterial& test : kTestMaterials) {
-            const std::optional<std::size_t> subMesh = mesh->FindSubMesh(test.subMesh);
-            if (!subMesh.has_value()) {
-                std::cerr << "[Frost::Renderer] Test model has no sub-mesh named '" << test.subMesh
-                          << "'; skipping its test material.\n";
-                continue;
-            }
-
-            mesh->SetMaterial(*subMesh, m_MaterialSystem->CreateMaterial(
-                                                MaterialParameters{.metallicFactor = test.metallic,
-                                                                   .roughnessFactor = test.roughness},
-                                                MaterialTextures{
-                                                        .baseColor = loadTexture(test.baseColorTexture, true),
-                                                        .metallicRoughness =
-                                                                loadTexture(test.metallicRoughnessTexture, false),
-                                                        .normal = loadTexture(test.normalTexture, false),
-                                                        .occlusion = nullptr,
-                                                        .emissive = nullptr,
-                                                }));
+            return;
         }
 
-        return mesh;
+        m_PendingLights.push_back(light);
+    }
+
+    void Renderer::SetAmbientLight(const glm::vec3& color) noexcept { m_AmbientLight = color; }
+
+    const MaterialSystem& Renderer::GetMaterialSystem() const noexcept { return *m_MaterialSystem; }
+
+    void Renderer::SetSceneViewport(const std::optional<SceneViewport>& viewport) noexcept {
+        m_SceneViewport = viewport;
+    }
+
+    VkFormat Renderer::GetDepthFormat() const noexcept { return m_DepthFormat; }
+
+    VkFormat Renderer::ChooseDepthFormat() const {
+        for (const VkFormat format : kDepthFormatCandidates) {
+            VkFormatProperties properties{};
+            vkGetPhysicalDeviceFormatProperties(m_PhysicalDevice->GetHandle(), format, &properties);
+
+            if ((properties.optimalTilingFeatures & VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT) != 0) {
+                return format;
+            }
+        }
+
+        // Unreachable on a conformant implementation (D16_UNORM is mandatory).
+        throw std::runtime_error("Renderer: the device supports none of the candidate depth formats.");
+    }
+
+    void Renderer::CreateDepthImage() {
+        m_DepthImage = std::make_unique<VulkanImage>(*m_Allocator, *m_Device, m_Swapchain->GetExtent(), m_DepthFormat,
+                                                     1, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT);
+    }
+
+    VkRect2D Renderer::GetSceneRect() const noexcept {
+        const VkExtent2D extent = m_Swapchain->GetExtent();
+        if (!m_SceneViewport.has_value()) { return VkRect2D{.offset = {0, 0}, .extent = extent}; }
+
+        // Clamp to the image: a viewport panel can hang off the window's edge, and the rectangle
+        // comes from UI layout while the extent may just have changed.
+        const SceneViewport& viewport = *m_SceneViewport;
+        const std::int64_t width = extent.width;
+        const std::int64_t height = extent.height;
+
+        const std::int64_t left = std::clamp<std::int64_t>(viewport.x, 0, width);
+        const std::int64_t top = std::clamp<std::int64_t>(viewport.y, 0, height);
+        const std::int64_t right = std::clamp<std::int64_t>(std::int64_t{viewport.x} + viewport.width, left, width);
+        const std::int64_t bottom = std::clamp<std::int64_t>(std::int64_t{viewport.y} + viewport.height, top, height);
+
+        return VkRect2D{.offset = {static_cast<std::int32_t>(left), static_cast<std::int32_t>(top)},
+                        .extent = {static_cast<std::uint32_t>(right - left), static_cast<std::uint32_t>(bottom - top)}};
     }
 
     void Renderer::CreateFrameUniformBuffers() {
@@ -285,6 +276,10 @@ namespace Frost {
             // frame and read once, so a staging upload would cost more than it saves.
             frame.buffer = std::make_unique<VulkanBuffer>(*m_Allocator, sizeof(FrameUniforms),
                                                           VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, true);
+            // Sized for the maximum up front (64 KiB): only the frame's lights are written each
+            // frame, and a fixed size means the descriptor never has to be rewritten.
+            frame.lightBuffer = std::make_unique<VulkanBuffer>(*m_Allocator, sizeof(GpuLight) * kMaxLights,
+                                                               VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, true);
             frame.descriptorSet = m_DescriptorAllocator->Allocate(m_DescriptorAllocator->GetFrameSetLayout());
 
             const VkDescriptorBufferInfo bufferInfo{
@@ -293,20 +288,41 @@ namespace Frost {
                     .range = sizeof(FrameUniforms),
             };
 
-            const VkWriteDescriptorSet write{
-                    .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-                    .pNext = nullptr,
-                    .dstSet = frame.descriptorSet,
-                    .dstBinding = 0,
-                    .dstArrayElement = 0,
-                    .descriptorCount = 1,
-                    .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                    .pImageInfo = nullptr,
-                    .pBufferInfo = &bufferInfo,
-                    .pTexelBufferView = nullptr,
+            const VkDescriptorBufferInfo lightBufferInfo{
+                    .buffer = frame.lightBuffer->GetHandle(),
+                    .offset = 0,
+                    .range = VK_WHOLE_SIZE,
             };
 
-            vkUpdateDescriptorSets(m_Device->GetHandle(), 1, &write, 0, nullptr);
+            const std::array<VkWriteDescriptorSet, 2> writes = {{
+                    {
+                            .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+                            .pNext = nullptr,
+                            .dstSet = frame.descriptorSet,
+                            .dstBinding = 0,
+                            .dstArrayElement = 0,
+                            .descriptorCount = 1,
+                            .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                            .pImageInfo = nullptr,
+                            .pBufferInfo = &bufferInfo,
+                            .pTexelBufferView = nullptr,
+                    },
+                    {
+                            .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+                            .pNext = nullptr,
+                            .dstSet = frame.descriptorSet,
+                            .dstBinding = 1,
+                            .dstArrayElement = 0,
+                            .descriptorCount = 1,
+                            .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                            .pImageInfo = nullptr,
+                            .pBufferInfo = &lightBufferInfo,
+                            .pTexelBufferView = nullptr,
+                    },
+            }};
+
+            vkUpdateDescriptorSets(m_Device->GetHandle(), static_cast<std::uint32_t>(writes.size()), writes.data(), 0,
+                                   nullptr);
 
             // Valid contents from the start (identity matrices), should a frame ever be recorded
             // before its first update.
@@ -322,40 +338,91 @@ namespace Frost {
                 frame.descriptorSet = VK_NULL_HANDLE;
             }
             frame.buffer.reset();
+            frame.lightBuffer.reset();
         }
 
         m_FrameUniforms.clear();
     }
 
-    void Renderer::UpdateFrameUniforms(const std::uint32_t frameIndex) const {
-        // No camera yet: the view is the identity (the viewer sits at the origin looking down -Z,
-        // +Y up, matching the flipped viewport in RecordCommandBuffer). The projection is the
-        // placeholder that keeps the picture sane until one exists: an orthographic projection
-        // that maps the *shorter* framebuffer axis to [-1, 1] and widens the longer one by the
-        // aspect ratio, so the model keeps its proportions, stays centered and is never clipped at
-        // any window shape; its depth range [-1, 1] -> [0, 1] (Vulkan's) also keeps geometry
-        // slightly behind the origin from being clipped by the near plane.
-        const VkExtent2D extent = m_Swapchain->GetExtent();
-        const float aspect = static_cast<float>(extent.width) / static_cast<float>(extent.height);
+    void Renderer::UpdateFrameUniforms(const std::uint32_t frameIndex, const VkRect2D& sceneRect,
+                                       const std::vector<Light>& lights) const {
+        // The rectangle may be empty (a collapsed viewport panel); nothing is drawn then, so any
+        // finite aspect will do.
+        const float aspect = sceneRect.extent.width > 0 && sceneRect.extent.height > 0
+                                     ? static_cast<float>(sceneRect.extent.width) / static_cast<float>(sceneRect.extent.height)
+                                     : 1.0f;
 
-        const float halfWidth = aspect >= 1.0f ? aspect : 1.0f;
-        const float halfHeight = aspect >= 1.0f ? 1.0f : 1.0f / aspect;
+        glm::mat4 view(1.0f);
+        glm::mat4 projection(1.0f);
 
-        // One fixed directional light from the viewer's upper left, bright enough that a white
-        // diffuse surface facing it reads as white (Lambert divides by pi), and a little flat
-        // ambient so faces the light misses are not pure black.
-        const glm::mat4 view(1.0f);
+        if (m_Camera.has_value()) {
+            // The camera's projection is built here, against the extent actually being rendered,
+            // so it can never disagree with the target's shape (e.g. right after a resize).
+            view = m_Camera->GetViewMatrix();
+            projection = m_Camera->GetProjectionMatrix(aspect);
+        }
+        else {
+            // No camera set (e.g. the game, which has none yet): the view is the identity (the
+            // viewer sits at the origin looking down -Z, +Y up, matching the flipped viewport in
+            // RecordCommandBuffer). The projection is the placeholder that keeps the picture sane
+            // without one: an orthographic projection that maps the *shorter* framebuffer axis to
+            // [-1, 1] and widens the longer one by the aspect ratio, so the model keeps its
+            // proportions, stays centered and is never clipped at any window shape; its depth
+            // range [-1, 1] -> [0, 1] (Vulkan's) also keeps geometry slightly behind the origin
+            // from being clipped by the near plane. The planes are passed swapped for reversed-Z
+            // (view z = +1, nearest the viewer, maps to depth 1), like Camera's projection.
+            const float halfWidth = aspect >= 1.0f ? aspect : 1.0f;
+            const float halfHeight = aspect >= 1.0f ? 1.0f : 1.0f / aspect;
+
+            projection = glm::orthoRH_ZO(-halfWidth, halfWidth, -halfHeight, halfHeight, 1.0f, -1.0f);
+        }
+
+        // The lights, in the layout the shaders read (see GpuLight). Submit() already capped the
+        // count at kMaxLights.
+        std::vector<GpuLight> gpuLights;
+        gpuLights.reserve(lights.size());
+        for (const Light& light : lights) {
+            GpuLight gpu{};
+            gpu.color = glm::vec4(light.color, 0.0f);
+
+            switch (light.type) {
+                case LightType::Directional:
+                    gpu.directionType = glm::vec4(light.direction, static_cast<float>(GpuLightType::Directional));
+                    break;
+
+                case LightType::Point:
+                    gpu.positionRange = glm::vec4(light.position, light.range);
+                    gpu.directionType = glm::vec4(light.direction, static_cast<float>(GpuLightType::Point));
+                    break;
+
+                case LightType::Spot: {
+                    gpu.positionRange = glm::vec4(light.position, light.range);
+                    gpu.directionType = glm::vec4(light.direction, static_cast<float>(GpuLightType::Spot));
+
+                    // Precomputed so the shader's cone falloff is one multiply-add: the falloff
+                    // runs from outerConeCos (0) to innerConeCos (1). The difference is kept away
+                    // from zero so equal cones give a hard edge rather than a division by zero.
+                    const float coneDifference = std::max(light.innerConeCos - light.outerConeCos, 1.0e-4f);
+                    gpu.spotCone = glm::vec4(light.outerConeCos, 1.0f / coneDifference, 0.0f, 0.0f);
+                    break;
+                }
+            }
+
+            gpuLights.push_back(gpu);
+        }
 
         const FrameUniforms uniforms{
                 .view = view,
-                .projection = glm::orthoRH_ZO(-halfWidth, halfWidth, -halfHeight, halfHeight, -1.0f, 1.0f),
+                .projection = projection,
                 .cameraPosition = glm::inverse(view)[3],
-                .lightDirection = glm::vec4(glm::normalize(glm::vec3(0.4f, -0.6f, -0.7f)), 0.0f),
-                .lightColor = glm::vec4(glm::vec3(3.0f), 1.0f),
-                .ambientColor = glm::vec4(glm::vec3(0.12f), 1.0f),
+                .ambientColor = glm::vec4(m_AmbientLight, 1.0f),
+                .lightCount = glm::uvec4(static_cast<std::uint32_t>(gpuLights.size()), 0u, 0u, 0u),
         };
 
         m_FrameUniforms[frameIndex].buffer->CopyData(&uniforms, sizeof(uniforms));
+        if (!gpuLights.empty()) {
+            m_FrameUniforms[frameIndex].lightBuffer->CopyData(gpuLights.data(), sizeof(GpuLight) * gpuLights.size());
+        }
     }
 
     void Renderer::CreateSyncObjects() {
@@ -461,6 +528,7 @@ namespace Frost {
 
         if (!recreated) { return false; }
 
+        retired.depthImage = std::move(m_DepthImage);
         retired.renderFinished = std::move(m_RenderFinished);
         m_RenderFinished.clear();
         retired.presentFences = std::move(m_LivePresentFences);
@@ -468,13 +536,17 @@ namespace Frost {
 
         m_Retired.push_back(std::move(retired));
 
+        // The depth buffer must match the new extent. The old one may still be in use by frames in
+        // flight, so it retired with the swapchain above.
+        CreateDepthImage();
+
         // Viewport/scissor/render area are all taken from the swapchain each frame, so the new
         // extent is picked up automatically. The pipeline only bakes in the attachment format,
         // which ChooseSurfaceFormat keeps stable for a given surface; rebuild it in the unlikely
         // event the surface's format set changed underneath us. The old one may still be bound by
         // in-flight command buffers, so it retires with the swapchain rather than being destroyed.
         if (m_Pipeline->GetColorAttachmentFormat() != m_Swapchain->GetImageFormat()) {
-            auto pipeline = std::make_unique<VulkanPipeline>(*m_Device, m_Swapchain->GetImageFormat(),
+            auto pipeline = std::make_unique<VulkanPipeline>(*m_Device, m_Swapchain->GetImageFormat(), m_DepthFormat,
                                                              m_DescriptorAllocator->GetFrameSetLayout(),
                                                              m_DescriptorAllocator->GetMaterialSetLayout(),
                                                              "shaders/basic.vert.spv", "shaders/basic.frag.spv");
@@ -606,6 +678,7 @@ namespace Frost {
             }
 
             retired.pipeline.reset();
+            retired.depthImage.reset();
 
             // Signaled fences were already recycled above. Anything still here is an unsignaled
             // fence left behind by a timed-out forced wait, i.e. the presentation engine is not
@@ -670,6 +743,14 @@ namespace Frost {
     }
 
     void Renderer::Tick() {
+        // This frame's draws. Taken up front so they are consumed however Tick() exits: the
+        // application resubmits every frame, and a skipped frame must not let them pile up.
+        // Dropping them here is safe; command buffers only ever reference m_FrameDraws entries.
+        std::vector<DrawCommand> draws = std::move(m_PendingDraws);
+        m_PendingDraws.clear();
+        std::vector<Light> lights = std::move(m_PendingLights);
+        m_PendingLights.clear();
+
         // A minimized window reports a zero-area framebuffer. There is nothing to present to, and
         // a zero-extent swapchain is invalid, so neither render nor recreate: just wait for the
         // window to come back. The pending resize flag (if any) is left set so the swapchain is
@@ -727,10 +808,14 @@ namespace Frost {
         if (result != VK_SUCCESS) { throw VulkanError("vkResetCommandBuffer", result); }
 
         // Safe to overwrite: the fence wait above proved the last frame that used this slot's
-        // buffer has completed.
-        UpdateFrameUniforms(m_CurrentFrame);
+        // buffer has completed. The same goes for the draws recorded into this slot last time:
+        // replacing them releases the renderer's references to their meshes/materials.
+        m_FrameDraws[m_CurrentFrame] = std::move(draws);
 
-        RecordCommandBuffer(commandBuffer, imageIndex);
+        const VkRect2D sceneRect = GetSceneRect();
+        UpdateFrameUniforms(m_CurrentFrame, sceneRect, lights);
+
+        RecordCommandBuffer(commandBuffer, imageIndex, sceneRect);
 
         // Keyed by the image just acquired, not by m_CurrentFrame: a successful acquire of this
         // image is the only guarantee that the presentation engine is done waiting on it. The
@@ -835,7 +920,8 @@ namespace Frost {
         m_CurrentFrame = (m_CurrentFrame + 1) % kFramesInFlight;
     }
 
-    void Renderer::RecordCommandBuffer(const VkCommandBuffer commandBuffer, const std::uint32_t imageIndex) const {
+    void Renderer::RecordCommandBuffer(const VkCommandBuffer commandBuffer, const std::uint32_t imageIndex,
+                                       const VkRect2D& sceneRect) const {
         constexpr VkCommandBufferBeginInfo beginInfo{
                 .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
                 .pNext = nullptr,
@@ -855,11 +941,24 @@ namespace Frost {
         // blocks that same stage); anything broader would let the transition (and the clear that
         // follows it) execute before the presentation engine has released the image. The dst scope
         // is the LOAD_OP_CLEAR/attachment writes performed by the rendering below.
-        TransitionImage(commandBuffer, image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-                        VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_2_NONE,
-                        VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT);
+        TransitionImage(commandBuffer, image, VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_LAYOUT_UNDEFINED,
+                        VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+                        VK_ACCESS_2_NONE, VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+                        VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT);
+
+        // Depth image -> depth attachment, contents discarded (it is cleared below). The one depth
+        // image is shared by every frame in flight, so the src scope is the previous frame's depth
+        // writes (fragment tests): a barrier's first scope covers all earlier submissions on the
+        // queue, so this orders this frame's clear after them (write-after-write).
+        TransitionImage(commandBuffer, m_DepthImage->GetHandle(), VulkanImage::AspectMaskFor(m_DepthFormat),
+                        VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
+                        VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT,
+                        VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+                        VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT,
+                        VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT);
 
         const VkClearValue clearColor{.color = {.float32 = {0.02f, 0.02f, 0.05f, 1.0f}}};
+        const VkClearValue clearDepth{.depthStencil = {.depth = kDepthClearValue, .stencil = 0}};
 
         const VkRenderingAttachmentInfo colorAttachment{
                 .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
@@ -874,6 +973,20 @@ namespace Frost {
                 .clearValue = clearColor,
         };
 
+        // Depth is only needed within the frame, so it is never stored.
+        const VkRenderingAttachmentInfo depthAttachment{
+                .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
+                .pNext = nullptr,
+                .imageView = m_DepthImage->GetView(),
+                .imageLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
+                .resolveMode = VK_RESOLVE_MODE_NONE,
+                .resolveImageView = VK_NULL_HANDLE,
+                .resolveImageLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+                .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+                .storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+                .clearValue = clearDepth,
+        };
+
         const VkRenderingInfo renderingInfo{
                 .sType = VK_STRUCTURE_TYPE_RENDERING_INFO,
                 .pNext = nullptr,
@@ -883,38 +996,50 @@ namespace Frost {
                 .viewMask = 0,
                 .colorAttachmentCount = 1,
                 .pColorAttachments = &colorAttachment,
-                .pDepthAttachment = nullptr,
+                .pDepthAttachment = &depthAttachment,
                 .pStencilAttachment = nullptr,
         };
 
         vkCmdBeginRendering(commandBuffer, &renderingInfo);
 
-        vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_Pipeline->GetHandle());
+        // The scene, into its rectangle (the whole image unless SetSceneViewport restricted it).
+        // Skipped entirely for an empty rectangle: zero-sized viewports are invalid.
+        if (sceneRect.extent.width > 0 && sceneRect.extent.height > 0) {
+            vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_Pipeline->GetHandle());
 
-        // Flip the viewport vertically (negative height, y at the bottom) so +Y is up in
-        // model/world space, matching the winding the pipeline's CCW front-face setting assumes.
-        // Vulkan's window-space Y otherwise points down, which would invert front-facing triangles.
-        const VkViewport viewport{
-                .x = 0.0f,
-                .y = static_cast<float>(extent.height),
-                .width = static_cast<float>(extent.width),
-                .height = -static_cast<float>(extent.height),
-                .minDepth = 0.0f,
-                .maxDepth = 1.0f,
-        };
-        vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
+            // Flip the viewport vertically (negative height, y at the bottom) so +Y is up in
+            // model/world space, matching the winding the pipeline's CCW front-face setting
+            // assumes. Vulkan's window-space Y otherwise points down, which would invert
+            // front-facing triangles.
+            const VkViewport viewport{
+                    .x = static_cast<float>(sceneRect.offset.x),
+                    .y = static_cast<float>(sceneRect.offset.y) + static_cast<float>(sceneRect.extent.height),
+                    .width = static_cast<float>(sceneRect.extent.width),
+                    .height = -static_cast<float>(sceneRect.extent.height),
+                    .minDepth = 0.0f,
+                    .maxDepth = 1.0f,
+            };
+            vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
+            vkCmdSetScissor(commandBuffer, 0, 1, &sceneRect);
 
-        const VkRect2D scissor{.offset = {0, 0}, .extent = extent};
-        vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
+            // Per-frame constants (set 0) for every draw of this frame; Mesh::Draw supplies the
+            // per-draw push constants and the per-sub-mesh material set.
+            const VkDescriptorSet frameSet = m_FrameUniforms[m_CurrentFrame].descriptorSet;
+            vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_Pipeline->GetLayout(), 0, 1,
+                                    &frameSet, 0, nullptr);
 
-        // Per-frame constants (set 0) for every draw of this frame; Mesh::Draw supplies the
-        // per-draw push constants and the per-sub-mesh texture set.
-        const VkDescriptorSet frameSet = m_FrameUniforms[m_CurrentFrame].descriptorSet;
-        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_Pipeline->GetLayout(), 0, 1,
-                                &frameSet, 0, nullptr);
+            const Material& fallbackMaterial = *m_MaterialSystem->GetDefaultMaterial();
+            for (const DrawCommand& draw : m_FrameDraws[m_CurrentFrame]) {
+                draw.mesh->Draw(commandBuffer, m_Pipeline->GetLayout(), draw.transform, draw.materialOverrides,
+                                fallbackMaterial);
+            }
+        }
 
-        if (m_TestMesh != nullptr) {
-            m_TestMesh->Draw(commandBuffer, m_Pipeline->GetLayout(), *m_MaterialSystem->GetDefaultMaterial());
+        // Overlay (e.g. the editor UI) last, on top of everything, inside the same rendering scope.
+        if (m_Overlay != nullptr) {
+            m_Overlay->RecordOverlay(commandBuffer, RenderOverlayTarget{.colorAttachmentFormat = m_Swapchain->GetImageFormat(),
+                                                                        .depthAttachmentFormat = m_DepthFormat,
+                                                                        .extent = extent});
         }
 
         vkCmdEndRendering(commandBuffer);
@@ -923,18 +1048,19 @@ namespace Frost {
         // to the transition. The presentation engine is synchronized by the renderFinished
         // semaphore rather than by this barrier, so the dst scope is ALL_COMMANDS with no access
         // (the synchronization2 spelling of a bottom-of-pipe/no-consumer dependency).
-        TransitionImage(commandBuffer, image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-                        VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
-                        VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT, VK_ACCESS_2_NONE);
+        TransitionImage(commandBuffer, image, VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                        VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+                        VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT, VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT, VK_ACCESS_2_NONE);
 
         result = vkEndCommandBuffer(commandBuffer);
         if (result != VK_SUCCESS) { throw VulkanError("vkEndCommandBuffer", result); }
     }
 
     void Renderer::TransitionImage(const VkCommandBuffer commandBuffer, const VkImage image,
-                                   const VkImageLayout oldLayout, const VkImageLayout newLayout,
-                                   const VkPipelineStageFlags2 srcStageMask, const VkAccessFlags2 srcAccessMask,
-                                   const VkPipelineStageFlags2 dstStageMask, const VkAccessFlags2 dstAccessMask) {
+                                   const VkImageAspectFlags aspectMask, const VkImageLayout oldLayout,
+                                   const VkImageLayout newLayout, const VkPipelineStageFlags2 srcStageMask,
+                                   const VkAccessFlags2 srcAccessMask, const VkPipelineStageFlags2 dstStageMask,
+                                   const VkAccessFlags2 dstAccessMask) {
         // Stage/access masks are supplied by the caller rather than fixed at ALL_COMMANDS: for the
         // swapchain image the src scope must line up with the stage the acquire semaphore wait
         // blocks, or the transition is not actually ordered after the presentation engine's reads.
@@ -950,7 +1076,7 @@ namespace Frost {
                 .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
                 .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
                 .image = image,
-                .subresourceRange = {.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+                .subresourceRange = {.aspectMask = aspectMask,
                                      .baseMipLevel = 0,
                                      .levelCount = 1,
                                      .baseArrayLayer = 0,

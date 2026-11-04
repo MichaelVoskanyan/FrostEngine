@@ -28,9 +28,12 @@ namespace Frost {
         }
 
         // GLFW callbacks are plain function pointers; the user pointer is how the static callback
-        // finds its way back to this instance.
+        // finds its way back to this instance. These must be installed before anything that chains
+        // onto them (ImGuiLayer's GLFW backend saves and forwards to whatever is installed when it
+        // initializes), which Engine's construction order guarantees.
         glfwSetWindowUserPointer(m_Window, this);
         glfwSetFramebufferSizeCallback(m_Window, FramebufferSizeCallback);
+        glfwSetScrollCallback(m_Window, ScrollCallback);
     }
 
     Window::~Window() {
@@ -43,6 +46,15 @@ namespace Frost {
     }
 
     bool Window::ShouldClose() const noexcept { return glfwWindowShouldClose(m_Window) == GLFW_TRUE; }
+
+    void Window::SetShouldClose(const bool shouldClose) noexcept {
+        glfwSetWindowShouldClose(m_Window, shouldClose ? GLFW_TRUE : GLFW_FALSE);
+    }
+
+    void Window::SetTitle(const std::string& title) {
+        m_Spec.title = title;
+        glfwSetWindowTitle(m_Window, title.c_str());
+    }
 
     void Window::PollEvents() const noexcept { glfwPollEvents(); }
 
@@ -61,6 +73,12 @@ namespace Frost {
         return resized;
     }
 
+    glm::vec2 Window::ConsumeScrollDelta() noexcept {
+        const glm::vec2 delta = m_ScrollDelta;
+        m_ScrollDelta = glm::vec2(0.0f);
+        return delta;
+    }
+
     GLFWwindow* Window::GetNativeHandle() const noexcept { return m_Window; }
 
     void Window::ErrorCallback(const int errorCode, const char* const description) {
@@ -74,6 +92,13 @@ namespace Frost {
         // collapses into a single recreation.
         auto* const self = static_cast<Window*>(glfwGetWindowUserPointer(window));
         if (self != nullptr) { self->m_FramebufferResized = true; }
+    }
+
+    void Window::ScrollCallback(GLFWwindow* const window, const double xOffset, const double yOffset) {
+        // Several events can arrive within one poll (a fast wheel spin, or a touchpad's stream of
+        // fractional offsets); accumulate them so none are lost between frames.
+        auto* const self = static_cast<Window*>(glfwGetWindowUserPointer(window));
+        if (self != nullptr) { self->m_ScrollDelta += glm::vec2(static_cast<float>(xOffset), static_cast<float>(yOffset)); }
     }
 
 }  // namespace Frost

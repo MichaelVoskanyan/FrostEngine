@@ -1,5 +1,7 @@
 #pragma once
 
+#include <glm/vec2.hpp>
+
 #include <cstdint>
 #include <string>
 #include <utility>
@@ -29,6 +31,12 @@ namespace Frost {
         [[nodiscard]]
         bool ShouldClose() const noexcept;
 
+        // Sets or cancels a pending close (the user clicking the window's close button sets it).
+        // Cancelling lets an application ask first, e.g. about unsaved changes.
+        void SetShouldClose(bool shouldClose) noexcept;
+
+        void SetTitle(const std::string& title);
+
         void PollEvents() const noexcept;
 
         // Size of the window's drawable surface in pixels, as reported by GLFW. This can differ
@@ -44,16 +52,25 @@ namespace Frost {
         [[nodiscard]]
         bool ConsumeFramebufferResize() noexcept;
 
+        // Returns the scroll offset (mouse wheel / touchpad) accumulated since the last call, and
+        // resets it. x is horizontal, y vertical (positive = wheel pushed away from the user).
+        // GLFW only reports scrolling as events, so it is accumulated here between polls; Input
+        // consumes it once per frame.
+        [[nodiscard]]
+        glm::vec2 ConsumeScrollDelta() noexcept;
+
         [[nodiscard]]
         GLFWwindow* GetNativeHandle() const noexcept;
 
     private:
         static void ErrorCallback(int errorCode, const char* description);
         static void FramebufferSizeCallback(GLFWwindow* window, int width, int height);
+        static void ScrollCallback(GLFWwindow* window, double xOffset, double yOffset);
 
         GLFWwindow* m_Window = nullptr;
         WindowSpecification m_Spec;
         bool m_FramebufferResized = false;
+        glm::vec2 m_ScrollDelta{0.0f};
     };
 
 }  // namespace Frost

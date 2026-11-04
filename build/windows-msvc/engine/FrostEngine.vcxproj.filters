@@ -4,6 +4,21 @@
     <ClCompile Include="D:\Projects\Frost\engine\src\Application.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="D:\Projects\Frost\engine\src\Assets\AssetFile.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Projects\Frost\engine\src\Assets\AssetId.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Projects\Frost\engine\src\Assets\AssetImporter.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Projects\Frost\engine\src\Assets\AssetManager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Projects\Frost\engine\src\Assets\AssetRegistry.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="D:\Projects\Frost\engine\src\Assets\GltfImporter.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -16,7 +31,22 @@
     <ClCompile Include="D:\Projects\Frost\engine\src\Engine.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="D:\Projects\Frost\engine\src\ImGui\ImGuiLayer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Projects\Frost\engine\src\Platform\Input.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="D:\Projects\Frost\engine\src\Platform\Window.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Projects\Frost\engine\src\Project\Project.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Projects\Frost\engine\src\Renderer\Camera.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Projects\Frost\engine\src\Renderer\Light.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="D:\Projects\Frost\engine\src\Renderer\Material.cpp">
@@ -67,12 +97,39 @@
     <ClCompile Include="D:\Projects\Frost\engine\src\Renderer\Vulkan\VulkanSwapchain.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="D:\Projects\Frost\engine\src\Scene\GameObject.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Projects\Frost\engine\src\Scene\Level.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Projects\Frost\engine\src\Scene\LevelSerializer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="D:\Projects\Frost\engine\src\Assets\Json.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Application.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Assets\AssetFile.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Assets\AssetId.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Assets\AssetImporter.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Assets\AssetManager.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Assets\AssetRegistry.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Assets\AssetType.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Assets\GltfImporter.hpp">
@@ -87,7 +144,25 @@
     <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Engine.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\ImGui\ImGuiLayer.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Platform\Filesystem.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Platform\Input.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Platform\Window.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Project\Project.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Renderer\Camera.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Renderer\Light.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Renderer\Material.hpp">
@@ -97,6 +172,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Renderer\Mesh.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Renderer\RenderOverlay.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Renderer\Renderer.hpp">
@@ -139,6 +217,18 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Renderer\Vulkan\VulkanSwapchain.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Scene\Bounds.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Scene\GameObject.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Scene\Level.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Scene\LevelSerializer.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

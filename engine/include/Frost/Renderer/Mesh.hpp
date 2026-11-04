@@ -13,6 +13,7 @@
 #include <cstdint>
 #include <memory>
 #include <optional>
+#include <span>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -110,6 +111,14 @@ namespace Frost {
         // (`fallbackMaterial` for sub-meshes that have none). `pipelineLayout` must be the engine's
         // graphics layout (MeshPushConstants, material set at index 1; see VulkanPipeline).
         void Draw(VkCommandBuffer commandBuffer, VkPipelineLayout pipelineLayout,
+                  const Material& fallbackMaterial) const;
+
+        // As above, but with an explicit model matrix instead of the mesh's own, and per-sub-mesh
+        // material overrides: a non-null materialOverrides[i] replaces sub-mesh i's material (the
+        // span may be shorter than the sub-mesh count, or empty). This is how one uploaded mesh is
+        // drawn as many independently placed and textured objects (see Renderer::Submit).
+        void Draw(VkCommandBuffer commandBuffer, VkPipelineLayout pipelineLayout, const glm::mat4& transform,
+                  std::span<const std::shared_ptr<Material>> materialOverrides,
                   const Material& fallbackMaterial) const;
 
         // The model matrix (object -> world): the engine-side position/rotation/scale of this mesh.

@@ -4,12 +4,22 @@ add_library(Frost::Engine ALIAS FrostEngine)
 target_sources(FrostEngine
     PRIVATE
         src/Application.cpp
+        src/Assets/AssetFile.cpp
+        src/Assets/AssetId.cpp
+        src/Assets/AssetImporter.cpp
+        src/Assets/AssetManager.cpp
+        src/Assets/AssetRegistry.cpp
         src/Assets/GltfImporter.cpp
         src/Assets/Image.cpp
         src/Assets/Json.cpp
         src/Assets/Json.hpp
         src/Engine.cpp
+        src/ImGui/ImGuiLayer.cpp
+        src/Platform/Input.cpp
         src/Platform/Window.cpp
+        src/Project/Project.cpp
+        src/Renderer/Camera.cpp
+        src/Renderer/Light.cpp
         src/Renderer/Material.cpp
         src/Renderer/MaterialSystem.cpp
         src/Renderer/Mesh.cpp
@@ -26,6 +36,9 @@ target_sources(FrostEngine
         src/Renderer/Vulkan/VulkanImage.cpp
         src/Renderer/Vulkan/VulkanPipeline.cpp
         src/Renderer/Vulkan/VulkanSwapchain.cpp
+        src/Scene/GameObject.cpp
+        src/Scene/Level.cpp
+        src/Scene/LevelSerializer.cpp
 
     PUBLIC
         FILE_SET HEADERS
@@ -33,14 +46,27 @@ target_sources(FrostEngine
             include
         FILES
             include/Frost/Application.hpp
+            include/Frost/Assets/AssetFile.hpp
+            include/Frost/Assets/AssetId.hpp
+            include/Frost/Assets/AssetImporter.hpp
+            include/Frost/Assets/AssetManager.hpp
+            include/Frost/Assets/AssetRegistry.hpp
+            include/Frost/Assets/AssetType.hpp
             include/Frost/Assets/GltfImporter.hpp
             include/Frost/Assets/Image.hpp
             include/Frost/Assets/ImportError.hpp
             include/Frost/Engine.hpp
+            include/Frost/ImGui/ImGuiLayer.hpp
+            include/Frost/Platform/Filesystem.hpp
+            include/Frost/Platform/Input.hpp
             include/Frost/Platform/Window.hpp
+            include/Frost/Project/Project.hpp
+            include/Frost/Renderer/Camera.hpp
+            include/Frost/Renderer/Light.hpp
             include/Frost/Renderer/Material.hpp
             include/Frost/Renderer/MaterialSystem.hpp
             include/Frost/Renderer/Mesh.hpp
+            include/Frost/Renderer/RenderOverlay.hpp
             include/Frost/Renderer/Renderer.hpp
             include/Frost/Renderer/ShaderData.hpp
             include/Frost/Renderer/Texture.hpp
@@ -55,6 +81,10 @@ target_sources(FrostEngine
             include/Frost/Renderer/Vulkan/VulkanImage.hpp
             include/Frost/Renderer/Vulkan/VulkanPipeline.hpp
             include/Frost/Renderer/Vulkan/VulkanSwapchain.hpp
+            include/Frost/Scene/Bounds.hpp
+            include/Frost/Scene/GameObject.hpp
+            include/Frost/Scene/Level.hpp
+            include/Frost/Scene/LevelSerializer.hpp
 )
 
 target_compile_features(FrostEngine
@@ -79,9 +109,13 @@ target_link_libraries(FrostEngine
         Vulkan::Vulkan
         glm::glm
 
+    # Dear ImGui is private: no engine header includes it. Applications that issue ImGui:: calls
+    # (the editor) link imgui::imgui themselves; being a static library, there is still only the
+    # one copy (and one global context) in the final executable.
     PRIVATE
         glfw
         GPUOpen::VulkanMemoryAllocator
+        imgui::imgui
 )
 
 if(MSVC)

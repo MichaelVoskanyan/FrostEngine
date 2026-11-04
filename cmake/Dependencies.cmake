@@ -6,6 +6,10 @@ find_package(glfw3 CONFIG REQUIRED)
 find_package(glm CONFIG REQUIRED)
 find_package(VulkanMemoryAllocator CONFIG REQUIRED)
 
+# Dear ImGui with its GLFW and Vulkan backends (vcpkg features glfw-binding/vulkan-binding; see
+# vcpkg.json). The engine hosts it (ImGuiLayer); the editor builds its UI with it.
+find_package(imgui CONFIG REQUIRED)
+
 # stb_image (header-only PNG/JPEG decoding, used by ImageImporter). vcpkg's stb port ships a
 # FindStb module that sets Stb_INCLUDE_DIR; fall back to a plain header search for system installs
 # (e.g. Debian's libstb-dev, which nests the headers under include/stb).

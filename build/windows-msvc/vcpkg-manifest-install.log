@@ -3,9 +3,13 @@ Compiler found: C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Tools
 The following packages are already installed:
     glfw3:x64-windows@3.4#1
     glm:x64-windows@1.0.3
+    imgui[core,vulkan-binding,glfw-binding,docking-experimental]:x64-windows@1.92.8#1
     stb:x64-windows@2024-07-29#1
   * vcpkg-cmake:x64-windows@2024-04-23
   * vcpkg-cmake-config:x64-windows@2024-05-23
+  * vulkan:x64-windows@2023-12-17
+  * vulkan-headers:x64-windows@1.4.350.1
+  * vulkan-loader:x64-windows@1.4.350.1
     vulkan-memory-allocator:x64-windows@3.4.0
 glfw3 provides CMake targets:
 
@@ -26,6 +30,12 @@ The package glm provides CMake targets:
     # Or use the header-only version
     find_package(glm CONFIG REQUIRED)
     target_link_libraries(main PRIVATE glm::glm-header-only)
+
+imgui provides CMake targets:
+
+  # this is heuristically generated, and may not be correct
+  find_package(imgui CONFIG REQUIRED)
+  target_link_libraries(main PRIVATE imgui::imgui)
 
 The package stb provides CMake targets:
 
@@ -51,4 +61,4 @@ or
 
 See the documentation for more information on setting up your project: https://gpuopen-librariesandsdks.github.io/VulkanMemoryAllocator/html/index.html
 
-All requested installations completed successfully in: 133 us
+All requested installations completed successfully in: 180 us

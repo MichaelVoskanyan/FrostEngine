@@ -13,14 +13,13 @@ layout(location = 3) out vec4 fragTangent;  // World space xyz + handedness.
 layout(location = 4) out vec3 fragWorldPosition;
 
 // Per-frame constants (set 0), written once per frame by the renderer. Mirrored by
-// Frost::FrameUniforms; identity view and a placeholder projection until a camera exists.
+// Frost::FrameUniforms; view/projection come from the renderer's camera (or a placeholder).
 layout(set = 0, binding = 0) uniform FrameUniforms {
     mat4 view;
     mat4 projection;
     vec4 cameraPosition;
-    vec4 lightDirection;
-    vec4 lightColor;
     vec4 ambientColor;
+    uvec4 lightCount;
 } frame;
 
 // Per-draw constants, pushed by Mesh::Draw. Mirrored by Frost::MeshPushConstants.
