@@ -1,9 +1,11 @@
 #include <Frost/Scene/Level.hpp>
 
 #include <Frost/Assets/AssetManager.hpp>
+#include <Frost/Physics/Collision.hpp>
 #include <Frost/Renderer/Mesh.hpp>
 #include <Frost/Renderer/Renderer.hpp>
 
+#include <glm/common.hpp>
 #include <glm/geometric.hpp>
 #include <glm/mat4x4.hpp>
 #include <glm/matrix.hpp>
@@ -12,6 +14,7 @@
 #include <cmath>
 #include <limits>
 #include <optional>
+#include <stdexcept>
 #include <utility>
 
 namespace {
@@ -81,21 +84,17 @@ namespace Frost {
     GameObject& Level::CreateObject(std::string name) { return AddObject(m_NextId, std::move(name)); }
 
     GameObject& Level::DuplicateObject(const GameObject& source) {
-        GameObject& copy = CreateObject(source.GetName());
-        copy.GetTransform() = source.GetTransform();
-        copy.GetLight() = source.GetLight();
-
-        if (source.GetMesh() != nullptr) { copy.SetMesh(source.GetMesh()); }
-        else if (source.GetMeshReference().IsSet()) { copy.SetUnresolvedMesh(source.GetMeshReference()); }
-
-        for (std::size_t i = 0; i < source.GetMaterialSlotCount(); ++i) {
-            copy.SetMaterialOverride(i, source.GetMaterialOverride(i));
+        if (FindObject(source.GetId()) != &source) {
+            throw std::invalid_argument("Level::DuplicateObject: the object is not part of this level.");
         }
 
+        GameObject& copy = CreateObject(source.GetName());
+        m_Registry.CopyAll(source.GetId(), copy.GetId());
         return copy;
     }
 
     void Level::DestroyObject(const ObjectId id) {
+        m_Registry.RemoveAll(id);
         std::erase_if(m_Objects, [id](const std::unique_ptr<GameObject>& object) { return object->GetId() == id; });
     }
 
@@ -108,19 +107,46 @@ namespace Frost {
 
     const std::vector<std::unique_ptr<GameObject>>& Level::GetObjects() const noexcept { return m_Objects; }
 
+    Registry& Level::GetRegistry() noexcept { return m_Registry; }
+
+    const Registry& Level::GetRegistry() const noexcept { return m_Registry; }
+
     void Level::Submit(Renderer& renderer, AssetManager& assets) {
         renderer.SetAmbientLight(m_Environment.ambientColor * std::max(m_Environment.ambientIntensity, 0.0f));
 
-        for (const std::unique_ptr<GameObject>& object : m_Objects) {
-            if (const std::optional<LightComponent>& light = object->GetLight(); light.has_value() && light->enabled) {
-                renderer.SubmitLight(light->ToRenderLight(object->GetTransform()));
-            }
+        m_Registry.Each<TransformComponent, LightComponent>(
+                [&](EntityId, const TransformComponent& transform, const LightComponent& light) {
+                    if (light.enabled) { renderer.SubmitLight(light.ToRenderLight(transform)); }
+                });
 
-            if (object->GetMesh() != nullptr) {
-                renderer.Submit(object->GetMesh()->mesh, object->GetTransform().ToMatrix(),
-                                object->GetResolvedMaterials(assets));
+        m_Registry.Each<TransformComponent, MeshComponent>(
+                [&](EntityId, const TransformComponent& transform, MeshComponent& mesh) {
+                    if (mesh.GetMesh() != nullptr) {
+                        renderer.Submit(mesh.GetMesh()->mesh, transform.ToMatrix(), mesh.GetResolvedMaterials(assets));
+                    }
+                });
+    }
+
+    std::optional<Bounds> Level::GetBounds() const {
+        std::optional<Bounds> all;
+        const auto include = [&all](const Bounds& bounds) {
+            if (!all.has_value()) { all = bounds; }
+            else {
+                all->min = glm::min(all->min, bounds.min);
+                all->max = glm::max(all->max, bounds.max);
+            }
+        };
+
+        for (const std::unique_ptr<GameObject>& object : m_Objects) {
+            if (const std::optional<Bounds> model = object->GetWorldBounds()) { include(*model); }
+            if (const BoxColliderComponent* const collider = object->TryGetComponent<BoxColliderComponent>()) {
+                include(MakeWorldBox(object->GetTransform(), *collider).GetBounds());
+            }
+            if (const CapsuleColliderComponent* const collider = object->TryGetComponent<CapsuleColliderComponent>()) {
+                include(MakeWorldCapsule(object->GetTransform(), *collider).GetBounds());
             }
         }
+        return all;
     }
 
     std::optional<RaycastHit> Level::Raycast(const Ray& ray, const float maxDistance) const {
@@ -128,8 +154,9 @@ namespace Frost {
         float nearestDistance = maxDistance;
 
         for (const std::unique_ptr<GameObject>& object : m_Objects) {
-            const std::shared_ptr<const MeshAsset>& asset = object->GetMesh();
-            if (asset == nullptr) { continue; }
+            const MeshComponent* const mesh = object->TryGetComponent<MeshComponent>();
+            if (mesh == nullptr || mesh->GetMesh() == nullptr) { continue; }
+            const std::shared_ptr<const MeshAsset>& asset = mesh->GetMesh();
 
             // Test in the object's own space. The direction is transformed but deliberately not
             // renormalized, so the ray parameter t measures the same world-space distance on both
@@ -172,8 +199,11 @@ namespace Frost {
     }
 
     GameObject& Level::AddObject(const ObjectId id, std::string name) {
-        m_Objects.push_back(std::make_unique<GameObject>(id, std::move(name)));
+        m_Objects.push_back(std::make_unique<GameObject>(id, std::move(name), m_Registry));
         m_NextId = std::max(m_NextId, id + 1);
+
+        // Every object is somewhere.
+        m_Registry.Add<TransformComponent>(id);
         return *m_Objects.back();
     }
 

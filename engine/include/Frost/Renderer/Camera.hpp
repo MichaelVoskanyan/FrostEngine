@@ -1,5 +1,7 @@
 #pragma once
 
+#include <Frost/Units.hpp>
+
 #include <glm/gtc/quaternion.hpp>
 #include <glm/mat4x4.hpp>
 #include <glm/vec3.hpp>
@@ -67,8 +69,8 @@ namespace Frost {
         glm::quat m_Orientation{1.0f, 0.0f, 0.0f, 0.0f};  // (w, x, y, z): identity, looking down -Z.
 
         float m_VerticalFov = 1.0471976f;  // 60 degrees.
-        float m_NearClip = 0.05f;
-        float m_FarClip = 1000.0f;
+        float m_NearClip = 5.0f * kCentimeter;
+        float m_FarClip = 1.0f * kKilometer;
     };
 
 }  // namespace Frost

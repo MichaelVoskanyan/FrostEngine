@@ -58,6 +58,14 @@ namespace Frost {
         static_assert(kKeyCount == static_cast<std::size_t>(GLFW_KEY_LAST) + 1);
         static_assert(kMouseButtonCount == static_cast<std::size_t>(GLFW_MOUSE_BUTTON_LAST) + 1);
 
+        // Keys and buttons are sampled once per frame, so a tap that starts and ends between two
+        // samples (a quick press during a long frame, e.g. while a level loads) would be missed
+        // entirely. Sticky mode makes GLFW report such a press as down at the next sample, so it
+        // still shows up for one frame; held keys are unaffected.
+        GLFWwindow* const handle = m_Window.GetNativeHandle();
+        glfwSetInputMode(handle, GLFW_STICKY_KEYS, GLFW_TRUE);
+        glfwSetInputMode(handle, GLFW_STICKY_MOUSE_BUTTONS, GLFW_TRUE);
+
         SampleCursorPosition();
     }
 

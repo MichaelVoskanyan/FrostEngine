@@ -5,6 +5,7 @@
 #include <Frost/Assets/AssetManager.hpp>
 #include <Frost/Engine.hpp>
 #include <Frost/Platform/Filesystem.hpp>
+#include <Frost/Units.hpp>
 
 #include <iostream>
 #include <utility>
@@ -21,6 +22,9 @@ AssetLibrary& EditorContext::GetLibrary() noexcept { return m_Library; }
 Frost::Level& EditorContext::GetLevel() noexcept { return *m_Level; }
 
 void EditorContext::SetLevel(std::unique_ptr<Frost::Level> level, std::optional<std::filesystem::path> path) {
+    m_Simulating = false;
+    m_SimulationSnapshot.clear();
+
     m_Level = std::move(level);
     m_LevelPath = std::move(path);
     m_LevelDirty = false;
@@ -62,7 +66,7 @@ Frost::GameObject* EditorContext::SpawnMesh(const std::filesystem::path& path, c
     }
 
     Frost::GameObject& object = m_Level->CreateObject(Frost::PathToUtf8(asset->path.stem()));
-    object.SetMesh(asset);
+    object.AddComponent<Frost::MeshComponent>(asset);
 
     // Rest the model on the point rather than burying its lower half in whatever was hit.
     object.GetTransform().position = position - glm::vec3(0.0f, asset->bounds.min.y, 0.0f);
@@ -120,11 +124,11 @@ std::string EditorContext::DeleteAsset(const std::filesystem::path& assetPath) {
     // reference, so restoring the file brings them back); textures fall back to their defaults.
     if (type == Frost::AssetType::Mesh) {
         GetAssets().Unload(reference);
-        for (const std::unique_ptr<Frost::GameObject>& object : m_Level->GetObjects()) {
-            if (object->GetMesh() != nullptr && reference.id.IsValid() && object->GetMesh()->id == reference.id) {
-                object->SetUnresolvedMesh(object->GetMeshReference());
+        m_Level->GetRegistry().Each<Frost::MeshComponent>([&](Frost::EntityId, Frost::MeshComponent& mesh) {
+            if (mesh.GetMesh() != nullptr && reference.id.IsValid() && mesh.GetMesh()->id == reference.id) {
+                mesh.SetUnresolvedMesh(mesh.GetMeshReference());
             }
-        }
+        });
     }
     else {
         ReloadAllAssets();
@@ -136,64 +140,64 @@ void EditorContext::ReloadAllAssets() {
     Frost::AssetManager& assets = GetAssets();
     assets.UnloadAll();
 
-    for (const std::unique_ptr<Frost::GameObject>& object : m_Level->GetObjects()) {
-        const Frost::AssetReference reference = object->GetMeshReference();
+    m_Level->GetRegistry().Each<Frost::MeshComponent>([&](Frost::EntityId, Frost::MeshComponent& mesh) {
+        const Frost::AssetReference reference = mesh.GetMeshReference();
         if (reference.IsSet()) {
             try {
-                object->SetMesh(assets.LoadMesh(reference));
+                mesh.SetMesh(assets.LoadMesh(reference));
             }
             catch (const Frost::ImportError&) {
-                object->SetUnresolvedMesh(reference);
+                mesh.SetUnresolvedMesh(reference);
             }
         }
-        object->InvalidateMaterials();
-    }
+        mesh.InvalidateMaterials();
+    });
 }
 
 void EditorContext::OnAssetsChanged() {
     Frost::AssetManager& assets = GetAssets();
 
-    for (const std::unique_ptr<Frost::GameObject>& object : m_Level->GetObjects()) {
-        const Frost::AssetReference reference = object->GetMeshReference();
+    m_Level->GetRegistry().Each<Frost::MeshComponent>([&](Frost::EntityId, Frost::MeshComponent& mesh) {
+        const Frost::AssetReference reference = mesh.GetMeshReference();
 
         // A model that could not be found (or was loaded without some of its textures) may be
         // complete now, e.g. after its file was moved back into the content directory.
-        const bool incomplete = reference.IsSet() && (object->GetMesh() == nullptr || object->GetMesh()->missingTextures > 0);
+        const bool incomplete = reference.IsSet() && (mesh.GetMesh() == nullptr || mesh.GetMesh()->missingTextures > 0);
         if (incomplete) {
-            if (object->GetMesh() != nullptr) { assets.Unload(reference); }
+            if (mesh.GetMesh() != nullptr) { assets.Unload(reference); }
             try {
-                object->SetMesh(assets.LoadMesh(reference));
+                mesh.SetMesh(assets.LoadMesh(reference));
             }
             catch (const Frost::ImportError&) {
-                object->SetUnresolvedMesh(reference);
+                mesh.SetUnresolvedMesh(reference);
             }
         }
 
         // Texture overrides are resolved (and a missing one retried) when materials rebuild.
-        object->InvalidateMaterials();
-    }
+        mesh.InvalidateMaterials();
+    });
 }
 
 Frost::GameObject& EditorContext::SpawnLight(const Frost::LightType type, const glm::vec3& surfacePoint) {
     Frost::GameObject& object = m_Level->CreateObject(EditorUI::LightDisplayName(type));
-    object.GetLight() = Frost::LightComponent::CreateDefault(type);
+    object.AddComponent<Frost::LightComponent>(Frost::LightComponent::CreateDefault(type));
 
-    Frost::Transform& transform = object.GetTransform();
+    Frost::TransformComponent& transform = object.GetTransform();
     switch (type) {
         case Frost::LightType::Directional:
             // Only the direction matters; start like an afternoon sun (down and across).
-            transform.position = surfacePoint + glm::vec3(0.0f, 2.0f, 0.0f);
+            transform.position = surfacePoint + glm::vec3(0.0f, 2.0f * Frost::kMeter, 0.0f);
             transform.rotation = glm::vec3(-50.0f, -30.0f, 0.0f);
             break;
 
         case Frost::LightType::Point:
             // A little off the surface, so it lights it rather than sitting in it.
-            transform.position = surfacePoint + glm::vec3(0.0f, 1.0f, 0.0f);
+            transform.position = surfacePoint + glm::vec3(0.0f, 1.0f * Frost::kMeter, 0.0f);
             break;
 
         case Frost::LightType::Spot:
             // Hanging above the drop point, pointing straight down at it.
-            transform.position = surfacePoint + glm::vec3(0.0f, 3.0f, 0.0f);
+            transform.position = surfacePoint + glm::vec3(0.0f, 3.0f * Frost::kMeter, 0.0f);
             transform.rotation = glm::vec3(-90.0f, 0.0f, 0.0f);
             break;
     }
@@ -219,7 +223,7 @@ void EditorContext::DuplicateSelected() {
 
     // Nudge the copy sideways by the model's width, so it does not sit exactly inside the original.
     const std::optional<Frost::Bounds> bounds = source->GetWorldBounds();
-    copy.GetTransform().position.x += bounds.has_value() ? bounds->GetSize().x : 1.0f;
+    copy.GetTransform().position.x += bounds.has_value() ? bounds->GetSize().x : 1.0f * Frost::kMeter;
 
     m_Selection = copy.GetId();
     MarkLevelDirty();
@@ -228,6 +232,24 @@ void EditorContext::DuplicateSelected() {
 void EditorContext::SetSpawnPoint(const glm::vec3& point) noexcept { m_SpawnPoint = point; }
 
 const glm::vec3& EditorContext::GetSpawnPoint() const noexcept { return m_SpawnPoint; }
+
+void EditorContext::SetView(const Frost::ViewPoint& view) noexcept { m_View = view; }
+
+const Frost::ViewPoint& EditorContext::GetView() const noexcept { return m_View; }
+
+Frost::GameObject& EditorContext::SpawnCamera() {
+    Frost::GameObject& object = m_Level->CreateObject("Camera");
+    object.AddComponent<Frost::CameraComponent>();
+
+    // Yaw then pitch, no roll: exactly the transform's Euler convention (R = Ry * Rx * Rz).
+    Frost::TransformComponent& transform = object.GetTransform();
+    transform.position = m_View.position;
+    transform.rotation = glm::vec3(m_View.pitchDegrees, m_View.yawDegrees, 0.0f);
+
+    m_Selection = object.GetId();
+    MarkLevelDirty();
+    return object;
+}
 
 void EditorContext::RequestOpenLevel(const std::filesystem::path& path) { m_OpenLevelRequest = path; }
 
@@ -243,6 +265,84 @@ std::optional<Frost::ObjectId> EditorContext::ConsumeFocusRequest() noexcept {
     std::optional<Frost::ObjectId> request = m_FocusRequest;
     m_FocusRequest.reset();
     return request;
+}
+
+bool EditorContext::IsSimulating() const noexcept { return m_Simulating; }
+
+void EditorContext::StartSimulation() {
+    if (m_Simulating) { return; }
+
+    m_SimulationSnapshot.clear();
+    for (const std::unique_ptr<Frost::GameObject>& object : m_Level->GetObjects()) {
+        m_SimulationSnapshot.emplace_back(object->GetId(), object->GetTransform());
+    }
+
+    // Everything starts at rest, with no time carried over from a previous run.
+    m_Level->GetRegistry().Each<Frost::RigidBodyComponent>(
+            [](Frost::EntityId, Frost::RigidBodyComponent& body) { body.linearVelocity = glm::vec3(0.0f); });
+    m_Physics.Reset();
+
+    m_Simulating = true;
+}
+
+void EditorContext::StopSimulation() {
+    if (!m_Simulating) { return; }
+    m_Simulating = false;
+
+    // Objects deleted meanwhile are skipped; objects added meanwhile stay where they are.
+    for (const auto& [id, transform] : m_SimulationSnapshot) {
+        if (Frost::GameObject* const object = m_Level->FindObject(id); object != nullptr) {
+            object->GetTransform() = transform;
+        }
+    }
+    m_SimulationSnapshot.clear();
+
+    m_Level->GetRegistry().Each<Frost::RigidBodyComponent>(
+            [](Frost::EntityId, Frost::RigidBodyComponent& body) { body.linearVelocity = glm::vec3(0.0f); });
+}
+
+void EditorContext::UpdateSimulation(const float deltaTime) {
+    if (m_Simulating) { m_Physics.Update(m_Level->GetRegistry(), deltaTime); }
+}
+
+Frost::GameObject& EditorContext::SpawnCharacter(const glm::vec3& point) {
+    // About a person: 1.8 tall, eyes 0.7 above the middle (1.6 above the feet), 80 kg.
+    const Frost::CapsuleColliderComponent capsule{.center = glm::vec3(0.0f),
+                                                  .radius = 35.0f * Frost::kCentimeter,
+                                                  .height = 1.8f * Frost::kMeter};
+
+    Frost::GameObject& object = m_Level->CreateObject("Player");
+    object.AddComponent<Frost::CapsuleColliderComponent>(capsule);
+    object.AddComponent<Frost::RigidBodyComponent>(Frost::RigidBodyComponent{.simulated = true, .mass = 80.0f});
+    object.AddComponent<Frost::CharacterControllerComponent>();
+    object.AddComponent<Frost::CameraComponent>(Frost::CameraComponent{.offset = glm::vec3(0.0f, 70.0f * Frost::kCentimeter, 0.0f)});
+
+    // Feet on the point, facing where the view faces, level.
+    Frost::TransformComponent& transform = object.GetTransform();
+    transform.position = point + glm::vec3(0.0f, capsule.height * 0.5f, 0.0f);
+    transform.rotation = glm::vec3(0.0f, m_View.yawDegrees, 0.0f);
+
+    m_Selection = object.GetId();
+    MarkLevelDirty();
+    return object;
+}
+
+bool EditorContext::IsPlaying() const noexcept { return m_PlaySession.IsRunning(); }
+
+void EditorContext::StartPlaying() {
+    if (m_PlaySession.IsRunning()) { return; }
+
+    // The game plays the level as edited, not as the simulation left it.
+    StopSimulation();
+
+    const std::string error = m_PlaySession.Start(*m_Level, m_Engine.GetProject(), m_Library.GetRegistry(), m_View);
+    if (!error.empty()) { ReportError("Could not play the level: " + error); }
+}
+
+void EditorContext::StopPlaying() { m_PlaySession.Stop(); }
+
+void EditorContext::UpdatePlaying() {
+    if (const std::optional<std::string> error = m_PlaySession.Update()) { ReportError(*error); }
 }
 
 void EditorContext::ReportError(std::string message) {

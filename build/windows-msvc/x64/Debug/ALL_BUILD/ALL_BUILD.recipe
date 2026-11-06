@@ -8,9 +8,6 @@
       <FullPath>D:\Projects\Frost\build\windows-msvc\editor\x64\Debug\FrostEditorShaders</FullPath>
     </ProjectOutput>
     <ProjectOutput>
-      <FullPath>D:\Projects\Frost\build\windows-msvc\editor\Debug\FrostEditor.exe</FullPath>
-    </ProjectOutput>
-    <ProjectOutput>
       <FullPath>D:\Projects\Frost\build\windows-msvc\game\x64\Debug\FrostGameContent</FullPath>
     </ProjectOutput>
     <ProjectOutput>
@@ -18,6 +15,9 @@
     </ProjectOutput>
     <ProjectOutput>
       <FullPath>D:\Projects\Frost\build\windows-msvc\game\Debug\FrostGame.exe</FullPath>
+    </ProjectOutput>
+    <ProjectOutput>
+      <FullPath>D:\Projects\Frost\build\windows-msvc\editor\Debug\FrostEditor.exe</FullPath>
     </ProjectOutput>
     <ProjectOutput>
       <FullPath>D:\Projects\Frost\build\windows-msvc\x64\Debug\ALL_BUILD</FullPath>

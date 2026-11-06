@@ -15,8 +15,11 @@ target_sources(FrostEngine
         src/Assets/Json.hpp
         src/Engine.cpp
         src/ImGui/ImGuiLayer.cpp
+        src/Physics/Collision.cpp
+        src/Physics/PhysicsSystem.cpp
         src/Platform/Input.cpp
         src/Platform/Window.cpp
+        src/Project/GameLaunchOptions.cpp
         src/Project/Project.cpp
         src/Renderer/Camera.cpp
         src/Renderer/Light.cpp
@@ -36,6 +39,12 @@ target_sources(FrostEngine
         src/Renderer/Vulkan/VulkanImage.cpp
         src/Renderer/Vulkan/VulkanPipeline.cpp
         src/Renderer/Vulkan/VulkanSwapchain.cpp
+        src/Scene/Components/CameraComponent.cpp
+        src/Scene/Components/CharacterControllerComponent.cpp
+        src/Scene/Components/FlyControllerComponent.cpp
+        src/Scene/Components/LightComponent.cpp
+        src/Scene/Components/MeshComponent.cpp
+        src/Scene/Components/TransformComponent.cpp
         src/Scene/GameObject.cpp
         src/Scene/Level.cpp
         src/Scene/LevelSerializer.cpp
@@ -57,9 +66,12 @@ target_sources(FrostEngine
             include/Frost/Assets/ImportError.hpp
             include/Frost/Engine.hpp
             include/Frost/ImGui/ImGuiLayer.hpp
+            include/Frost/Physics/Collision.hpp
+            include/Frost/Physics/PhysicsSystem.hpp
             include/Frost/Platform/Filesystem.hpp
             include/Frost/Platform/Input.hpp
             include/Frost/Platform/Window.hpp
+            include/Frost/Project/GameLaunchOptions.hpp
             include/Frost/Project/Project.hpp
             include/Frost/Renderer/Camera.hpp
             include/Frost/Renderer/Light.hpp
@@ -82,9 +94,21 @@ target_sources(FrostEngine
             include/Frost/Renderer/Vulkan/VulkanPipeline.hpp
             include/Frost/Renderer/Vulkan/VulkanSwapchain.hpp
             include/Frost/Scene/Bounds.hpp
+            include/Frost/Scene/Components/BoxColliderComponent.hpp
+            include/Frost/Scene/Components/CameraComponent.hpp
+            include/Frost/Scene/Components/CapsuleColliderComponent.hpp
+            include/Frost/Scene/Components/CharacterControllerComponent.hpp
+            include/Frost/Scene/Components/FlyControllerComponent.hpp
+            include/Frost/Scene/Components/Components.hpp
+            include/Frost/Scene/Components/LightComponent.hpp
+            include/Frost/Scene/Components/MeshComponent.hpp
+            include/Frost/Scene/Components/RigidBodyComponent.hpp
+            include/Frost/Scene/Components/TransformComponent.hpp
             include/Frost/Scene/GameObject.hpp
             include/Frost/Scene/Level.hpp
             include/Frost/Scene/LevelSerializer.hpp
+            include/Frost/Scene/Registry.hpp
+            include/Frost/Units.hpp
 )
 
 target_compile_features(FrostEngine

@@ -36,6 +36,12 @@ void LevelPanel::Draw(EditorContext& context) {
             context.Select(object.GetId());
             context.MarkLevelDirty();
         }
+        if (ImGui::MenuItem("Camera")) { context.SpawnCamera(); }
+        ImGui::SetItemTooltip("A camera where the viewport is looking from. The game looks through the level's camera.");
+        if (ImGui::MenuItem("Character")) { context.SpawnCharacter(context.GetSpawnPoint()); }
+        ImGui::SetItemTooltip("A player character to walk around the level as in the game: a capsule body that falls and\n"
+                              "collides, walks with W/A/S/D, jumps with Space and looks with the mouse through a camera\n"
+                              "at head height.");
         ImGui::Separator();
         for (const Frost::LightType type : {Frost::LightType::Directional, Frost::LightType::Point, Frost::LightType::Spot}) {
             if (ImGui::MenuItem(EditorUI::LightDisplayName(type))) { context.SpawnLight(type, context.GetSpawnPoint()); }
@@ -73,7 +79,8 @@ void LevelPanel::Draw(EditorContext& context) {
             ImGui::PushID(static_cast<int>(object->GetId()));
 
             // Objects whose model failed to load are flagged, so broken references are easy to spot.
-            const bool missingMesh = object->GetMesh() == nullptr && object->GetMeshReference().IsSet();
+            const Frost::MeshComponent* const mesh = object->TryGetComponent<Frost::MeshComponent>();
+            const bool missingMesh = mesh != nullptr && mesh->IsMissing();
             const std::string label = object->GetName().empty() ? "(unnamed)" : object->GetName();
 
             if (missingMesh) { ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.45f, 0.4f, 1.0f)); }
@@ -83,7 +90,7 @@ void LevelPanel::Draw(EditorContext& context) {
             }
             if (missingMesh) {
                 ImGui::PopStyleColor();
-                ImGui::SetItemTooltip("Model not found: %s", Frost::PathToUtf8(object->GetMeshReference().path).c_str());
+                ImGui::SetItemTooltip("Model not found: %s", Frost::PathToUtf8(mesh->GetMeshReference().path).c_str());
             }
 
 
@@ -95,10 +102,20 @@ void LevelPanel::Draw(EditorContext& context) {
                 ImGui::EndPopup();
             }
 
-            // Lights have no geometry to recognize them by; tag them (dimmed when switched off).
-            // After the context menu, which attaches to the last item (the Selectable).
-            if (const std::optional<Frost::LightComponent>& light = object->GetLight(); light.has_value()) {
-                const char* const tag = light->enabled ? "light" : "light (off)";
+            // Lights and cameras have no geometry to recognize them by; tag them (lights dimmed
+            // when switched off). After the context menu, which attaches to the last item (the
+            // Selectable).
+            const char* tag = nullptr;
+            if (object->HasComponent<Frost::CharacterControllerComponent>()) {
+                tag = "character";
+            }
+            else if (const Frost::LightComponent* const light = object->TryGetComponent<Frost::LightComponent>(); light != nullptr) {
+                tag = light->enabled ? "light" : "light (off)";
+            }
+            else if (object->HasComponent<Frost::CameraComponent>()) {
+                tag = "camera";
+            }
+            if (tag != nullptr) {
                 ImGui::SameLine();
                 ImGui::SetCursorPosX(ImGui::GetCursorPosX() + ImGui::GetContentRegionAvail().x - ImGui::CalcTextSize(tag).x);
                 ImGui::TextDisabled("%s", tag);

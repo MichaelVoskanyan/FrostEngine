@@ -2,6 +2,7 @@
 
 #include <Frost/Assets/AssetManager.hpp>
 #include <Frost/Platform/Filesystem.hpp>
+#include <Frost/Units.hpp>
 
 #include <array>
 #include <bit>
@@ -520,6 +521,12 @@ namespace Frost {
         }
 
         if (reader.Remaining() != 0) { reader.Fail("has unexpected trailing data"); }
+
+        // Before version 3, positions were in meters; the world is in centimeters. (A uniform scale:
+        // normals and tangents are unaffected.)
+        if (file.header.version < 3) {
+            for (Vertex& vertex : file.mesh.vertices) { vertex.position *= kMeter; }
+        }
         return file;
     }
 

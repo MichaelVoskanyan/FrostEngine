@@ -22,7 +22,8 @@
 // levels, all inside the project's content directory. Runs the engine with ImGui enabled and lays
 // out a docked workspace around the 3D viewport: the level's object list on the left, the selected object's properties on the
 // right, and the asset library along the bottom. Levels are created, opened and saved from the
-// File menu (or Ctrl+N / Ctrl+O / Ctrl+S / Ctrl+Shift+S).
+// File menu (or Ctrl+N / Ctrl+O / Ctrl+S / Ctrl+Shift+S). F5 plays the level in the game, in a
+// window of its own (Play In Editor), and its physics can also be run in place (Alt+S).
 //
 // Editor-only tooling lives in this target; anything the game will also need (rendering,
 // lighting, input, levels, assets, ...) belongs in the engine.
@@ -69,6 +70,8 @@ private:
 
     void FocusObject(Frost::ObjectId id);
     void FocusLevel();
+    void TogglePlaying();
+    void ToggleSimulation();
     void UpdateWindowTitle();
 
     // While the camera has the mouse, ImGui must neither react to it (hover, clicks, wheel) nor

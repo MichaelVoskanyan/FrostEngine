@@ -1,7 +1,10 @@
 #pragma once
 
 #include "AssetLibrary.hpp"
+#include "PlaySession.hpp"
 
+#include <Frost/Physics/PhysicsSystem.hpp>
+#include <Frost/Project/GameLaunchOptions.hpp>
 #include <Frost/Scene/Level.hpp>
 
 #include <glm/vec3.hpp>
@@ -10,6 +13,7 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace Frost {
@@ -18,8 +22,9 @@ namespace Frost {
 }  // namespace Frost
 
 // State shared by the editor's panels: the level being edited (and where it lives on disk), the
-// selection, the asset library, and the actions several panels trigger (spawning, deleting,
-// duplicating objects). Errors are queued here and shown by EditorApplication.
+// selection, the asset library, the viewport's point of view, the physics simulation and Play In
+// Editor, and the actions several panels trigger (spawning, deleting, duplicating objects). Errors
+// are queued here and shown by EditorApplication.
 class EditorContext final {
 public:
     EditorContext(Frost::Engine& engine, AssetLibrary& library);
@@ -39,7 +44,8 @@ public:
     Frost::Level& GetLevel() noexcept;
 
     // Replaces the level being edited; `path` is where it was loaded from (nullopt for a new,
-    // never-saved level). Clears the selection and the dirty flag.
+    // never-saved level). Clears the selection and the dirty flag, and ends any simulation (without
+    // restoring anything: the old level is gone).
     void SetLevel(std::unique_ptr<Frost::Level> level, std::optional<std::filesystem::path> path);
 
     [[nodiscard]]
@@ -106,6 +112,21 @@ public:
     [[nodiscard]]
     const glm::vec3& GetSpawnPoint() const noexcept;
 
+    // Where the viewport camera is and looks; kept up to date by EditorApplication.
+    void SetView(const Frost::ViewPoint& view) noexcept;
+
+    [[nodiscard]]
+    const Frost::ViewPoint& GetView() const noexcept;
+
+    // Places a new camera object exactly at the viewport's current view; the object is selected.
+    Frost::GameObject& SpawnCamera();
+
+    // Places a new player character with its feet at `point`, facing the way the viewport looks: a
+    // capsule body (simulated rigid body, capsule collider, character controller) with a camera at
+    // head height. In the game (or a simulation) it falls onto whatever is below. The object is
+    // selected.
+    Frost::GameObject& SpawnCharacter(const glm::vec3& point);
+
     // Asks for a level file to be opened (handled by EditorApplication, which asks about unsaved
     // changes first).
     void RequestOpenLevel(const std::filesystem::path& path);
@@ -118,6 +139,41 @@ public:
 
     [[nodiscard]]
     std::optional<Frost::ObjectId> ConsumeFocusRequest() noexcept;
+
+    // --- Simulation ---------------------------------------------------------------------------------
+    //
+    // Runs the level's physics in the editor, as the game would: simulated rigid bodies fall and
+    // collide. Stopping puts every object back where it was when the simulation started, so what
+    // the simulation moved is never saved; other edits made meanwhile are kept.
+
+    [[nodiscard]]
+    bool IsSimulating() const noexcept;
+
+    void StartSimulation();
+
+    // Restores the objects' transforms (see above). Does nothing if not simulating.
+    void StopSimulation();
+
+    // Advances the simulation by one frame, if it is running.
+    void UpdateSimulation(float deltaTime);
+
+    // --- Play In Editor -----------------------------------------------------------------------------
+    //
+    // Plays the level in the game, in a window of its own (see PlaySession), as it is now (unsaved
+    // changes included). A physics simulation running in the editor is stopped first.
+
+    // True from StartPlaying until the game has closed (whether it was stopped or closed itself).
+    [[nodiscard]]
+    bool IsPlaying() const noexcept;
+
+    // Errors (e.g. the game executable missing) are reported.
+    void StartPlaying();
+
+    // Closes the game.
+    void StopPlaying();
+
+    // Call once per frame: notices the game having closed, and reports it if it failed.
+    void UpdatePlaying();
 
     // --- Errors -------------------------------------------------------------------------------------
 
@@ -138,8 +194,16 @@ private:
 
     Frost::ObjectId m_Selection = 0;
     glm::vec3 m_SpawnPoint{0.0f};
+    Frost::ViewPoint m_View;
     std::optional<Frost::ObjectId> m_FocusRequest;
     std::optional<std::filesystem::path> m_OpenLevelRequest;
+
+    Frost::PhysicsSystem m_Physics;
+    bool m_Simulating = false;
+    // Every object's transform when the simulation started.
+    std::vector<std::pair<Frost::ObjectId, Frost::TransformComponent>> m_SimulationSnapshot;
+
+    PlaySession m_PlaySession;
 
     std::vector<std::string> m_Errors;
 };

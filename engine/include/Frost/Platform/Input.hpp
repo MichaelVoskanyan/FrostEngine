@@ -62,7 +62,8 @@ namespace Frost {
     // frame, right after the window's events are polled, so everything queried during that frame
     // sees one consistent state: "down" is the state at the snapshot, "pressed"/"released" mean the
     // state changed since the previous snapshot, and the mouse/scroll deltas cover exactly the time
-    // between the two.
+    // between the two. A key or button pressed and released again between two snapshots still
+    // reads as down (and pressed) in the next one, so short taps during long frames are not lost.
     //
     // Input only reads state; it does not consume it. Whether a UI layer (ImGui) should get a given
     // click or key instead of the game/editor is a policy decision left to the caller.

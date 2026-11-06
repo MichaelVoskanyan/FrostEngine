@@ -7,6 +7,7 @@
 #include <Frost/Platform/Filesystem.hpp>
 #include <Frost/Renderer/Mesh.hpp>
 #include <Frost/Scene/Level.hpp>
+#include <Frost/Units.hpp>
 
 #include <glm/vec3.hpp>
 #include <glm/vec4.hpp>
@@ -31,8 +32,16 @@ namespace {
     using Frost::Json::Value;
 
     constexpr const char* kFormatName = "FrostLevel";
-    // 2: asset references are {"id", "path"} objects. 1: plain path strings (still read).
-    constexpr int kFormatVersion = 2;
+    // 7: lengths (positions, sizes, distances) and speeds in centimeters, the world unit (see
+    // Frost/Units.hpp); before, in meters (converted when read, see kMetersFormatVersion).
+    // 6: capsule collider and character controller components; cameras have an offset and rotation.
+    // 5: fly controller components. 4: camera components. 3: box collider and rigid body
+    // components; an object can have a mesh component with no model yet ("mesh": {}). 2: asset
+    // references are {"id", "path"} objects. 1: plain path strings. Older versions are still read.
+    constexpr int kFormatVersion = 7;
+
+    // The last version that stored lengths in meters.
+    constexpr int kMetersFormatVersion = 6;
 
 
     // --- Writing -----------------------------------------------------------------------------------
@@ -91,7 +100,7 @@ namespace {
     }
 
     [[nodiscard]]
-    Value MaterialOverrideToJson(const std::size_t subMeshIndex, const Frost::GameObject& object,
+    Value MaterialOverrideToJson(const std::size_t subMeshIndex, const Frost::MeshComponent& mesh,
                                  const Frost::MaterialOverride& materialOverride,
                                  const std::filesystem::path& levelDirectory, const Frost::AssetRegistry* const registry) {
         Object json;
@@ -99,8 +108,8 @@ namespace {
 
         // The name lets the override find its sub-mesh again if the model is re-exported with its
         // parts in a different order.
-        if (object.GetMesh() != nullptr) {
-            const std::vector<Frost::SubMesh>& subMeshes = object.GetMesh()->mesh->GetSubMeshes();
+        if (mesh.GetMesh() != nullptr) {
+            const std::vector<Frost::SubMesh>& subMeshes = mesh.GetMesh()->mesh->GetSubMeshes();
             if (subMeshIndex < subMeshes.size() && !subMeshes[subMeshIndex].name.empty()) {
                 json.emplace_back("subMeshName", Value(subMeshes[subMeshIndex].name));
             }
@@ -145,35 +154,6 @@ namespace {
                             {"outerConeAngle", ToJson(light.outerConeAngle)}});
     }
 
-    [[nodiscard]]
-    Value ObjectToJson(const Frost::GameObject& object, const std::filesystem::path& levelDirectory,
-                       const Frost::AssetRegistry* const registry) {
-        const Frost::Transform& transform = object.GetTransform();
-
-        Object json;
-        json.emplace_back("id", Value(static_cast<double>(object.GetId())));
-        json.emplace_back("name", Value(object.GetName()));
-        json.emplace_back("transform", Value(Object{{"position", ToJson(transform.position)},
-                                                    {"rotation", ToJson(transform.rotation)},
-                                                    {"scale", ToJson(transform.scale)}}));
-
-        if (object.GetMeshReference().IsSet()) {
-            json.emplace_back("mesh", ReferenceToJson(object.GetMeshReference(), levelDirectory, registry));
-        }
-        if (object.GetLight().has_value()) { json.emplace_back("light", LightToJson(*object.GetLight())); }
-
-        Array materials;
-        for (std::size_t i = 0; i < object.GetMaterialSlotCount(); ++i) {
-            const std::optional<Frost::MaterialOverride>& materialOverride = object.GetMaterialOverride(i);
-            if (materialOverride.has_value()) {
-                materials.push_back(MaterialOverrideToJson(i, object, *materialOverride, levelDirectory, registry));
-            }
-        }
-        if (!materials.empty()) { json.emplace_back("materials", Value(std::move(materials))); }
-
-        return Value(std::move(json));
-    }
-
     // --- Reading -----------------------------------------------------------------------------------
 
     [[nodiscard]]
@@ -210,10 +190,32 @@ namespace {
         return value != nullptr && value->IsBoolean() ? value->AsBoolean() : fallback;
     }
 
+    // Lengths and speeds are stored in centimeters from version 7, and were in meters before:
+    // `scale` converts what the file says (1, or kMeter for older files). A missing or malformed
+    // value keeps `fallback`, which is already in centimeters.
+    [[nodiscard]]
+    float ReadLength(const Value& object, const std::string_view key, const float fallback, const float scale) {
+        const std::optional<double> number = ReadNumber(object.Find(key));
+        return number.has_value() ? static_cast<float>(*number) * scale : fallback;
+    }
+
+    [[nodiscard]]
+    glm::vec3 ReadLengthVector(const Value* const value, const glm::vec3& fallback, const float scale) {
+        if (value == nullptr || !value->IsArray() || value->AsArray().size() != 3) { return fallback; }
+
+        glm::vec3 result(0.0f);
+        for (std::size_t i = 0; i < 3; ++i) {
+            const std::optional<double> number = ReadNumber(value->At(i));
+            if (!number.has_value()) { return fallback; }
+            result[static_cast<glm::length_t>(i)] = static_cast<float>(*number) * scale;
+        }
+        return result;
+    }
+
     // Nullopt (with a warning) for an unknown light type.
     [[nodiscard]]
     std::optional<Frost::LightComponent> ReadLight(const Value& json, const std::string& objectName,
-                                                   std::vector<std::string>& warnings) {
+                                                   const float lengthScale, std::vector<std::string>& warnings) {
         const Value* const typeName = json.Find("type");
         std::optional<Frost::LightType> type;
         for (const Frost::LightType candidate :
@@ -234,7 +236,7 @@ namespace {
         light.useTemperature = ReadBool(json, "useTemperature", light.useTemperature);
         light.temperature = ReadFloat(json, "temperature", light.temperature);
         light.intensity = ReadFloat(json, "intensity", light.intensity);
-        light.range = ReadFloat(json, "range", light.range);
+        light.range = ReadLength(json, "range", light.range, lengthScale);
         light.innerConeAngle = ReadFloat(json, "innerConeAngle", light.innerConeAngle);
         light.outerConeAngle = ReadFloat(json, "outerConeAngle", light.outerConeAngle);
         return light;
@@ -310,6 +312,299 @@ namespace {
         return text;
     }
 
+    // --- Components ----------------------------------------------------------------------------------
+
+    struct WriteContext {
+        const std::filesystem::path& levelDirectory;
+        const Frost::AssetRegistry* registry;
+    };
+
+    struct ReadContext {
+        const std::filesystem::path& levelDirectory;
+        Frost::AssetManager& assets;
+        std::vector<std::string>& warnings;
+        // What the file's lengths and speeds are multiplied by to be in centimeters: 1, or kMeter
+        // for a level from before version 7 (see ReadLength).
+        float lengthScale;
+    };
+
+    // How one component type is stored in an object's JSON. Each specialization has:
+    //   static void Write(const T& component, const Frost::GameObject& object, Object& json, const WriteContext&);
+    //       Adds the component's key(s) to the object's JSON. Called only if the object has one.
+    //   static void Read(const Value& json, Frost::GameObject& object, const ReadContext&);
+    //       Attaches the component if the object's JSON has it (missing fields keep their
+    //       defaults). Called for every object.
+    // Every type in Frost::BuiltinComponents needs one (the build fails otherwise).
+    template <typename T>
+    struct ComponentSerializer;
+
+    // "transform": {"position": [x, y, z], "rotation": [pitch, yaw, roll] (degrees), "scale": [x, y, z]}
+    template <>
+    struct ComponentSerializer<Frost::TransformComponent> {
+        static void Write(const Frost::TransformComponent& transform, const Frost::GameObject& /*object*/, Object& json,
+                          const WriteContext& /*context*/) {
+            json.emplace_back("transform", Value(Object{{"position", ToJson(transform.position)},
+                                                        {"rotation", ToJson(transform.rotation)},
+                                                        {"scale", ToJson(transform.scale)}}));
+        }
+
+        static void Read(const Value& json, Frost::GameObject& object, const ReadContext& context) {
+            const Value* const transform = json.Find("transform");
+            if (transform == nullptr) { return; }  // Every object has one already; keep the default.
+
+            Frost::TransformComponent& target = object.GetTransform();
+            target.position = ReadLengthVector(transform->Find("position"), target.position, context.lengthScale);
+            target.rotation = ReadVector<glm::vec3, 3>(transform->Find("rotation"), target.rotation);
+            target.scale = ReadVector<glm::vec3, 3>(transform->Find("scale"), target.scale);
+        }
+    };
+
+    // "mesh": {"id", "path"} (or {} for no model yet), and "materials": [...] for the sub-mesh
+    // overrides (a separate key, as in versions 1 and 2).
+    template <>
+    struct ComponentSerializer<Frost::MeshComponent> {
+        static void Write(const Frost::MeshComponent& mesh, const Frost::GameObject& /*object*/, Object& json,
+                          const WriteContext& context) {
+            json.emplace_back("mesh", mesh.GetMeshReference().IsSet()
+                                              ? ReferenceToJson(mesh.GetMeshReference(), context.levelDirectory, context.registry)
+                                              : Value(Object{}));
+
+            Array materials;
+            for (std::size_t i = 0; i < mesh.GetMaterialSlotCount(); ++i) {
+                const std::optional<Frost::MaterialOverride>& materialOverride = mesh.GetMaterialOverride(i);
+                if (materialOverride.has_value()) {
+                    materials.push_back(
+                            MaterialOverrideToJson(i, mesh, *materialOverride, context.levelDirectory, context.registry));
+                }
+            }
+            if (!materials.empty()) { json.emplace_back("materials", Value(std::move(materials))); }
+        }
+
+        static void Read(const Value& json, Frost::GameObject& object, const ReadContext& context) {
+            const Value* const meshJson = json.Find("mesh");
+            const Value* const materials = json.Find("materials");
+
+            if (meshJson == nullptr) {
+                if (materials != nullptr && materials->IsArray() && !materials->AsArray().empty()) {
+                    context.warnings.push_back("'" + object.GetName() +
+                                               "': dropped material overrides of an object that has no model.");
+                }
+                return;
+            }
+
+            Frost::MeshComponent& mesh = object.AddComponent<Frost::MeshComponent>();
+            if (const std::optional<Frost::AssetReference> reference = ReadReference(*meshJson, context.levelDirectory)) {
+                try {
+                    mesh.SetMesh(context.assets.LoadMesh(*reference));
+                }
+                catch (const Frost::ImportError& e) {
+                    mesh.SetUnresolvedMesh(*reference);
+                    context.warnings.push_back("'" + object.GetName() + "': " + e.what());
+                }
+            }
+
+            if (materials == nullptr || !materials->IsArray()) { return; }
+
+            for (const Value& materialJson : materials->AsArray()) {
+                // By name when the loaded model has a sub-mesh of that name, else by index.
+                std::optional<std::size_t> index;
+                const Value* const subMeshName = materialJson.Find("subMeshName");
+                if (mesh.GetMesh() != nullptr && subMeshName != nullptr && subMeshName->IsString()) {
+                    index = mesh.GetMesh()->mesh->FindSubMesh(subMeshName->AsString());
+                }
+                if (!index.has_value()) {
+                    const std::optional<double> subMesh = ReadNumber(materialJson.Find("subMesh"));
+                    if (subMesh.has_value() && *subMesh >= 0.0 && std::floor(*subMesh) == *subMesh &&
+                        *subMesh < 65536.0) {
+                        index = static_cast<std::size_t>(*subMesh);
+                    }
+                }
+
+                const bool outOfRange = mesh.GetMesh() != nullptr && index.has_value() &&
+                                        *index >= mesh.GetMesh()->mesh->GetSubMeshes().size();
+                if (!index.has_value() || outOfRange) {
+                    context.warnings.push_back("'" + object.GetName() +
+                                               "': dropped a material override for a sub-mesh the model does not have.");
+                    continue;
+                }
+
+                mesh.SetMaterialOverride(*index, ReadMaterialOverride(materialJson, context.levelDirectory));
+            }
+        }
+    };
+
+    // "light": {"type", "enabled", "color", ...} (see LightToJson).
+    template <>
+    struct ComponentSerializer<Frost::LightComponent> {
+        static void Write(const Frost::LightComponent& light, const Frost::GameObject& /*object*/, Object& json,
+                          const WriteContext& /*context*/) {
+            json.emplace_back("light", LightToJson(light));
+        }
+
+        static void Read(const Value& json, Frost::GameObject& object, const ReadContext& context) {
+            const Value* const light = json.Find("light");
+            if (light == nullptr || !light->IsObject()) { return; }
+
+            const std::optional<Frost::LightComponent> component =
+                    ReadLight(*light, object.GetName(), context.lengthScale, context.warnings);
+            if (component.has_value()) {
+                object.AddComponent<Frost::LightComponent>(*component);
+            }
+        }
+    };
+
+    // "camera": {"verticalFov": degrees, "nearClip": n, "farClip": f, "offset": [x, y, z],
+    //            "rotation": [pitch, yaw, roll] (degrees)}
+    template <>
+    struct ComponentSerializer<Frost::CameraComponent> {
+        static void Write(const Frost::CameraComponent& camera, const Frost::GameObject& /*object*/, Object& json,
+                          const WriteContext& /*context*/) {
+            json.emplace_back("camera", Value(Object{{"verticalFov", ToJson(camera.verticalFov)},
+                                                     {"nearClip", ToJson(camera.nearClip)},
+                                                     {"farClip", ToJson(camera.farClip)},
+                                                     {"offset", ToJson(camera.offset)},
+                                                     {"rotation", ToJson(camera.rotation)}}));
+        }
+
+        static void Read(const Value& json, Frost::GameObject& object, const ReadContext& context) {
+            const Value* const camera = json.Find("camera");
+            if (camera == nullptr || !camera->IsObject()) { return; }
+
+            Frost::CameraComponent component;
+            component.verticalFov = ReadFloat(*camera, "verticalFov", component.verticalFov);
+            component.nearClip = ReadLength(*camera, "nearClip", component.nearClip, context.lengthScale);
+            component.farClip = ReadLength(*camera, "farClip", component.farClip, context.lengthScale);
+            component.offset = ReadLengthVector(camera->Find("offset"), component.offset, context.lengthScale);
+            component.rotation = ReadVector<glm::vec3, 3>(camera->Find("rotation"), component.rotation);
+            object.AddComponent<Frost::CameraComponent>(component);
+        }
+    };
+
+    // "flyController": {"moveSpeed": units/s, "fastMultiplier": f, "lookSensitivity": degrees/unit}
+    template <>
+    struct ComponentSerializer<Frost::FlyControllerComponent> {
+        static void Write(const Frost::FlyControllerComponent& controller, const Frost::GameObject& /*object*/,
+                          Object& json, const WriteContext& /*context*/) {
+            json.emplace_back("flyController", Value(Object{{"moveSpeed", ToJson(controller.moveSpeed)},
+                                                            {"fastMultiplier", ToJson(controller.fastMultiplier)},
+                                                            {"lookSensitivity", ToJson(controller.lookSensitivity)}}));
+        }
+
+        static void Read(const Value& json, Frost::GameObject& object, const ReadContext& context) {
+            const Value* const controller = json.Find("flyController");
+            if (controller == nullptr || !controller->IsObject()) { return; }
+
+            Frost::FlyControllerComponent component;
+            component.moveSpeed = ReadLength(*controller, "moveSpeed", component.moveSpeed, context.lengthScale);
+            component.fastMultiplier = ReadFloat(*controller, "fastMultiplier", component.fastMultiplier);
+            component.lookSensitivity = ReadFloat(*controller, "lookSensitivity", component.lookSensitivity);
+            object.AddComponent<Frost::FlyControllerComponent>(component);
+        }
+    };
+
+    // "characterController": {"walkSpeed": units/s, "jumpSpeed": units/s, "lookSensitivity": degrees/unit}
+    template <>
+    struct ComponentSerializer<Frost::CharacterControllerComponent> {
+        static void Write(const Frost::CharacterControllerComponent& controller, const Frost::GameObject& /*object*/,
+                          Object& json, const WriteContext& /*context*/) {
+            json.emplace_back("characterController",
+                              Value(Object{{"walkSpeed", ToJson(controller.walkSpeed)},
+                                           {"jumpSpeed", ToJson(controller.jumpSpeed)},
+                                           {"lookSensitivity", ToJson(controller.lookSensitivity)}}));
+        }
+
+        static void Read(const Value& json, Frost::GameObject& object, const ReadContext& context) {
+            const Value* const controller = json.Find("characterController");
+            if (controller == nullptr || !controller->IsObject()) { return; }
+
+            Frost::CharacterControllerComponent component;
+            component.walkSpeed = ReadLength(*controller, "walkSpeed", component.walkSpeed, context.lengthScale);
+            component.jumpSpeed = ReadLength(*controller, "jumpSpeed", component.jumpSpeed, context.lengthScale);
+            component.lookSensitivity = ReadFloat(*controller, "lookSensitivity", component.lookSensitivity);
+            object.AddComponent<Frost::CharacterControllerComponent>(component);
+        }
+    };
+
+    // "capsuleCollider": {"center": [x, y, z], "radius": r, "height": h}
+    template <>
+    struct ComponentSerializer<Frost::CapsuleColliderComponent> {
+        static void Write(const Frost::CapsuleColliderComponent& collider, const Frost::GameObject& /*object*/,
+                          Object& json, const WriteContext& /*context*/) {
+            json.emplace_back("capsuleCollider", Value(Object{{"center", ToJson(collider.center)},
+                                                              {"radius", ToJson(collider.radius)},
+                                                              {"height", ToJson(collider.height)}}));
+        }
+
+        static void Read(const Value& json, Frost::GameObject& object, const ReadContext& context) {
+            const Value* const collider = json.Find("capsuleCollider");
+            if (collider == nullptr || !collider->IsObject()) { return; }
+
+            Frost::CapsuleColliderComponent component;
+            component.center = ReadLengthVector(collider->Find("center"), component.center, context.lengthScale);
+            component.radius = ReadLength(*collider, "radius", component.radius, context.lengthScale);
+            component.height = ReadLength(*collider, "height", component.height, context.lengthScale);
+            object.AddComponent<Frost::CapsuleColliderComponent>(component);
+        }
+    };
+
+    // "boxCollider": {"center": [x, y, z], "size": [x, y, z]}
+    template <>
+    struct ComponentSerializer<Frost::BoxColliderComponent> {
+        static void Write(const Frost::BoxColliderComponent& collider, const Frost::GameObject& /*object*/, Object& json,
+                          const WriteContext& /*context*/) {
+            json.emplace_back("boxCollider",
+                              Value(Object{{"center", ToJson(collider.center)}, {"size", ToJson(collider.size)}}));
+        }
+
+        static void Read(const Value& json, Frost::GameObject& object, const ReadContext& context) {
+            const Value* const collider = json.Find("boxCollider");
+            if (collider == nullptr || !collider->IsObject()) { return; }
+
+            Frost::BoxColliderComponent component;
+            component.center = ReadLengthVector(collider->Find("center"), component.center, context.lengthScale);
+            component.size = ReadLengthVector(collider->Find("size"), component.size, context.lengthScale);
+            object.AddComponent<Frost::BoxColliderComponent>(component);
+        }
+    };
+
+    // "rigidBody": {"simulated": b, "mass": kg}. The velocity is simulation state and not saved.
+    template <>
+    struct ComponentSerializer<Frost::RigidBodyComponent> {
+        static void Write(const Frost::RigidBodyComponent& body, const Frost::GameObject& /*object*/, Object& json,
+                          const WriteContext& /*context*/) {
+            json.emplace_back("rigidBody", Value(Object{{"simulated", Value(body.simulated)}, {"mass", ToJson(body.mass)}}));
+        }
+
+        static void Read(const Value& json, Frost::GameObject& object, const ReadContext& /*context*/) {
+            const Value* const body = json.Find("rigidBody");
+            if (body == nullptr || !body->IsObject()) { return; }
+
+            Frost::RigidBodyComponent component;
+            component.simulated = ReadBool(*body, "simulated", component.simulated);
+            component.mass = ReadFloat(*body, "mass", component.mass);
+            object.AddComponent<Frost::RigidBodyComponent>(component);
+        }
+    };
+
+    [[nodiscard]]
+    Value ObjectToJson(const Frost::GameObject& object, const WriteContext& context) {
+        Object json;
+        json.emplace_back("id", Value(static_cast<double>(object.GetId())));
+        json.emplace_back("name", Value(object.GetName()));
+
+        Frost::BuiltinComponents::ForEach([&]<typename T>() {
+            if (const T* const component = object.TryGetComponent<T>(); component != nullptr) {
+                ComponentSerializer<T>::Write(*component, object, json, context);
+            }
+        });
+
+        return Value(std::move(json));
+    }
+
+    void ReadComponents(const Value& json, Frost::GameObject& object, const ReadContext& context) {
+        Frost::BuiltinComponents::ForEach([&]<typename T>() { ComponentSerializer<T>::Read(json, object, context); });
+    }
+
 }  // namespace
 
 namespace Frost {
@@ -318,9 +613,11 @@ namespace Frost {
         const std::filesystem::path target = AssetManager::NormalizePath(path);
         const std::filesystem::path directory = target.parent_path();
 
+        const WriteContext context{.levelDirectory = directory, .registry = registry};
+
         Array objects;
         for (const std::unique_ptr<GameObject>& object : level.GetObjects()) {
-            objects.push_back(ObjectToJson(*object, directory, registry));
+            objects.push_back(ObjectToJson(*object, context));
         }
 
         const LevelEnvironment& environment = level.GetEnvironment();
@@ -419,6 +716,11 @@ namespace Frost {
         ObjectId nextFreeId = usedIds.empty() ? 1 : *usedIds.rbegin() + 1;
         std::set<ObjectId> placedIds;
 
+        const ReadContext readContext{.levelDirectory = directory,
+                                      .assets = assets,
+                                      .warnings = result.warnings,
+                                      .lengthScale = *version <= kMetersFormatVersion ? kMeter : 1.0f};
+
         for (const Value& json : objects->AsArray()) {
             if (!json.IsObject()) {
                 result.warnings.push_back("Skipped an object entry that is not a JSON object.");
@@ -440,57 +742,7 @@ namespace Frost {
             GameObject& object = result.level->AddObject(
                     id, objectName != nullptr && objectName->IsString() ? objectName->AsString() : "Object");
 
-            if (const Value* const transform = json.Find("transform"); transform != nullptr) {
-                Transform& target = object.GetTransform();
-                target.position = ReadVector<glm::vec3, 3>(transform->Find("position"), target.position);
-                target.rotation = ReadVector<glm::vec3, 3>(transform->Find("rotation"), target.rotation);
-                target.scale = ReadVector<glm::vec3, 3>(transform->Find("scale"), target.scale);
-            }
-
-            if (const Value* const light = json.Find("light"); light != nullptr && light->IsObject()) {
-                object.GetLight() = ReadLight(*light, object.GetName(), result.warnings);
-            }
-
-            if (const Value* const mesh = json.Find("mesh"); mesh != nullptr) {
-                if (const std::optional<AssetReference> reference = ReadReference(*mesh, directory)) {
-                    try {
-                        object.SetMesh(assets.LoadMesh(*reference));
-                    }
-                    catch (const ImportError& e) {
-                        object.SetUnresolvedMesh(*reference);
-                        result.warnings.push_back("'" + object.GetName() + "': " + e.what());
-                    }
-                }
-            }
-
-            const Value* const materials = json.Find("materials");
-            if (materials == nullptr || !materials->IsArray()) { continue; }
-
-            for (const Value& materialJson : materials->AsArray()) {
-                // By name when the loaded model has a sub-mesh of that name, else by index.
-                std::optional<std::size_t> index;
-                const Value* const subMeshName = materialJson.Find("subMeshName");
-                if (object.GetMesh() != nullptr && subMeshName != nullptr && subMeshName->IsString()) {
-                    index = object.GetMesh()->mesh->FindSubMesh(subMeshName->AsString());
-                }
-                if (!index.has_value()) {
-                    const std::optional<double> subMesh = ReadNumber(materialJson.Find("subMesh"));
-                    if (subMesh.has_value() && *subMesh >= 0.0 && std::floor(*subMesh) == *subMesh &&
-                        *subMesh < 65536.0) {
-                        index = static_cast<std::size_t>(*subMesh);
-                    }
-                }
-
-                const bool outOfRange = object.GetMesh() != nullptr && index.has_value() &&
-                                        *index >= object.GetMesh()->mesh->GetSubMeshes().size();
-                if (!index.has_value() || outOfRange) {
-                    result.warnings.push_back("'" + object.GetName() +
-                                              "': dropped a material override for a sub-mesh the model does not have.");
-                    continue;
-                }
-
-                object.SetMaterialOverride(*index, ReadMaterialOverride(materialJson, directory));
-            }
+            ReadComponents(json, object, readContext);
         }
 
         return result;

@@ -1,6 +1,7 @@
 #include "EditorCamera.hpp"
 
 #include <Frost/Platform/Input.hpp>
+#include <Frost/Units.hpp>
 
 #include <glm/common.hpp>
 #include <glm/geometric.hpp>
@@ -16,7 +17,7 @@ namespace {
 
     // Up and back from the origin, looking slightly down at it: a sensible view of an empty level
     // and of whatever gets placed near the middle of one.
-    constexpr glm::vec3 kStartPosition{0.0f, 2.0f, 6.0f};
+    constexpr glm::vec3 kStartPosition{0.0f, 2.0f * Frost::kMeter, 6.0f * Frost::kMeter};
     constexpr float kStartPitch = glm::radians(-15.0f);
 
     // Focus leaves this much room around the framed sphere.
@@ -28,12 +29,12 @@ namespace {
     // Just short of straight up/down: at exactly +-90 degrees yaw and "up" stop being meaningful.
     constexpr float kMaxPitch = glm::radians(89.0f);
 
-    // World units per second. One wheel notch scales the speed by kSpeedStep (up = faster);
+    // Centimeters per second. One wheel notch scales the speed by kSpeedStep (up = faster);
     // multiplicative steps keep the wheel equally useful for creeping up to something and for
     // crossing a large level.
-    constexpr float kDefaultMoveSpeed = 2.0f;
-    constexpr float kMinMoveSpeed = 0.05f;
-    constexpr float kMaxMoveSpeed = 500.0f;
+    constexpr float kDefaultMoveSpeed = 2.0f * Frost::kMeter;
+    constexpr float kMinMoveSpeed = 5.0f * Frost::kCentimeter;
+    constexpr float kMaxMoveSpeed = 500.0f * Frost::kMeter;
     constexpr float kSpeedStep = 1.2f;
 
     // A long frame (a hitch, a breakpoint, the window being dragged) is capped so a held key does
@@ -53,7 +54,7 @@ void EditorCamera::Focus(const glm::vec3& center, const float radius) {
 
     // Distance at which the sphere's silhouette spans the vertical field of view (the narrower one
     // for landscape viewports), plus a margin.
-    const float safeRadius = std::max(radius, 0.01f);
+    const float safeRadius = std::max(radius, 1.0f * Frost::kCentimeter);
     const float distance = kFocusMargin * safeRadius / std::sin(m_Camera.GetVerticalFov() * 0.5f);
 
     m_Position = center - m_Camera.GetForward() * distance;

@@ -2,6 +2,7 @@
 
 #include <Frost/Assets/Image.hpp>
 #include <Frost/Assets/ImportError.hpp>
+#include <Frost/Units.hpp>
 
 #include "Json.hpp"
 
@@ -505,12 +506,17 @@ namespace {
 
             const std::size_t nodeCount = ArraySize("nodes");
 
+            // glTF is in meters, the world in centimeters (Frost/Units.hpp): the whole scene is
+            // scaled up by that, above its root nodes, so node translations are converted along
+            // with the geometry. (A uniform scale leaves normals and tangents as they are.)
+            const glm::mat4 metersToWorld = glm::scale(glm::mat4(1.0f), glm::vec3(Frost::kMeter));
+
             // Roots (and, below, children) are pushed in reverse so the stack pops them in file
             // order. Purely cosmetic: it keeps the sub-mesh order predictable.
             const std::vector<std::int64_t> roots = GetRootNodes();
             std::vector<PendingNode> stack;
             for (auto it = roots.rbegin(); it != roots.rend(); ++it) {
-                stack.push_back(PendingNode{.index = *it, .parentWorld = glm::mat4(1.0f)});
+                stack.push_back(PendingNode{.index = *it, .parentWorld = metersToWorld});
             }
 
             // glTF requires the node hierarchy to be a tree (no node has two parents, no cycles).

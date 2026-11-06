@@ -2,10 +2,12 @@
 
 #include <Frost/Assets/AssetManager.hpp>
 #include <Frost/Engine.hpp>
+#include <Frost/Physics/Collision.hpp>
 #include <Frost/Platform/Filesystem.hpp>
 #include <Frost/Platform/Window.hpp>
 #include <Frost/Renderer/Renderer.hpp>
 #include <Frost/Scene/LevelSerializer.hpp>
+#include <Frost/Units.hpp>
 
 #include <imgui.h>
 #include <imgui_internal.h>  // DockBuilder API, for the default layout.
@@ -25,10 +27,25 @@ namespace {
     constexpr const char* kMessagesPopup = "Editor Messages";
 
     // Objects added without a drop location appear this far in front of the camera.
-    constexpr float kSpawnDistance = 5.0f;
+    constexpr float kSpawnDistance = 5.0f * Frost::kMeter;
 
     // How often the content directory is rescanned for changes made outside the editor.
     constexpr std::chrono::milliseconds kContentPollInterval{1000};
+
+    // What to frame for an object: its model, else its collider (e.g. an invisible ground box, or a
+    // character's capsule).
+    [[nodiscard]]
+    std::optional<Frost::Bounds> GetFramingBounds(const Frost::GameObject& object) {
+        if (std::optional<Frost::Bounds> bounds = object.GetWorldBounds(); bounds.has_value()) { return bounds; }
+
+        if (const Frost::BoxColliderComponent* const collider = object.TryGetComponent<Frost::BoxColliderComponent>()) {
+            return Frost::MakeWorldBox(object.GetTransform(), *collider).GetBounds();
+        }
+        if (const auto* const capsule = object.TryGetComponent<Frost::CapsuleColliderComponent>()) {
+            return Frost::MakeWorldCapsule(object.GetTransform(), *capsule).GetBounds();
+        }
+        return std::nullopt;
+    }
 
     // The engine setup for editing `project`; makes sure the project's directories exist first.
     [[nodiscard]]
@@ -89,6 +106,9 @@ void EditorApplication::OnUpdate(const float deltaTime) {
     m_EditorCamera.OnUpdate(deltaTime, engine.GetInput(), m_ViewportPanel.IsHovered());
     if (m_EditorCamera.IsControlling() != wasControlling) { SetUiInputEnabled(!m_EditorCamera.IsControlling()); }
 
+    m_Context.UpdateSimulation(deltaTime);
+    m_Context.UpdatePlaying();
+
     if (const std::optional<Frost::ObjectId> focus = m_Context.ConsumeFocusRequest()) { FocusObject(*focus); }
     if (std::optional<std::filesystem::path> level = m_Context.ConsumeOpenLevelRequest()) {
         m_PendingLevelFile = std::move(*level);
@@ -97,6 +117,9 @@ void EditorApplication::OnUpdate(const float deltaTime) {
 
     const Frost::Camera& camera = m_EditorCamera.GetCamera();
     m_Context.SetSpawnPoint(camera.GetPosition() + camera.GetForward() * kSpawnDistance);
+    m_Context.SetView(Frost::ViewPoint{.position = m_EditorCamera.GetPosition(),
+                                       .yawDegrees = m_EditorCamera.GetYawDegrees(),
+                                       .pitchDegrees = m_EditorCamera.GetPitchDegrees()});
     engine.GetRenderer().SetCamera(camera);
 }
 
@@ -200,6 +223,22 @@ void EditorApplication::DrawMenuBar() {
         ImGui::EndMenu();
     }
 
+    if (ImGui::BeginMenu("Play")) {
+        if (ImGui::MenuItem("Play in Game Window", "F5", m_Context.IsPlaying())) { TogglePlaying(); }
+        ImGui::SetItemTooltip("Play the level (as it is now, unsaved changes included) in the game, in a window of its\n"
+                              "own. F5 again, here or in the game, or closing the game's window, stops it.");
+
+        if (ImGui::MenuItem("Simulate Physics Here", "Alt+S", m_Context.IsSimulating())) { ToggleSimulation(); }
+        ImGui::SetItemTooltip("Run the level's physics in this viewport: simulated rigid bodies fall and collide.\n"
+                              "Stopping puts everything back where it was.");
+
+        ImGui::Separator();
+
+        bool showColliders = m_ViewportPanel.GetShowColliders();
+        if (ImGui::MenuItem("Show Colliders", nullptr, &showColliders)) { m_ViewportPanel.SetShowColliders(showColliders); }
+        ImGui::EndMenu();
+    }
+
     if (ImGui::BeginMenu("Window")) {
         if (ImGui::MenuItem("Reset Layout")) { m_ResetLayout = true; }
         ImGui::EndMenu();
@@ -282,6 +321,9 @@ void EditorApplication::HandleShortcuts() {
 
     const auto pressed = [](const ImGuiKey key) { return ImGui::IsKeyPressed(key, false); };
 
+    if (pressed(ImGuiKey_F5)) { TogglePlaying(); }
+    if (io.KeyAlt && pressed(ImGuiKey_S)) { ToggleSimulation(); }
+
     if (io.KeyCtrl) {
         if (pressed(ImGuiKey_N)) { RequestAction(PendingAction::NewLevel); }
         if (pressed(ImGuiKey_O)) { RequestAction(PendingAction::OpenLevel); }
@@ -343,6 +385,9 @@ bool EditorApplication::SaveLevelAs(const std::filesystem::path& path) {
         return false;
     }
 
+    // What the simulation moved is not part of the level: put it back before saving.
+    m_Context.StopSimulation();
+
     // A level still carrying the default name takes the name it is first saved under.
     Frost::Level& level = m_Context.GetLevel();
     const std::string previousName = level.GetName();
@@ -401,33 +446,35 @@ void EditorApplication::FocusObject(const Frost::ObjectId id) {
     const Frost::GameObject* const object = m_Context.GetLevel().FindObject(id);
     if (object == nullptr) { return; }
 
-    if (const std::optional<Frost::Bounds> bounds = object->GetWorldBounds(); bounds.has_value()) {
+    if (const std::optional<Frost::Bounds> bounds = GetFramingBounds(*object); bounds.has_value()) {
         m_EditorCamera.Focus(bounds->GetCenter(), glm::length(bounds->GetSize()) * 0.5f);
     }
     else {
-        m_EditorCamera.Focus(object->GetTransform().position, 1.0f);  // Empty object: frame its position.
+        m_EditorCamera.Focus(object->GetTransform().position, 1.0f * Frost::kMeter);  // Empty object: frame its position.
     }
 }
 
 void EditorApplication::FocusLevel() {
-    std::optional<Frost::Bounds> all;
-    for (const std::unique_ptr<Frost::GameObject>& object : m_Context.GetLevel().GetObjects()) {
-        const std::optional<Frost::Bounds> bounds = object->GetWorldBounds();
-        if (!bounds.has_value()) { continue; }
-
-        if (!all.has_value()) { all = bounds; }
-        else {
-            all->min = glm::min(all->min, bounds->min);
-            all->max = glm::max(all->max, bounds->max);
-        }
+    if (const std::optional<Frost::Bounds> bounds = m_Context.GetLevel().GetBounds(); bounds.has_value()) {
+        m_EditorCamera.Focus(bounds->GetCenter(), glm::length(bounds->GetSize()) * 0.5f);
     }
+}
 
-    if (all.has_value()) { m_EditorCamera.Focus(all->GetCenter(), glm::length(all->GetSize()) * 0.5f); }
+void EditorApplication::TogglePlaying() {
+    if (m_Context.IsPlaying()) { m_Context.StopPlaying(); }
+    else { m_Context.StartPlaying(); }
+}
+
+void EditorApplication::ToggleSimulation() {
+    if (m_Context.IsSimulating()) { m_Context.StopSimulation(); }
+    else { m_Context.StartSimulation(); }
 }
 
 void EditorApplication::UpdateWindowTitle() {
     std::string title = "Frost Editor - " + GetProject().GetName() + " - " + m_Context.GetLevel().GetName();
     if (m_Context.IsLevelDirty()) { title += " *"; }
+    if (m_Context.IsSimulating()) { title += " [Simulating]"; }
+    if (m_Context.IsPlaying()) { title += " [Playing]"; }
     title += m_Context.GetLevelPath().has_value() ? " (" + Frost::PathToUtf8(*m_Context.GetLevelPath()) + ")"
                                                   : std::string(" (not saved)");
 

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <Frost/Units.hpp>
+
 #include <glm/vec3.hpp>
 
 #include <cstdint>
@@ -13,7 +15,8 @@ namespace Frost {
     };
 
     // A light as the renderer consumes it: world space, fully resolved (see Renderer::SubmitLight).
-    // Scene code describes lights with LightComponent (Frost/Scene/GameObject.hpp) and converts.
+    // Scene code describes lights with LightComponent (Frost/Scene/Components/LightComponent.hpp) and
+    // converts.
     struct Light {
         LightType type = LightType::Point;
 
@@ -21,13 +24,13 @@ namespace Frost {
         glm::vec3 direction{0.0f, -1.0f, 0.0f};  // World space, unit length: the way the light travels.
 
         // Linear RGB radiant intensity (color * intensity). Directional: the illuminance a surface
-        // facing the light receives. Point/spot: the intensity at 1 unit from the light, falling off
+        // facing the light receives. Point/spot: the intensity at 1 meter from the light, falling off
         // with the inverse square of the distance.
         glm::vec3 color{1.0f};
 
         // Point/spot: distance at which the light has smoothly faded to nothing. Ignored for
         // directional lights.
-        float range = 10.0f;
+        float range = 10.0f * kMeter;
 
         // Spot: cosines of the cone's half-angles. Full intensity inside the inner cone, fading to
         // nothing at the outer cone. innerConeCos >= outerConeCos.

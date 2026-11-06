@@ -8,6 +8,7 @@
 #include <Frost/Platform/Filesystem.hpp>
 #include <Frost/Renderer/MaterialSystem.hpp>
 #include <Frost/Renderer/Mesh.hpp>
+#include <Frost/Units.hpp>
 
 #include <imgui.h>
 
@@ -17,13 +18,16 @@
 
 #include <algorithm>
 #include <cmath>
+#include <functional>
 #include <optional>
 #include <string>
 #include <system_error>
+#include <type_traits>
 
 namespace {
 
     constexpr ImVec4 kErrorColor(1.0f, 0.45f, 0.4f, 1.0f);
+    constexpr ImVec4 kWarningColor(1.0f, 0.75f, 0.35f, 1.0f);
 
     // Scale components are kept away from zero: a zero scale collapses the object (and makes its
     // transform singular).
@@ -60,7 +64,65 @@ namespace {
         return Frost::AssetReference{.id = header.has_value() ? header->id : Frost::AssetId{}, .path = normalized};
     }
 
+    // What a component added from the "Add Component" menu starts as (lights are created by type,
+    // see DrawAddComponentMenu).
+    template <typename T>
+    [[nodiscard]]
+    T MakeNewComponent(const Frost::GameObject& /*object*/) {
+        return T{};
+    }
+
+    // A collider starts out wrapped around the object's model, if it has one.
+    template <>
+    [[nodiscard]]
+    Frost::BoxColliderComponent MakeNewComponent<Frost::BoxColliderComponent>(const Frost::GameObject& object) {
+        if (const Frost::MeshComponent* const mesh = object.TryGetComponent<Frost::MeshComponent>()) {
+            if (const std::optional<Frost::Bounds> bounds = mesh->GetLocalBounds()) {
+                return Frost::BoxColliderComponent::FromBounds(*bounds);
+            }
+        }
+        return Frost::BoxColliderComponent{};
+    }
+
+    // A capsule likewise stands in the object's model, if it has one.
+    template <>
+    [[nodiscard]]
+    Frost::CapsuleColliderComponent MakeNewComponent<Frost::CapsuleColliderComponent>(const Frost::GameObject& object) {
+        if (const Frost::MeshComponent* const mesh = object.TryGetComponent<Frost::MeshComponent>()) {
+            if (const std::optional<Frost::Bounds> bounds = mesh->GetLocalBounds()) {
+                return Frost::CapsuleColliderComponent::FromBounds(*bounds);
+            }
+        }
+        return Frost::CapsuleColliderComponent{};
+    }
+
 }  // namespace
+
+template <typename T>
+bool InspectorPanel::DrawComponentSection(EditorContext& context, Frost::GameObject& object,
+                                          [[maybe_unused]] bool& removeRequested) {
+    // Decided per component type at compile time: the transform is what makes an object an object,
+    // so its header has no close button or menu; every other component can be removed.
+    if constexpr (std::is_same_v<T, Frost::TransformComponent>) {
+        if (!ImGui::CollapsingHeader(T::kDisplayName, ImGuiTreeNodeFlags_DefaultOpen)) { return false; }
+    }
+    else {
+        bool keep = true;
+        const bool open = ImGui::CollapsingHeader(T::kDisplayName, &keep, ImGuiTreeNodeFlags_DefaultOpen);
+        if (ImGui::BeginPopupContextItem()) {
+            if (ImGui::MenuItem("Remove Component")) { keep = false; }
+            ImGui::EndPopup();
+        }
+
+        if (!keep) {
+            removeRequested = true;
+            return false;
+        }
+        if (!open) { return false; }
+    }
+
+    return DrawComponent(context, object, object.GetComponent<T>());
+}
 
 void InspectorPanel::Draw(EditorContext& context) {
     if (!ImGui::Begin(kWindowName)) {
@@ -85,31 +147,34 @@ void InspectorPanel::Draw(EditorContext& context) {
         changed = true;
     }
 
-    if (ImGui::CollapsingHeader("Transform", ImGuiTreeNodeFlags_DefaultOpen)) { changed |= DrawTransform(*object); }
-
-    // A light without a model is what lights usually are; keep the model sections out of the way.
-    const bool isBareLight = object->GetLight().has_value() && !object->GetMeshReference().IsSet();
-    const ImGuiTreeNodeFlags modelFlags = isBareLight ? ImGuiTreeNodeFlags_None : ImGuiTreeNodeFlags_DefaultOpen;
-
-    if (object->GetLight().has_value() && ImGui::CollapsingHeader("Light", ImGuiTreeNodeFlags_DefaultOpen)) {
-        changed |= DrawLight(*object);
+    if (context.IsSimulating()) {
+        ImGui::PushStyleColor(ImGuiCol_Text, kWarningColor);
+        ImGui::TextWrapped("Simulating: objects go back to where they were when the simulation stops.");
+        ImGui::PopStyleColor();
     }
-    if (ImGui::CollapsingHeader("Model", modelFlags)) { changed |= DrawMesh(context, *object); }
-    if (ImGui::CollapsingHeader("Materials", modelFlags)) { changed |= DrawMaterials(context, *object); }
 
-    if (!object->GetLight().has_value()) {
-        ImGui::Spacing();
-        if (ImGui::Button("Add Light")) { ImGui::OpenPopup("AddLight"); }
-        if (ImGui::BeginPopup("AddLight")) {
-            for (const Frost::LightType type : {Frost::LightType::Directional, Frost::LightType::Point, Frost::LightType::Spot}) {
-                if (ImGui::MenuItem(EditorUI::LightDisplayName(type))) {
-                    object->GetLight() = Frost::LightComponent::CreateDefault(type);
-                    changed = true;
-                }
-            }
-            ImGui::EndPopup();
+    // One section per component. A removal waits until every section is drawn, so the object's set
+    // of components does not change while the panel is still going through it.
+    std::function<void()> removeComponent;
+    Frost::BuiltinComponents::ForEach([&]<typename T>() {
+        if (!object->HasComponent<T>()) { return; }
+
+        ImGui::PushID(T::kDisplayName);
+        bool removeRequested = false;
+        changed |= DrawComponentSection<T>(context, *object, removeRequested);
+        if constexpr (!std::is_same_v<T, Frost::TransformComponent>) {
+            if (removeRequested) { removeComponent = [object] { object->RemoveComponent<T>(); }; }
         }
+        ImGui::PopID();
+    });
+
+    if (removeComponent) {
+        removeComponent();
+        changed = true;
     }
+
+    ImGui::Spacing();
+    changed |= DrawAddComponentMenu(*object);
 
     ImGui::Spacing();
     ImGui::Separator();
@@ -131,11 +196,49 @@ void InspectorPanel::Draw(EditorContext& context) {
     ImGui::End();
 }
 
-bool InspectorPanel::DrawTransform(Frost::GameObject& object) {
-    Frost::Transform& transform = object.GetTransform();
+bool InspectorPanel::DrawAddComponentMenu(Frost::GameObject& object) {
+    bool added = false;
+
+    const float width = ImGui::GetContentRegionAvail().x;
+    if (ImGui::Button("Add Component", ImVec2(width, 0.0f))) { ImGui::OpenPopup("AddComponent"); }
+
+    if (ImGui::BeginPopup("AddComponent")) {
+        bool any = false;
+
+        Frost::BuiltinComponents::ForEach([&]<typename T>() {
+            if (object.HasComponent<T>()) { return; }
+            any = true;
+
+            if constexpr (std::is_same_v<T, Frost::LightComponent>) {
+                // A light is created as a particular type, with that type's defaults.
+                if (ImGui::BeginMenu(T::kDisplayName)) {
+                    for (const Frost::LightType type : {Frost::LightType::Directional, Frost::LightType::Point, Frost::LightType::Spot}) {
+                        if (ImGui::MenuItem(EditorUI::LightDisplayName(type))) {
+                            object.AddComponent<Frost::LightComponent>(Frost::LightComponent::CreateDefault(type));
+                            added = true;
+                        }
+                    }
+                    ImGui::EndMenu();
+                }
+            }
+            else if (ImGui::MenuItem(T::kDisplayName)) {
+                object.AddComponent<T>(MakeNewComponent<T>(object));
+                added = true;
+            }
+        });
+
+        if (!any) { ImGui::TextDisabled("It has every component."); }
+        ImGui::EndPopup();
+    }
+
+    return added;
+}
+
+bool InspectorPanel::DrawComponent(EditorContext& /*context*/, Frost::GameObject& /*object*/,
+                                   Frost::TransformComponent& transform) {
     bool changed = false;
 
-    changed |= ImGui::DragFloat3("Position", &transform.position.x, 0.05f, 0.0f, 0.0f, "%.3f");
+    changed |= ImGui::DragFloat3("Position", &transform.position.x, 5.0f * Frost::kCentimeter, 0.0f, 0.0f, "%.1f cm");
     changed |= ImGui::DragFloat3("Rotation", &transform.rotation.x, 0.5f, 0.0f, 0.0f, "%.1f deg");
 
     glm::vec3 scale = transform.scale;
@@ -157,7 +260,7 @@ bool InspectorPanel::DrawTransform(Frost::GameObject& object) {
     ImGui::Checkbox("Uniform scale", &m_UniformScale);
     ImGui::SameLine();
     if (ImGui::SmallButton("Reset")) {
-        transform = Frost::Transform{.position = transform.position};
+        transform = Frost::TransformComponent{.position = transform.position};
         changed = true;
     }
     ImGui::SetItemTooltip("Reset rotation and scale (keeps the position).");
@@ -165,8 +268,7 @@ bool InspectorPanel::DrawTransform(Frost::GameObject& object) {
     return changed;
 }
 
-bool InspectorPanel::DrawLight(Frost::GameObject& object) {
-    Frost::LightComponent& light = *object.GetLight();
+bool InspectorPanel::DrawComponent(EditorContext& /*context*/, Frost::GameObject& object, Frost::LightComponent& light) {
     bool changed = false;
 
     // Type. Switching keeps the shared settings (color, intensity, ...); the type-specific ones
@@ -209,12 +311,13 @@ bool InspectorPanel::DrawLight(Frost::GameObject& object) {
                                 ImGuiSliderFlags_AlwaysClamp | ImGuiSliderFlags_Logarithmic);
     ImGui::SetItemTooltip(light.type == Frost::LightType::Directional
                                   ? "Illuminance on a surface facing the light (3 is about full white)."
-                                  : "Brightness at 1 unit away; falls off with the square of the distance.");
+                                  : "Brightness at 1 m away; falls off with the square of the distance.");
 
     if (light.type != Frost::LightType::Directional) {
         const char* const rangeLabel = light.type == Frost::LightType::Point ? "Radius" : "Distance";
-        changed |= ImGui::DragFloat(rangeLabel, &light.range, std::max(0.01f, light.range * 0.01f), 0.01f, 1.0e5f,
-                                    "%.2f", ImGuiSliderFlags_AlwaysClamp);
+        changed |= ImGui::DragFloat(rangeLabel, &light.range, std::max(1.0f * Frost::kCentimeter, light.range * 0.01f),
+                                    1.0f * Frost::kCentimeter, 100.0f * Frost::kKilometer, "%.1f cm",
+                                    ImGuiSliderFlags_AlwaysClamp);
         ImGui::SetItemTooltip("How far the light reaches; it fades smoothly to nothing at this distance.");
     }
 
@@ -240,21 +343,15 @@ bool InspectorPanel::DrawLight(Frost::GameObject& object) {
         ImGui::PopStyleColor();
     }
 
-    ImGui::Spacing();
-    if (ImGui::SmallButton("Remove Light")) {
-        object.GetLight().reset();  // `light` dangles from here on.
-        return true;
-    }
-
     return changed;
 }
 
-bool InspectorPanel::DrawMesh(EditorContext& context, Frost::GameObject& object) {
+bool InspectorPanel::DrawComponent(EditorContext& context, Frost::GameObject& /*object*/, Frost::MeshComponent& mesh) {
     bool changed = false;
 
-    const Frost::AssetReference& reference = object.GetMeshReference();
+    const Frost::AssetReference& reference = mesh.GetMeshReference();
     const std::optional<std::filesystem::path> current = reference.IsSet() ? CurrentPath(context, reference) : std::nullopt;
-    const bool missing = reference.IsSet() && (object.GetMesh() == nullptr || !current.has_value());
+    const bool missing = reference.IsSet() && (mesh.GetMesh() == nullptr || !current.has_value());
 
     // The asset's current name (it may have been renamed since the level was loaded).
     std::string label = "(none)";
@@ -276,7 +373,7 @@ bool InspectorPanel::DrawMesh(EditorContext& context, Frost::GameObject& object)
 
     if (const std::optional<std::filesystem::path> dropped = EditorUI::AcceptAssetDrop(Frost::AssetType::Mesh)) {
         try {
-            object.SetMesh(context.GetAssets().LoadMesh(*dropped));
+            mesh.SetMesh(context.GetAssets().LoadMesh(*dropped));
             changed = true;
         }
         catch (const Frost::ImportError& e) {
@@ -287,37 +384,230 @@ bool InspectorPanel::DrawMesh(EditorContext& context, Frost::GameObject& object)
     ImGui::SameLine();
     ImGui::BeginDisabled(!reference.IsSet());
     if (ImGui::Button("Clear", ImVec2(-FLT_MIN, 0.0f))) {
-        object.SetMesh(nullptr);
+        mesh.SetMesh(nullptr);
         changed = true;
     }
     ImGui::EndDisabled();
 
-    if (object.GetMesh() != nullptr) {
-        const Frost::Mesh& mesh = *object.GetMesh()->mesh;
-        ImGui::TextDisabled("%zu part(s), %u vertices, %u triangles", mesh.GetSubMeshes().size(), mesh.GetVertexCount(),
-                            mesh.GetIndexCount() / 3);
+    if (mesh.GetMesh() != nullptr) {
+        const Frost::Mesh& model = *mesh.GetMesh()->mesh;
+        ImGui::TextDisabled("%zu part(s), %u vertices, %u triangles", model.GetSubMeshes().size(), model.GetVertexCount(),
+                            model.GetIndexCount() / 3);
+    }
+
+    ImGui::SeparatorText("Materials");
+    changed |= DrawMaterials(context, mesh);
+
+    return changed;
+}
+
+bool InspectorPanel::DrawComponent(EditorContext& context, Frost::GameObject& object, Frost::CameraComponent& camera) {
+    bool changed = false;
+
+    changed |= ImGui::SliderFloat("Field of view", &camera.verticalFov, 10.0f, 120.0f, "%.1f deg", ImGuiSliderFlags_AlwaysClamp);
+    ImGui::SetItemTooltip("Vertical: from the bottom of the view to the top.");
+    changed |= ImGui::DragFloat("Near clip", &camera.nearClip, 0.5f * Frost::kCentimeter, 0.1f * Frost::kCentimeter,
+                                100.0f * Frost::kMeter, "%.2f cm", ImGuiSliderFlags_AlwaysClamp);
+    ImGui::SetItemTooltip("Nothing closer than this is drawn.");
+    changed |= ImGui::DragFloat("Far clip", &camera.farClip, 1.0f * Frost::kMeter, camera.nearClip + 1.0f * Frost::kCentimeter,
+                                1000.0f * Frost::kKilometer, "%.0f cm",
+                                ImGuiSliderFlags_AlwaysClamp | ImGuiSliderFlags_Logarithmic);
+    ImGui::SetItemTooltip("Nothing further than this is drawn.");
+
+    ImGui::SeparatorText("Mount");
+    changed |= ImGui::DragFloat3("Offset", &camera.offset.x, 1.0f * Frost::kCentimeter, 0.0f, 0.0f, "%.1f cm");
+    ImGui::SetItemTooltip("Where the camera sits on its object, in the object's space (e.g. a character's eye height).");
+    changed |= ImGui::DragFloat3("Rotation##Mount", &camera.rotation.x, 0.5f, 0.0f, 0.0f, "%.1f deg");
+    ImGui::SetItemTooltip("The camera's own turn on top of its object's (pitch, yaw, roll).");
+
+    if (ImGui::SmallButton("Align with View")) {
+        // The object turns left/right to the view's yaw and the camera tilts to its pitch (the way
+        // a character looks around), and the object moves so that the camera, at its offset, ends
+        // up exactly at the viewport's position.
+        const Frost::ViewPoint& view = context.GetView();
+        Frost::TransformComponent& transform = object.GetTransform();
+        transform.rotation = glm::vec3(0.0f, view.yawDegrees, 0.0f);
+        camera.rotation = glm::vec3(view.pitchDegrees, 0.0f, 0.0f);
+        transform.position = view.position - transform.GetRotation() * camera.offset;
+        changed = true;
+    }
+    ImGui::SetItemTooltip("Move the camera (with its object) to where the viewport is looking from.");
+
+    ImGui::TextDisabled("The game looks through the level's first camera.");
+    return changed;
+}
+
+bool InspectorPanel::DrawComponent(EditorContext& /*context*/, Frost::GameObject& object,
+                                   Frost::FlyControllerComponent& controller) {
+    bool changed = false;
+
+    changed |= ImGui::DragFloat("Speed", &controller.moveSpeed, 5.0f * Frost::kCentimeter, 5.0f * Frost::kCentimeter,
+                                500.0f * Frost::kMeter, "%.0f cm/s",
+                                ImGuiSliderFlags_AlwaysClamp | ImGuiSliderFlags_Logarithmic);
+    ImGui::SetItemTooltip("Centimeters per second (the mouse wheel changes it while playing).");
+    changed |= ImGui::DragFloat("Shift factor", &controller.fastMultiplier, 0.05f, 1.0f, 50.0f, "x%.2f",
+                                ImGuiSliderFlags_AlwaysClamp);
+    ImGui::SetItemTooltip("How much faster it flies while Left Shift is held.");
+    changed |= ImGui::DragFloat("Sensitivity", &controller.lookSensitivity, 0.005f, 0.005f, 2.0f, "%.3f deg",
+                                ImGuiSliderFlags_AlwaysClamp);
+    ImGui::SetItemTooltip("Mouse sensitivity: degrees of turn per unit of mouse movement.");
+
+    ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled));
+    ImGui::TextWrapped("In the game: click to look around with the mouse, W/A/S/D to move, Space / Left Ctrl "
+                       "up and down, Shift faster, Esc gives the mouse back.%s",
+                       object.HasComponent<Frost::CameraComponent>() ? "" : " Add a Camera to see through it.");
+    ImGui::PopStyleColor();
+
+    return changed;
+}
+
+bool InspectorPanel::DrawComponent(EditorContext& /*context*/, Frost::GameObject& object,
+                                   Frost::CharacterControllerComponent& controller) {
+    bool changed = false;
+
+    changed |= ImGui::DragFloat("Walk speed", &controller.walkSpeed, 5.0f * Frost::kCentimeter, 0.0f, 100.0f * Frost::kMeter,
+                                "%.0f cm/s", ImGuiSliderFlags_AlwaysClamp);
+    changed |= ImGui::DragFloat("Jump speed", &controller.jumpSpeed, 5.0f * Frost::kCentimeter, 0.0f, 100.0f * Frost::kMeter,
+                                "%.0f cm/s", ImGuiSliderFlags_AlwaysClamp);
+    ImGui::SetItemTooltip("Upward speed at take-off: a jump rises about speed^2 / (2 x 981) cm.");
+    changed |= ImGui::DragFloat("Sensitivity", &controller.lookSensitivity, 0.005f, 0.005f, 2.0f, "%.3f deg",
+                                ImGuiSliderFlags_AlwaysClamp);
+    ImGui::SetItemTooltip("Mouse sensitivity: degrees of turn per unit of mouse movement.");
+
+    // What it needs to work, said where it is set up.
+    const Frost::RigidBodyComponent* const body = object.TryGetComponent<Frost::RigidBodyComponent>();
+    const bool collides = object.HasComponent<Frost::CapsuleColliderComponent>() ||
+                          object.HasComponent<Frost::BoxColliderComponent>();
+    const char* problem = nullptr;
+    if (body == nullptr || !body->simulated) { problem = "Needs a simulated Rigid Body to walk, fall and jump."; }
+    else if (!collides) { problem = "Needs a collider (a Capsule Collider) to stand on the ground."; }
+    else if (!object.HasComponent<Frost::CameraComponent>()) {
+        problem = "Add a Camera (mounted at head height) to see through it.";
+    }
+    if (problem != nullptr) {
+        ImGui::PushStyleColor(ImGuiCol_Text, kWarningColor);
+        ImGui::TextWrapped("%s", problem);
+        ImGui::PopStyleColor();
+    }
+
+    ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled));
+    ImGui::TextWrapped("In the game: click to look around (mouse left/right turns the body, up/down tilts the camera), "
+                       "W/A/S/D to walk, Space to jump, Esc gives the mouse back.");
+    ImGui::PopStyleColor();
+
+    return changed;
+}
+
+bool InspectorPanel::DrawComponent(EditorContext& /*context*/, Frost::GameObject& object,
+                                   Frost::CapsuleColliderComponent& collider) {
+    bool changed = false;
+
+    changed |= ImGui::DragFloat3("Center", &collider.center.x, 1.0f * Frost::kCentimeter, 0.0f, 0.0f, "%.1f cm");
+    ImGui::SetItemTooltip("The capsule's middle, in the object's own space.");
+    changed |= ImGui::DragFloat("Radius", &collider.radius, 0.5f * Frost::kCentimeter, 0.0f, 100.0f * Frost::kMeter, "%.1f cm",
+                                ImGuiSliderFlags_AlwaysClamp);
+    changed |= ImGui::DragFloat("Height", &collider.height, 1.0f * Frost::kCentimeter, 0.0f, 100.0f * Frost::kMeter, "%.1f cm",
+                                ImGuiSliderFlags_AlwaysClamp);
+    ImGui::SetItemTooltip("Total, tip to tip, along the object's up axis (at most 2 x radius: a sphere).");
+
+    const Frost::MeshComponent* const mesh = object.TryGetComponent<Frost::MeshComponent>();
+    const std::optional<Frost::Bounds> bounds = mesh != nullptr ? mesh->GetLocalBounds() : std::nullopt;
+    ImGui::BeginDisabled(!bounds.has_value());
+    if (ImGui::SmallButton("Fit to Model")) {
+        collider = Frost::CapsuleColliderComponent::FromBounds(*bounds);
+        changed = true;
+    }
+    ImGui::EndDisabled();
+    ImGui::SetItemTooltip(bounds.has_value() ? "Stand the capsule in the object's model's box."
+                                             : "The object has no model loaded to fit.");
+
+    if (object.HasComponent<Frost::BoxColliderComponent>()) {
+        ImGui::PushStyleColor(ImGuiCol_Text, kWarningColor);
+        ImGui::TextWrapped("It also has a Box Collider, which is used instead: an object collides with one shape.");
+        ImGui::PopStyleColor();
     }
 
     return changed;
 }
 
-bool InspectorPanel::DrawMaterials(EditorContext& context, Frost::GameObject& object) {
-    if (object.GetMaterialSlotCount() == 0) {
+bool InspectorPanel::DrawComponent(EditorContext& /*context*/, Frost::GameObject& object,
+                                   Frost::BoxColliderComponent& collider) {
+    bool changed = false;
+
+    changed |= ImGui::DragFloat3("Center", &collider.center.x, 1.0f * Frost::kCentimeter, 0.0f, 0.0f, "%.1f cm");
+    ImGui::SetItemTooltip("The box's center, in the object's own space: it moves, turns and scales with the object.");
+    changed |= ImGui::DragFloat3("Size", &collider.size.x, 1.0f * Frost::kCentimeter, 0.0f, 1.0f * Frost::kKilometer, "%.1f cm",
+                                 ImGuiSliderFlags_AlwaysClamp);
+    ImGui::SetItemTooltip("Edge lengths, in the object's own space (the object's scale applies on top).");
+
+    const Frost::MeshComponent* const mesh = object.TryGetComponent<Frost::MeshComponent>();
+    const std::optional<Frost::Bounds> bounds = mesh != nullptr ? mesh->GetLocalBounds() : std::nullopt;
+    ImGui::BeginDisabled(!bounds.has_value());
+    if (ImGui::SmallButton("Fit to Model")) {
+        collider = Frost::BoxColliderComponent::FromBounds(*bounds);
+        changed = true;
+    }
+    ImGui::EndDisabled();
+    ImGui::SetItemTooltip(bounds.has_value() ? "Make the box enclose the object's model exactly."
+                                             : "The object has no model loaded to fit.");
+
+    const glm::vec3 worldSize = glm::abs(collider.size * object.GetTransform().scale);
+    ImGui::TextDisabled("%.1f x %.1f x %.1f cm in the world", worldSize.x, worldSize.y, worldSize.z);
+
+    const Frost::RigidBodyComponent* const body = object.TryGetComponent<Frost::RigidBodyComponent>();
+    ImGui::TextDisabled("%s", body != nullptr && body->simulated ? "The shape of its simulated rigid body."
+                                                                 : "Immovable: simulated bodies stop against it.");
+
+    return changed;
+}
+
+bool InspectorPanel::DrawComponent(EditorContext& context, Frost::GameObject& object, Frost::RigidBodyComponent& body) {
+    bool changed = false;
+
+    if (ImGui::Checkbox("Simulated", &body.simulated)) {
+        body.linearVelocity = glm::vec3(0.0f);  // Starting or stopping, it does so from rest.
+        changed = true;
+    }
+    ImGui::SetItemTooltip("Falls under gravity and collides when physics runs (in the game, or with Physics >\n"
+                          "Simulate here). Unticked, the object stays where it is placed.");
+
+    changed |= ImGui::DragFloat("Mass", &body.mass, 0.05f, 0.001f, 1.0e6f, "%.3f kg",
+                                ImGuiSliderFlags_AlwaysClamp | ImGuiSliderFlags_Logarithmic);
+    ImGui::SetItemTooltip("Only matters when two simulated bodies collide: the lighter one is pushed more.");
+
+    const bool collides = object.HasComponent<Frost::BoxColliderComponent>() ||
+                          object.HasComponent<Frost::CapsuleColliderComponent>();
+    if (body.simulated && !collides) {
+        ImGui::PushStyleColor(ImGuiCol_Text, kWarningColor);
+        ImGui::TextWrapped("No collider: it will fall through everything. Add a Box or Capsule Collider to make it collide.");
+        ImGui::PopStyleColor();
+    }
+
+    if (context.IsSimulating() && body.simulated) {
+        const glm::vec3& velocity = body.linearVelocity;
+        ImGui::TextDisabled("Velocity %.1f, %.1f, %.1f cm/s", velocity.x, velocity.y, velocity.z);
+    }
+
+    return changed;
+}
+
+bool InspectorPanel::DrawMaterials(EditorContext& context, Frost::MeshComponent& mesh) {
+    if (mesh.GetMaterialSlotCount() == 0) {
         ImGui::TextDisabled("No model, so no materials.");
         return false;
     }
 
     bool changed = false;
-    const std::shared_ptr<const Frost::MeshAsset>& asset = object.GetMesh();
+    const std::shared_ptr<const Frost::MeshAsset>& asset = mesh.GetMesh();
 
-    for (std::size_t i = 0; i < object.GetMaterialSlotCount(); ++i) {
+    for (std::size_t i = 0; i < mesh.GetMaterialSlotCount(); ++i) {
         ImGui::PushID(static_cast<int>(i));
 
         std::string partName;
         if (asset != nullptr && i < asset->mesh->GetSubMeshes().size()) { partName = asset->mesh->GetSubMeshes()[i].name; }
         const std::string header = "Part " + std::to_string(i) + (partName.empty() ? "" : ": " + partName);
 
-        std::optional<Frost::MaterialOverride> materialOverride = object.GetMaterialOverride(i);
+        std::optional<Frost::MaterialOverride> materialOverride = mesh.GetMaterialOverride(i);
 
         if (ImGui::TreeNodeEx(header.c_str(), ImGuiTreeNodeFlags_SpanAvailWidth)) {
             bool overridden = materialOverride.has_value();
@@ -335,13 +625,13 @@ bool InspectorPanel::DrawMaterials(EditorContext& context, Frost::GameObject& ob
                 else {
                     materialOverride.reset();
                 }
-                object.SetMaterialOverride(i, materialOverride);
+                mesh.SetMaterialOverride(i, materialOverride);
                 changed = true;
             }
 
             if (materialOverride.has_value()) {
                 if (DrawMaterialOverride(context, *materialOverride)) {
-                    object.SetMaterialOverride(i, materialOverride);
+                    mesh.SetMaterialOverride(i, materialOverride);
                     changed = true;
                 }
             }

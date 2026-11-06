@@ -19,6 +19,10 @@ target_sources(FrostEditor
         src/Panels/LevelPanel.hpp
         src/Panels/ViewportPanel.cpp
         src/Panels/ViewportPanel.hpp
+        src/Platform/ChildProcess.cpp
+        src/Platform/ChildProcess.hpp
+        src/PlaySession.cpp
+        src/PlaySession.hpp
         src/Widgets/FileBrowser.cpp
         src/Widgets/FileBrowser.hpp
         src/Widgets/FileDialog.cpp
@@ -71,3 +75,12 @@ target_compile_definitions(FrostEditor
     PRIVATE
         FROST_EDITOR_DEFAULT_PROJECT_DIR="${FROST_PROJECT_DIR}"
 )
+
+# Play In Editor (F5) runs the game on the level being edited: the editor starts the FrostGame
+# built alongside it (for the same configuration), so building the editor builds the game too.
+target_compile_definitions(FrostEditor
+    PRIVATE
+        FROST_GAME_EXECUTABLE="$<TARGET_FILE:FrostGame>"
+)
+
+add_dependencies(FrostEditor FrostGame)

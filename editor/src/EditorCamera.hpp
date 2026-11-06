@@ -46,7 +46,7 @@ public:
     [[nodiscard]]
     float GetPitchDegrees() const noexcept;
 
-    // World units per second.
+    // Centimeters per second.
     [[nodiscard]]
     float GetMoveSpeed() const noexcept;
 

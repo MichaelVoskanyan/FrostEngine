@@ -9,8 +9,11 @@ D:\Projects\Frost\engine\src\Assets\Image.cpp;D:\Projects\Frost\build\windows-ms
 D:\Projects\Frost\engine\src\Assets\Json.cpp;D:\Projects\Frost\build\windows-msvc\engine\FrostEngine.dir\Debug\Json.obj
 D:\Projects\Frost\engine\src\Engine.cpp;D:\Projects\Frost\build\windows-msvc\engine\FrostEngine.dir\Debug\Engine.obj
 D:\Projects\Frost\engine\src\ImGui\ImGuiLayer.cpp;D:\Projects\Frost\build\windows-msvc\engine\FrostEngine.dir\Debug\ImGuiLayer.obj
+D:\Projects\Frost\engine\src\Physics\Collision.cpp;D:\Projects\Frost\build\windows-msvc\engine\FrostEngine.dir\Debug\Collision.obj
+D:\Projects\Frost\engine\src\Physics\PhysicsSystem.cpp;D:\Projects\Frost\build\windows-msvc\engine\FrostEngine.dir\Debug\PhysicsSystem.obj
 D:\Projects\Frost\engine\src\Platform\Input.cpp;D:\Projects\Frost\build\windows-msvc\engine\FrostEngine.dir\Debug\Input.obj
 D:\Projects\Frost\engine\src\Platform\Window.cpp;D:\Projects\Frost\build\windows-msvc\engine\FrostEngine.dir\Debug\Window.obj
+D:\Projects\Frost\engine\src\Project\GameLaunchOptions.cpp;D:\Projects\Frost\build\windows-msvc\engine\FrostEngine.dir\Debug\GameLaunchOptions.obj
 D:\Projects\Frost\engine\src\Project\Project.cpp;D:\Projects\Frost\build\windows-msvc\engine\FrostEngine.dir\Debug\Project.obj
 D:\Projects\Frost\engine\src\Renderer\Camera.cpp;D:\Projects\Frost\build\windows-msvc\engine\FrostEngine.dir\Debug\Camera.obj
 D:\Projects\Frost\engine\src\Renderer\Light.cpp;D:\Projects\Frost\build\windows-msvc\engine\FrostEngine.dir\Debug\Light.obj
@@ -30,6 +33,12 @@ D:\Projects\Frost\engine\src\Renderer\Vulkan\VulkanDevice.cpp;D:\Projects\Frost\
 D:\Projects\Frost\engine\src\Renderer\Vulkan\VulkanImage.cpp;D:\Projects\Frost\build\windows-msvc\engine\FrostEngine.dir\Debug\VulkanImage.obj
 D:\Projects\Frost\engine\src\Renderer\Vulkan\VulkanPipeline.cpp;D:\Projects\Frost\build\windows-msvc\engine\FrostEngine.dir\Debug\VulkanPipeline.obj
 D:\Projects\Frost\engine\src\Renderer\Vulkan\VulkanSwapchain.cpp;D:\Projects\Frost\build\windows-msvc\engine\FrostEngine.dir\Debug\VulkanSwapchain.obj
+D:\Projects\Frost\engine\src\Scene\Components\CameraComponent.cpp;D:\Projects\Frost\build\windows-msvc\engine\FrostEngine.dir\Debug\CameraComponent.obj
+D:\Projects\Frost\engine\src\Scene\Components\CharacterControllerComponent.cpp;D:\Projects\Frost\build\windows-msvc\engine\FrostEngine.dir\Debug\CharacterControllerComponent.obj
+D:\Projects\Frost\engine\src\Scene\Components\FlyControllerComponent.cpp;D:\Projects\Frost\build\windows-msvc\engine\FrostEngine.dir\Debug\FlyControllerComponent.obj
+D:\Projects\Frost\engine\src\Scene\Components\LightComponent.cpp;D:\Projects\Frost\build\windows-msvc\engine\FrostEngine.dir\Debug\LightComponent.obj
+D:\Projects\Frost\engine\src\Scene\Components\MeshComponent.cpp;D:\Projects\Frost\build\windows-msvc\engine\FrostEngine.dir\Debug\MeshComponent.obj
+D:\Projects\Frost\engine\src\Scene\Components\TransformComponent.cpp;D:\Projects\Frost\build\windows-msvc\engine\FrostEngine.dir\Debug\TransformComponent.obj
 D:\Projects\Frost\engine\src\Scene\GameObject.cpp;D:\Projects\Frost\build\windows-msvc\engine\FrostEngine.dir\Debug\GameObject.obj
 D:\Projects\Frost\engine\src\Scene\Level.cpp;D:\Projects\Frost\build\windows-msvc\engine\FrostEngine.dir\Debug\Level.obj
 D:\Projects\Frost\engine\src\Scene\LevelSerializer.cpp;D:\Projects\Frost\build\windows-msvc\engine\FrostEngine.dir\Debug\LevelSerializer.obj

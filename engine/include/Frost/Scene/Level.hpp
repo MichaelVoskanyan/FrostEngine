@@ -1,6 +1,8 @@
 #pragma once
 
 #include <Frost/Scene/GameObject.hpp>
+#include <Frost/Scene/Registry.hpp>
+#include <Frost/Units.hpp>
 
 #include <glm/vec3.hpp>
 
@@ -31,12 +33,15 @@ namespace Frost {
     struct RaycastHit {
         GameObject* object = nullptr;
         std::size_t subMeshIndex = 0;
-        float distance = 0.0f;  // Along the ray, in world units.
+        float distance = 0.0f;  // Along the ray, in world units (centimeters).
         glm::vec3 point{0.0f};  // World space.
     };
 
     // A level: the set of objects that make up one playable space. Shared by the game (which loads
     // and draws levels) and the editor (which also builds and saves them; see LevelSerializer).
+    //
+    // Each object is an entity whose components live in the level's Registry (see GameObject);
+    // systems such as rendering (Submit) and physics (PhysicsSystem) work on the registry.
     //
     // Objects are owned by the level and live at stable addresses until destroyed, so pointers to
     // them stay valid across other objects being created or destroyed.
@@ -64,13 +69,15 @@ namespace Frost {
         [[nodiscard]]
         const LevelEnvironment& GetEnvironment() const noexcept;
 
-        // Adds an empty object (no model, identity transform) with a fresh id.
+        // Adds an object with a fresh id and only a (default, identity) TransformComponent.
         GameObject& CreateObject(std::string name);
 
-        // Adds a copy of `source` (name, transform, model, overrides and light) with a fresh id.
+        // Adds a copy of `source`, an object of this level (its name and a copy of each of its
+        // components), with a fresh id.
         GameObject& DuplicateObject(const GameObject& source);
 
-        // Removes the object with this id, if any. Pointers/references to it become invalid.
+        // Removes the object with this id, if any, and its components. Pointers/references to it
+        // become invalid.
         void DestroyObject(ObjectId id);
 
         [[nodiscard]]
@@ -79,14 +86,26 @@ namespace Frost {
         [[nodiscard]]
         const std::vector<std::unique_ptr<GameObject>>& GetObjects() const noexcept;
 
-        // Submits a draw for every object that has a model (see Renderer::Submit), every enabled
-        // light (Renderer::SubmitLight) and the ambient light. Call once per frame.
+        // The components of the level's objects (entity = ObjectId).
+        [[nodiscard]]
+        Registry& GetRegistry() noexcept;
+
+        [[nodiscard]]
+        const Registry& GetRegistry() const noexcept;
+
+        // Submits a draw for every MeshComponent with a loaded model (see Renderer::Submit), every
+        // enabled LightComponent (Renderer::SubmitLight) and the ambient light. Call once per frame.
         void Submit(Renderer& renderer, AssetManager& assets);
+
+        // The world-space box around every object's model and collider (whatever there is to see or
+        // bump into), or nullopt if no object has any.
+        [[nodiscard]]
+        std::optional<Bounds> GetBounds() const;
 
         // The nearest object surface the ray hits (triangles of the loaded models, both faces),
         // if any, within maxDistance.
         [[nodiscard]]
-        std::optional<RaycastHit> Raycast(const Ray& ray, float maxDistance = 1.0e6f) const;
+        std::optional<RaycastHit> Raycast(const Ray& ray, float maxDistance = 10.0f * kKilometer) const;
 
     private:
         friend class LevelSerializer;  // Restores saved ids.
@@ -95,6 +114,7 @@ namespace Frost {
 
         std::string m_Name;
         LevelEnvironment m_Environment;
+        Registry m_Registry;  // Before m_Objects: the objects refer to it.
         std::vector<std::unique_ptr<GameObject>> m_Objects;
         ObjectId m_NextId = 1;
     };

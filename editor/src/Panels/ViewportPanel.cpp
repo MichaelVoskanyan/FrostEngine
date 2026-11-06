@@ -5,7 +5,9 @@
 #include "../Widgets/ImGuiHelpers.hpp"
 
 #include <Frost/Engine.hpp>
+#include <Frost/Physics/Collision.hpp>
 #include <Frost/Renderer/Renderer.hpp>
+#include <Frost/Units.hpp>
 
 #include <glm/common.hpp>
 #include <glm/gtc/constants.hpp>
@@ -27,15 +29,35 @@ namespace {
 
     // Drops that hit nothing land on the ground plane, unless that is further than this (looking
     // almost level with the horizon), in which case they land in front of the camera instead.
-    constexpr float kMaxGroundDropDistance = 200.0f;
-    constexpr float kFallbackDropDistance = 5.0f;
+    constexpr float kMaxGroundDropDistance = 200.0f * Frost::kMeter;
+    constexpr float kFallbackDropDistance = 5.0f * Frost::kMeter;
 
     constexpr ImU32 kSelectionColor = IM_COL32(255, 160, 40, 255);
 
-    // Light icons: radius on screen (also the click target), and how long the direction arrow of
-    // directional/spot lights is in world units.
+    // Box colliders: immovable ones, and those of simulated rigid bodies (brighter when selected).
+    constexpr ImU32 kStaticColliderColor = IM_COL32(90, 220, 120, 140);
+    constexpr ImU32 kStaticColliderSelectedColor = IM_COL32(120, 255, 150, 255);
+    constexpr ImU32 kSimulatedColliderColor = IM_COL32(90, 170, 255, 150);
+    constexpr ImU32 kSimulatedColliderSelectedColor = IM_COL32(130, 200, 255, 255);
+
+    constexpr ImU32 kSimulatingTextColor = IM_COL32(255, 120, 90, 255);
+    constexpr ImU32 kPlayingTextColor = IM_COL32(120, 220, 255, 255);
+
+    // Camera objects: their icon, and how far out the shape of their view is drawn.
+    constexpr ImU32 kCameraColor = IM_COL32(220, 220, 220, 200);
+    constexpr float kCameraFrustumLength = 60.0f * Frost::kCentimeter;
+    constexpr float kCameraFrustumAspect = 16.0f / 9.0f;
+
+    // The 12 edges of a box, as pairs of corner indices (see OrientedBox::GetCorners) that differ in
+    // exactly one axis bit.
+    constexpr std::array<std::pair<int, int>, 12> kBoxEdges = {{{0, 1}, {2, 3}, {4, 5}, {6, 7},
+                                                               {0, 2}, {1, 3}, {4, 6}, {5, 7},
+                                                               {0, 4}, {1, 5}, {2, 6}, {3, 7}}};
+
+    // Light icons: radius on screen, in pixels (also the click target), and how long the direction
+    // arrow of directional/spot lights is in the world.
     constexpr float kLightIconRadius = 9.0f;
-    constexpr float kLightArrowLength = 1.0f;
+    constexpr float kLightArrowLength = 1.0f * Frost::kMeter;
 
     // Segments used to draw circles (range spheres, cone rims).
     constexpr int kCircleSegments = 48;
@@ -116,8 +138,8 @@ void ViewportPanel::Draw(EditorContext& context, const EditorCamera& camera) {
     if (ImGui::IsItemClicked(ImGuiMouseButton_Left)) {
         // Light icons first: they are drawn on top of everything, so that is what the user sees
         // under the cursor.
-        if (Frost::GameObject* const light = PickLightIcon(context, projection, ImGui::GetMousePos())) {
-            context.Select(light->GetId());
+        if (Frost::GameObject* const icon = PickIcon(context, projection, ImGui::GetMousePos())) {
+            context.Select(icon->GetId());
         }
         else {
             const std::optional<Frost::RaycastHit> hit =
@@ -148,16 +170,22 @@ void ViewportPanel::Draw(EditorContext& context, const EditorCamera& camera) {
 
     ImDrawList* const drawList = ImGui::GetWindowDrawList();
     drawList->PushClipRect(m_Origin, ImVec2(m_Origin.x + m_Size.x, m_Origin.y + m_Size.y), true);
+    if (m_ShowColliders) { DrawColliders(context, projection); }
     DrawSelectionBounds(context, projection);
     DrawLights(context, projection);
+    DrawCameras(context, projection);
     drawList->PopClipRect();
 
-    DrawCameraInfo(camera);
+    DrawCameraInfo(context, camera);
 
     ImGui::End();
 }
 
 bool ViewportPanel::IsHovered() const noexcept { return m_Hovered; }
+
+bool ViewportPanel::GetShowColliders() const noexcept { return m_ShowColliders; }
+
+void ViewportPanel::SetShowColliders(const bool show) noexcept { m_ShowColliders = show; }
 
 Frost::Ray ViewportPanel::ScreenPointToRay(const EditorCamera& camera, const ImVec2& screenPoint) const {
     const Frost::Camera& view = camera.GetCamera();
@@ -236,15 +264,22 @@ glm::vec3 ViewportPanel::FindDropPoint(EditorContext& context, const Frost::Ray&
     return ray.origin + ray.direction * kFallbackDropDistance;
 }
 
-Frost::GameObject* ViewportPanel::PickLightIcon(EditorContext& context, const Projection& projection,
-                                                const ImVec2& screenPoint) const {
+Frost::GameObject* ViewportPanel::PickIcon(EditorContext& context, const Projection& projection,
+                                           const ImVec2& screenPoint) const {
     Frost::GameObject* nearest = nullptr;
     float nearestDepth = std::numeric_limits<float>::max();
 
     for (const std::unique_ptr<Frost::GameObject>& object : context.GetLevel().GetObjects()) {
-        if (!object->GetLight().has_value()) { continue; }
-
-        const glm::vec3& position = object->GetTransform().position;
+        // A camera's icon is where the camera is (mounted on its object, e.g. at a character's head).
+        glm::vec3 position = object->GetTransform().position;
+        if (const Frost::CameraComponent* const camera = object->TryGetComponent<Frost::CameraComponent>()) {
+            if (!object->HasComponent<Frost::LightComponent>()) {
+                position = camera->ToCamera(object->GetTransform()).GetPosition();
+            }
+        }
+        else if (!object->HasComponent<Frost::LightComponent>()) {
+            continue;
+        }
         const std::optional<ImVec2> icon = WorldToScreen(projection, position);
         if (!icon.has_value()) { continue; }
 
@@ -274,13 +309,80 @@ void ViewportPanel::DrawSelectionBounds(EditorContext& context, const Projection
                          (i & 4) != 0 ? bounds->max.z : bounds->min.z);
     };
 
-    // The 12 edges of the box, as corner index pairs differing in exactly one axis bit.
-    constexpr std::array<std::pair<int, int>, 12> kEdges = {{{0, 1}, {2, 3}, {4, 5}, {6, 7},
-                                                            {0, 2}, {1, 3}, {4, 6}, {5, 7},
-                                                            {0, 4}, {1, 5}, {2, 6}, {3, 7}}};
-
-    for (const auto& [first, second] : kEdges) {
+    for (const auto& [first, second] : kBoxEdges) {
         DrawWorldLine(projection, corner(first), corner(second), kSelectionColor);
+    }
+}
+
+void ViewportPanel::DrawColliders(EditorContext& context, const Projection& projection) const {
+    const Frost::GameObject* const selected = context.GetSelectedObject();
+
+    for (const std::unique_ptr<Frost::GameObject>& object : context.GetLevel().GetObjects()) {
+        const Frost::BoxColliderComponent* const box = object->TryGetComponent<Frost::BoxColliderComponent>();
+        const Frost::CapsuleColliderComponent* const capsule = object->TryGetComponent<Frost::CapsuleColliderComponent>();
+        if (box == nullptr && capsule == nullptr) { continue; }
+
+        const Frost::RigidBodyComponent* const body = object->TryGetComponent<Frost::RigidBodyComponent>();
+        const bool simulated = body != nullptr && body->simulated;
+        const bool isSelected = object.get() == selected;
+
+        ImU32 color = simulated ? kSimulatedColliderColor : kStaticColliderColor;
+        if (isSelected) { color = simulated ? kSimulatedColliderSelectedColor : kStaticColliderSelectedColor; }
+        const float thickness = isSelected ? 2.0f : 1.0f;
+
+        if (box != nullptr) {
+            const std::array<glm::vec3, 8> corners = Frost::MakeWorldBox(object->GetTransform(), *box).GetCorners();
+            for (const auto& [first, second] : kBoxEdges) {
+                DrawWorldLine(projection, corners[static_cast<std::size_t>(first)],
+                              corners[static_cast<std::size_t>(second)], color, thickness);
+            }
+        }
+        if (capsule != nullptr) {
+            DrawCapsule(projection, Frost::MakeWorldCapsule(object->GetTransform(), *capsule), color, thickness);
+        }
+    }
+}
+
+void ViewportPanel::DrawCapsule(const Projection& projection, const Frost::Capsule& capsule, const ImU32 color,
+                                const float thickness) const {
+    // Its axis, and two directions across it.
+    const glm::vec3 span = capsule.end - capsule.start;
+    const glm::vec3 axis = glm::dot(span, span) > 1e-10f ? glm::normalize(span) : glm::vec3(0.0f, 1.0f, 0.0f);
+    glm::vec3 u;
+    glm::vec3 v;
+    PerpendicularBasis(axis, u, v);
+    const float r = capsule.radius;
+
+    // A point on a circle of radius r around `center` in the plane of `a` and `b`, at `angle`.
+    const auto onCircle = [r](const glm::vec3& center, const glm::vec3& a, const glm::vec3& b, const float angle) {
+        return center + (a * std::cos(angle) + b * std::sin(angle)) * r;
+    };
+
+    // The rims of the cylinder, and four lines along its side.
+    for (const glm::vec3& center : {capsule.start, capsule.end}) {
+        glm::vec3 previous = onCircle(center, u, v, 0.0f);
+        for (int i = 1; i <= kCircleSegments; ++i) {
+            const float angle = glm::two_pi<float>() * static_cast<float>(i) / static_cast<float>(kCircleSegments);
+            const glm::vec3 point = onCircle(center, u, v, angle);
+            DrawWorldLine(projection, previous, point, color, thickness);
+            previous = point;
+        }
+    }
+    for (const glm::vec3& side : {u, -u, v, -v}) {
+        DrawWorldLine(projection, capsule.start + side * r, capsule.end + side * r, color, thickness);
+    }
+
+    // The end caps: two half circles over each end, across each other.
+    for (const auto& [center, outward] : {std::pair{capsule.end, axis}, std::pair{capsule.start, -axis}}) {
+        for (const glm::vec3& across : {u, v}) {
+            glm::vec3 previous = onCircle(center, across, outward, 0.0f);
+            for (int i = 1; i <= kCircleSegments / 2; ++i) {
+                const float angle = glm::pi<float>() * static_cast<float>(i) / static_cast<float>(kCircleSegments / 2);
+                const glm::vec3 point = onCircle(center, across, outward, angle);
+                DrawWorldLine(projection, previous, point, color, thickness);
+                previous = point;
+            }
+        }
     }
 }
 
@@ -289,11 +391,11 @@ void ViewportPanel::DrawLights(EditorContext& context, const Projection& project
     ImDrawList* const drawList = ImGui::GetWindowDrawList();
 
     for (const std::unique_ptr<Frost::GameObject>& object : context.GetLevel().GetObjects()) {
-        const std::optional<Frost::LightComponent>& light = object->GetLight();
-        if (!light.has_value()) { continue; }
+        const Frost::LightComponent* const light = object->TryGetComponent<Frost::LightComponent>();
+        if (light == nullptr) { continue; }
 
         const bool isSelected = object.get() == selected;
-        const Frost::Transform& transform = object->GetTransform();
+        const Frost::TransformComponent& transform = object->GetTransform();
 
         if (isSelected) { DrawLightReach(projection, *object); }
 
@@ -319,9 +421,52 @@ void ViewportPanel::DrawLights(EditorContext& context, const Projection& project
     }
 }
 
+void ViewportPanel::DrawCameras(EditorContext& context, const Projection& projection) const {
+    const Frost::GameObject* const selected = context.GetSelectedObject();
+    ImDrawList* const drawList = ImGui::GetWindowDrawList();
+
+    for (const std::unique_ptr<Frost::GameObject>& object : context.GetLevel().GetObjects()) {
+        const Frost::CameraComponent* const cameraComponent = object->TryGetComponent<Frost::CameraComponent>();
+        if (cameraComponent == nullptr) { continue; }
+
+        const bool isSelected = object.get() == selected;
+        const ImU32 color = isSelected ? kSelectionColor : kCameraColor;
+
+        // The shape of what it sees, cut off a short way out: a pyramid from the camera to a
+        // rectangle (at a typical 16:9 aspect), with a notch on the top edge showing which way is up.
+        const Frost::Camera view = cameraComponent->ToCamera(object->GetTransform());
+        const glm::vec3 apex = view.GetPosition();
+        const float halfHeight = kCameraFrustumLength * std::tan(view.GetVerticalFov() * 0.5f);
+        const float halfWidth = halfHeight * kCameraFrustumAspect;
+        const glm::vec3 center = apex + view.GetForward() * kCameraFrustumLength;
+        const glm::vec3 right = view.GetRight() * halfWidth;
+        const glm::vec3 up = view.GetUp() * halfHeight;
+
+        const std::array<glm::vec3, 4> corners = {center - right - up, center + right - up, center + right + up,
+                                                  center - right + up};
+        for (std::size_t i = 0; i < corners.size(); ++i) {
+            DrawWorldLine(projection, apex, corners[i], color, isSelected ? 2.0f : 1.0f);
+            DrawWorldLine(projection, corners[i], corners[(i + 1) % corners.size()], color, isSelected ? 2.0f : 1.0f);
+        }
+        const glm::vec3 notch = center + up * 1.35f;
+        DrawWorldLine(projection, center - right * 0.3f + up, notch, color, 1.0f);
+        DrawWorldLine(projection, notch, center + right * 0.3f + up, color, 1.0f);
+
+        const std::optional<ImVec2> icon = WorldToScreen(projection, apex);
+        if (!icon.has_value()) { continue; }
+
+        drawList->AddCircleFilled(*icon, kLightIconRadius, IM_COL32(90, 90, 100, 230));
+        drawList->AddCircle(*icon, kLightIconRadius, isSelected ? kSelectionColor : IM_COL32(20, 20, 20, 255), 0,
+                            isSelected ? 2.5f : 1.5f);
+        const ImVec2 textSize = ImGui::CalcTextSize("C");
+        drawList->AddText(ImVec2(icon->x - textSize.x * 0.5f, icon->y - textSize.y * 0.5f), IM_COL32(240, 240, 240, 255),
+                          "C");
+    }
+}
+
 void ViewportPanel::DrawLightReach(const Projection& projection, const Frost::GameObject& object) const {
-    const Frost::LightComponent& light = *object.GetLight();
-    const Frost::Transform& transform = object.GetTransform();
+    const Frost::LightComponent& light = object.GetComponent<Frost::LightComponent>();
+    const Frost::TransformComponent& transform = object.GetTransform();
     const glm::vec3& position = transform.position;
     const glm::vec3 forward = transform.GetForward();
 
@@ -360,8 +505,8 @@ void ViewportPanel::DrawLightReach(const Projection& projection, const Frost::Ga
 
         case Frost::LightType::Directional: {
             // A bundle of parallel rays: the light has no position, only a direction.
-            constexpr float kRayLength = 3.0f;
-            constexpr float kSpread = 0.4f;
+            constexpr float kRayLength = 3.0f * Frost::kMeter;
+            constexpr float kSpread = 40.0f * Frost::kCentimeter;
             for (const glm::vec3& offset : {glm::vec3(0.0f), u * kSpread, -u * kSpread, v * kSpread, -v * kSpread}) {
                 DrawWorldLine(projection, position + offset, position + offset + forward * kRayLength, kSelectionColor,
                               1.0f);
@@ -371,13 +516,24 @@ void ViewportPanel::DrawLightReach(const Projection& projection, const Frost::Ga
     }
 }
 
-void ViewportPanel::DrawCameraInfo(const EditorCamera& camera) const {
+void ViewportPanel::DrawCameraInfo(EditorContext& context, const EditorCamera& camera) const {
     const glm::vec3& position = camera.GetPosition();
 
     char text[160];
-    std::snprintf(text, sizeof(text), "Speed %.2f u/s   Pos %.1f, %.1f, %.1f%s", camera.GetMoveSpeed(), position.x,
+    std::snprintf(text, sizeof(text), "Speed %.0f cm/s   Pos %.0f, %.0f, %.0f cm%s", camera.GetMoveSpeed(), position.x,
                   position.y, position.z, camera.IsControlling() ? "" : "   (hold RMB to fly)");
 
     const ImVec2 at(m_Origin.x + 8.0f, m_Origin.y + 6.0f);
     ImGui::GetWindowDrawList()->AddText(at, IM_COL32(230, 230, 230, 200), text);
+
+    // Unmissable while the physics simulation is running (objects are moving on their own, and will
+    // jump back when it stops) or the game is (in its own window).
+    ImVec2 line(at.x, at.y + ImGui::GetTextLineHeightWithSpacing());
+    if (context.IsSimulating()) {
+        ImGui::GetWindowDrawList()->AddText(line, kSimulatingTextColor, "SIMULATING (Alt+S to stop)");
+        line.y += ImGui::GetTextLineHeightWithSpacing();
+    }
+    if (context.IsPlaying()) {
+        ImGui::GetWindowDrawList()->AddText(line, kPlayingTextColor, "PLAYING in the game window (F5 to stop)");
+    }
 }

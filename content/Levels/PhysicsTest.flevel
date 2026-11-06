@@ -1,0 +1,189 @@
+{
+  "format": "FrostLevel",
+  "version": 7,
+  "name": "Physics Test",
+  "environment": {
+    "ambientColor": [1, 1, 1],
+    "ambientIntensity": 0.12
+  },
+  "objects": [
+    {
+      "id": 2,
+      "name": "Sun",
+      "transform": {
+        "position": [0, 200, 200],
+        "rotation": [-36.6569, -29.7449, 0],
+        "scale": [1, 1, 1]
+      },
+      "light": {
+        "type": "directional",
+        "enabled": true,
+        "color": [1, 1, 1],
+        "useTemperature": false,
+        "temperature": 6500,
+        "intensity": 3,
+        "range": 1000,
+        "innerConeAngle": 20,
+        "outerConeAngle": 30
+      }
+    },
+    {
+      "id": 1,
+      "name": "Glock19",
+      "transform": {
+        "position": [0, 200, 0],
+        "rotation": [0, 0, 0],
+        "scale": [4, 4, 4]
+      },
+      "mesh": {
+        "id": "4af3170a1c12422eaca5e85462d59845",
+        "path": "../Weapons/Glock19/Meshes/Glock19.fmesh"
+      },
+      "materials": [
+        {
+          "subMesh": 4,
+          "subMeshName": "slide",
+          "baseColorFactor": [1, 1, 1, 1],
+          "metallic": 1,
+          "roughness": 0,
+          "normalScale": 1,
+          "occlusionStrength": 1,
+          "emissiveFactor": [0, 0, 0],
+          "textures": {
+            "baseColor": {
+              "id": "9057f2aed6964ac596256728db23da14",
+              "path": "../Weapons/Glock19/Textures/black64.ftex"
+            },
+            "metallicRoughness": {
+              "id": "0a2070725e9d4d9bba2f6423a843acfd",
+              "path": "../Weapons/Glock19/Textures/mr_metal_smooth.ftex"
+            }
+          }
+        },
+        {
+          "subMesh": 2,
+          "subMeshName": "Grip",
+          "baseColorFactor": [1, 1, 1, 1],
+          "metallic": 0,
+          "roughness": 1,
+          "normalScale": 1,
+          "occlusionStrength": 1,
+          "emissiveFactor": [0, 0, 0],
+          "textures": {
+            "metallicRoughness": {
+              "id": "0b3d5414ce74411b99f50f487a1b2960",
+              "path": "../Weapons/Glock19/Textures/mr_rough.ftex"
+            },
+            "normal": {
+              "id": "ff42d46a097241b18c3c6dfc3b814acf",
+              "path": "../Weapons/Glock19/Textures/normal_grip.ftex"
+            }
+          }
+        },
+        {
+          "subMesh": 1,
+          "subMeshName": "FrontSight",
+          "baseColorFactor": [1, 1, 1, 1],
+          "metallic": 0,
+          "roughness": 1,
+          "normalScale": 1,
+          "occlusionStrength": 1,
+          "emissiveFactor": [0, 0, 0],
+          "textures": {
+            "metallicRoughness": {
+              "id": "0b3d5414ce74411b99f50f487a1b2960",
+              "path": "../Weapons/Glock19/Textures/mr_rough.ftex"
+            }
+          }
+        },
+        {
+          "subMesh": 3,
+          "subMeshName": "RearSight",
+          "baseColorFactor": [1, 1, 1, 1],
+          "metallic": 0,
+          "roughness": 1,
+          "normalScale": 1,
+          "occlusionStrength": 1,
+          "emissiveFactor": [0, 0, 0],
+          "textures": {
+            "metallicRoughness": {
+              "id": "0b3d5414ce74411b99f50f487a1b2960",
+              "path": "../Weapons/Glock19/Textures/mr_rough.ftex"
+            }
+          }
+        },
+        {
+          "subMesh": 0,
+          "subMeshName": "Barrel",
+          "baseColorFactor": [1, 1, 1, 1],
+          "metallic": 1,
+          "roughness": 1,
+          "normalScale": 1,
+          "occlusionStrength": 1,
+          "emissiveFactor": [0, 0, 0],
+          "textures": {
+            "metallicRoughness": {
+              "id": "deb47f698370459793021268773442c3",
+              "path": "../Weapons/Glock19/Textures/mr_metal_rough.ftex"
+            }
+          }
+        }
+      ],
+      "boxCollider": {
+        "center": [-1.2205108, 1.3924721, 0],
+        "size": [39.272568, 27.51329, 5]
+      },
+      "rigidBody": {
+        "simulated": true,
+        "mass": 1
+      }
+    },
+    {
+      "id": 3,
+      "name": "Ground",
+      "transform": {
+        "position": [0, -50, 0],
+        "rotation": [0, 0, 0],
+        "scale": [40, 1, 40]
+      },
+      "mesh": {
+        "id": "eb1655bbeab04909a37d5d6cc01caf19",
+        "path": "../Primitives/Cube.fmesh"
+      },
+      "boxCollider": {
+        "center": [0, 0, 0],
+        "size": [100, 100, 100]
+      }
+    },
+    {
+      "id": 4,
+      "name": "Player",
+      "transform": {
+        "position": [0, 150, 800],
+        "rotation": [0, 0, 0],
+        "scale": [1, 1, 1]
+      },
+      "camera": {
+        "verticalFov": 60,
+        "nearClip": 5,
+        "farClip": 100000,
+        "offset": [0, 70, 0],
+        "rotation": [-10, 0, 0]
+      },
+      "characterController": {
+        "walkSpeed": 500,
+        "jumpSpeed": 500,
+        "lookSensitivity": 0.115
+      },
+      "capsuleCollider": {
+        "center": [0, 0, 0],
+        "radius": 35,
+        "height": 180
+      },
+      "rigidBody": {
+        "simulated": true,
+        "mass": 80
+      }
+    }
+  ]
+}

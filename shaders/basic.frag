@@ -77,12 +77,17 @@ vec3 ShadingNormal() {
     return normalize(mat3(t, b, n) * tangentNormal);
 }
 
+// World space is in centimeters (Frost/Units.hpp), while light intensities are given at 1 meter: the
+// inverse-square falloff is taken over the distance in meters.
+const float kCentimetersPerMeter = 100.0;
+
 // Inverse-square falloff (physically correct for a point source), windowed so it reaches exactly
 // zero at the light's range instead of trailing off forever: (1 - (d/r)^4)^2, the window used by
 // Frostbite and Unreal. The 1 cm floor keeps a surface touching the light from blowing up.
 float DistanceAttenuation(float distanceSquared, float range) {
-    const float inverseSquare = 1.0 / max(distanceSquared, 0.0001);
-    const float ratio = distanceSquared / max(range * range, 0.0001);
+    const float metersSquared = distanceSquared / (kCentimetersPerMeter * kCentimetersPerMeter);
+    const float inverseSquare = 1.0 / max(metersSquared, 0.0001);
+    const float ratio = distanceSquared / max(range * range, 1.0);
     const float window = clamp(1.0 - ratio * ratio, 0.0, 1.0);
     return inverseSquare * window * window;
 }

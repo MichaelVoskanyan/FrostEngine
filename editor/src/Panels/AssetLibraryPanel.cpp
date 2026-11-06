@@ -491,17 +491,17 @@ void AssetLibraryPanel::RequestDelete(EditorContext& context, const std::filesys
             prompt.referencers = library.FindReferencers(entry->id);
 
             // The open level may have unsaved uses the files do not show.
-            for (const std::unique_ptr<Frost::GameObject>& object : context.GetLevel().GetObjects()) {
-                bool uses = object->GetMeshReference().id == entry->id;
-                for (std::size_t i = 0; i < object->GetMaterialSlotCount() && !uses; ++i) {
-                    if (const auto& materialOverride = object->GetMaterialOverride(i); materialOverride.has_value()) {
+            context.GetLevel().GetRegistry().Each<Frost::MeshComponent>([&](Frost::EntityId, const Frost::MeshComponent& mesh) {
+                bool uses = mesh.GetMeshReference().id == entry->id;
+                for (std::size_t i = 0; i < mesh.GetMaterialSlotCount() && !uses; ++i) {
+                    if (const auto& materialOverride = mesh.GetMaterialOverride(i); materialOverride.has_value()) {
                         for (const Frost::TextureOverride& texture : materialOverride->textures) {
                             uses = uses || (texture.source == Frost::TextureOverride::Source::Asset && texture.texture.id == entry->id);
                         }
                     }
                 }
                 prompt.usesInOpenLevel += uses ? 1 : 0;
-            }
+            });
         }
     }
 

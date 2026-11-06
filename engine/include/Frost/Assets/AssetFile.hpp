@@ -74,6 +74,10 @@ namespace Frost {
     // directory's parent, see AssetRegistry::GetProjectDirectory). The id sits at a fixed offset
     // (8) so it can be rewritten in place.
     //
+    // Mesh positions are in world units (centimeters, see Frost/Units.hpp) from mesh version 3;
+    // versions 1 and 2 stored them in meters (glTF's unit), and are converted as they are read, so
+    // every mesh reads back in centimeters whatever its version.
+    //
     // Version 1 (no id, no source item; meshes embedded their textures) is still read. Readers
     // reject newer versions, and validate every count and index against the file, so a truncated
     // or corrupt asset is reported (ImportError) rather than read out of bounds.
@@ -84,7 +88,8 @@ namespace Frost {
         static constexpr const char* kMeshExtension = ".fmesh";
         static constexpr const char* kTextureExtension = ".ftex";
 
-        static constexpr std::uint32_t kMeshVersion = 2;
+        // 3: positions in centimeters (before: meters).
+        static constexpr std::uint32_t kMeshVersion = 3;
         static constexpr std::uint32_t kTextureVersion = 2;
 
         // Write the current version (the header's type/version are ignored; its id must be valid).

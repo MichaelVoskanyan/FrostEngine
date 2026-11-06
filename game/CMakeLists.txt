@@ -17,6 +17,14 @@ target_link_libraries(FrostGame
         Frost::Engine
 )
 
+# CommandLineToArgvW, for reading the command line as Unicode (see src/Main.cpp).
+if(WIN32)
+    target_link_libraries(FrostGame
+        PRIVATE
+            shell32
+    )
+endif()
+
 set_target_properties(FrostGame PROPERTIES
     CXX_EXTENSIONS OFF
 )
