@@ -4,6 +4,9 @@
 #include <Frost/Platform/Filesystem.hpp>
 #include <Frost/Units.hpp>
 
+#include <glm/gtc/quaternion.hpp>
+#include <glm/mat4x4.hpp>
+
 #include <array>
 #include <bit>
 #include <cstddef>
@@ -28,6 +31,21 @@ namespace {
 
     constexpr std::array<char, 4> kMeshMagic = {'F', 'M', 'S', 'H'};
     constexpr std::array<char, 4> kTextureMagic = {'F', 'T', 'E', 'X'};
+    constexpr std::array<char, 4> kSkeletonMagic = {'F', 'S', 'K', 'L'};
+    constexpr std::array<char, 4> kSkeletalMeshMagic = {'F', 'S', 'K', 'M'};
+    constexpr std::array<char, 4> kAnimationMagic = {'F', 'A', 'N', 'M'};
+
+    [[nodiscard]]
+    constexpr const std::array<char, 4>& MagicOf(const Frost::AssetType type) noexcept {
+        switch (type) {
+            case Frost::AssetType::Mesh: return kMeshMagic;
+            case Frost::AssetType::Texture: return kTextureMagic;
+            case Frost::AssetType::Skeleton: return kSkeletonMagic;
+            case Frost::AssetType::SkeletalMesh: return kSkeletalMeshMagic;
+            case Frost::AssetType::Animation: return kAnimationMagic;
+        }
+        return kMeshMagic;
+    }
 
     // Sanity limits for counts read from a file, so a corrupt count fails cleanly instead of
     // attempting a huge allocation. Generous for real content.
@@ -36,6 +54,14 @@ namespace {
 
     // Floats per vertex on disk: position 3, normal 3, uv 2, color 4, tangent 4.
     constexpr std::size_t kFloatsPerVertex = 16;
+
+    // Bytes of the smallest possible record of each kind, for ReadCount's check that a declared
+    // count fits in what is left of the file.
+    constexpr std::size_t kMinBoneBytes = 4 + 4 + 10 * 4;       // Empty name, parent, 10 floats.
+    constexpr std::size_t kSkinWeightBytes = 4 * 2 + 4 * 4;     // u16[4] bones, f32[4] weights.
+    constexpr std::size_t kMinBindEntryBytes = 4 + 16 * 4;      // Empty name, mat4.
+    constexpr std::size_t kMinTrackBytes = 4 + 3 * (1 + 4);     // Empty name, three empty channels.
+    constexpr std::size_t kReferenceBytes = 8 + 8 + 4;          // Id, empty path.
 
     // memcpy, except that copying nothing is fine even from/to a null pointer (which an empty
     // vector's data() may be; memcpy with a null pointer is undefined even for zero bytes).
@@ -229,27 +255,29 @@ namespace {
         return id;
     }
 
-    void WriteHeader(BinaryWriter& writer, const std::array<char, 4>& magic, const std::uint32_t version,
-                     const std::filesystem::path& assetPath, const Frost::AssetHeader& header,
-                     const std::filesystem::path& projectDirectory) {
+    // The current version of `type` (the header's type/version are not used).
+    void WriteHeader(BinaryWriter& writer, const Frost::AssetType type, const std::filesystem::path& assetPath,
+                     const Frost::AssetHeader& header, const std::filesystem::path& projectDirectory) {
         if (!header.id.IsValid()) {
             throw Frost::ImportError("Asset '" + Frost::PathToUtf8(assetPath) + "' cannot be written without an id.");
         }
 
-        writer.WriteMagic(magic);
-        writer.Write(version);
+        writer.WriteMagic(MagicOf(type));
+        writer.Write(Frost::AssetFile::GetCurrentVersion(type));
         WriteId(writer, header.id);
         WritePath(writer, header.sourcePath, projectDirectory);
         writer.WriteString(header.sourceItem);
     }
 
-    // Reads the header of a file expected to be of one type (either version).
+    // Reads the header of a file expected to be of one type (any version this build reads).
     [[nodiscard]]
-    Frost::AssetHeader ReadHeader(BinaryReader& reader, const std::array<char, 4>& magic, const Frost::AssetType type,
-                                  const std::uint32_t supportedVersion, const std::filesystem::path& assetPath,
+    Frost::AssetHeader ReadHeader(BinaryReader& reader, const Frost::AssetType type, const std::filesystem::path& assetPath,
                                   const std::filesystem::path& projectDirectory) {
-        const char* const kind = type == Frost::AssetType::Mesh ? "mesh" : "texture";
-        if (reader.ReadMagic() != magic) { reader.Reject(std::string("is not a Frost ") + kind + " asset"); }
+        if (reader.ReadMagic() != MagicOf(type)) {
+            reader.Reject(std::string("is not a Frost ") + Frost::GetAssetTypeName(type) + " asset");
+        }
+
+        const std::uint32_t supportedVersion = Frost::AssetFile::GetCurrentVersion(type);
 
         Frost::AssetHeader header;
         header.type = type;
@@ -261,12 +289,27 @@ namespace {
                           " or older); it was saved by a newer version of Frost");
         }
 
-        // Version 1 had no id and no source item.
-        if (header.version >= 2) { header.id = ReadId(reader); }
-        const bool legacy = header.version < 2;
-        header.sourcePath = ReadPath(reader, legacy ? AssetDirectory(assetPath) : projectDirectory, legacy);
-        if (header.version >= 2) { header.sourceItem = reader.ReadString(); }
+        // Version-1 meshes and textures had no id and no source item, and stored the source path
+        // relative to the asset itself.
+        const bool hasId = Frost::AssetFile::HasId(type, header.version);
+        if (hasId) { header.id = ReadId(reader); }
+        header.sourcePath = ReadPath(reader, hasId ? projectDirectory : AssetDirectory(assetPath), !hasId);
+        if (hasId) { header.sourceItem = reader.ReadString(); }
         return header;
+    }
+
+    void WriteReference(BinaryWriter& writer, const Frost::AssetReference& reference,
+                        const std::filesystem::path& projectDirectory) {
+        WriteId(writer, reference.id);
+        WritePath(writer, reference.path, projectDirectory);
+    }
+
+    [[nodiscard]]
+    Frost::AssetReference ReadReference(BinaryReader& reader, const std::filesystem::path& projectDirectory) {
+        Frost::AssetReference reference;
+        reference.id = ReadId(reader);
+        reference.path = ReadPath(reader, projectDirectory, false);
+        return reference;
     }
 
     void WriteTextureSettings(BinaryWriter& writer, const Frost::TextureSettings& settings) {
@@ -460,35 +503,232 @@ namespace {
         }
     }
 
+    // Materials as meshes and skeletal meshes store them (version 2 and later): parameters, and
+    // per texture slot a reference to a texture asset.
+    void WriteMaterials(BinaryWriter& writer, const std::vector<Frost::MaterialAssetData>& materials,
+                        const std::filesystem::path& projectDirectory) {
+        writer.Write(static_cast<std::uint32_t>(materials.size()));
+        for (const Frost::MaterialAssetData& material : materials) {
+            writer.WriteString(material.name);
+            WriteParameters(writer, material.parameters);
+            for (const Frost::AssetReference& texture : material.textures) { WriteReference(writer, texture, projectDirectory); }
+        }
+    }
+
+    [[nodiscard]]
+    std::vector<Frost::MaterialAssetData> ReadMaterials(BinaryReader& reader, const std::filesystem::path& projectDirectory) {
+        // Each material is at least 152 bytes (an empty name's length, 12 floats, and per slot a
+        // 16-byte id and an empty path's length).
+        std::vector<Frost::MaterialAssetData> materials(reader.ReadCount(152, "materials"));
+        for (Frost::MaterialAssetData& material : materials) {
+            material.name = reader.ReadString();
+            material.parameters = ReadParameters(reader);
+            for (Frost::AssetReference& texture : material.textures) { texture = ReadReference(reader, projectDirectory); }
+        }
+        return materials;
+    }
+
+    void WriteMatrix(BinaryWriter& writer, const glm::mat4& matrix) { WriteVec(writer, &matrix[0][0], 16); }
+
+    [[nodiscard]]
+    glm::mat4 ReadMatrix(BinaryReader& reader) {
+        glm::mat4 matrix(1.0f);
+        ReadVec(reader, &matrix[0][0], 16);
+        return matrix;
+    }
+
+    void WriteQuaternion(BinaryWriter& writer, const glm::quat& rotation) {
+        writer.Write(rotation.x);
+        writer.Write(rotation.y);
+        writer.Write(rotation.z);
+        writer.Write(rotation.w);
+    }
+
+    [[nodiscard]]
+    glm::quat ReadQuaternion(BinaryReader& reader) {
+        const auto x = reader.Read<float>();
+        const auto y = reader.Read<float>();
+        const auto z = reader.Read<float>();
+        const auto w = reader.Read<float>();
+        return Frost::MakeQuaternion(x, y, z, w);
+    }
+
+    template <typename T>
+    void WriteChannel(BinaryWriter& writer, const Frost::AnimationChannel<T>& channel) {
+        writer.Write(static_cast<std::uint8_t>(channel.interpolation));
+        writer.Write(static_cast<std::uint32_t>(channel.times.size()));
+        WriteVec(writer, channel.times.data(), channel.times.size());
+        for (const T& value : channel.values) {
+            if constexpr (std::is_same_v<T, glm::quat>) { WriteQuaternion(writer, value); }
+            else { WriteVec(writer, &value.x, 3); }
+        }
+    }
+
+    template <typename T>
+    void ReadChannel(BinaryReader& reader, Frost::AnimationChannel<T>& channel) {
+        constexpr std::size_t kValueBytes = (std::is_same_v<T, glm::quat> ? 4 : 3) * sizeof(float);
+
+        const auto interpolation = reader.Read<std::uint8_t>();
+        if (interpolation > static_cast<std::uint8_t>(Frost::AnimationInterpolation::CubicSpline)) {
+            reader.Fail("has an animation channel with an unknown interpolation");
+        }
+        channel.interpolation = static_cast<Frost::AnimationInterpolation>(interpolation);
+
+        // Each key is at least its time and one value.
+        channel.times.resize(reader.ReadCount(sizeof(float) + kValueBytes, "keyframes"));
+        ReadVec(reader, channel.times.data(), channel.times.size());
+
+        const std::size_t valueCount = channel.times.size() * channel.GetValuesPerKey();
+        if (valueCount > reader.Remaining() / kValueBytes) { reader.Fail("declares more keyframes than the file holds"); }
+        channel.values.resize(valueCount);
+        for (T& value : channel.values) {
+            if constexpr (std::is_same_v<T, glm::quat>) { value = ReadQuaternion(reader); }
+            else { ReadVec(reader, &value.x, 3); }
+        }
+    }
+
 }  // namespace
 
 namespace Frost {
 
+    const char* AssetFile::GetExtension(const AssetType type) noexcept {
+        switch (type) {
+            case AssetType::Mesh: return kMeshExtension;
+            case AssetType::Texture: return kTextureExtension;
+            case AssetType::Skeleton: return kSkeletonExtension;
+            case AssetType::SkeletalMesh: return kSkeletalMeshExtension;
+            case AssetType::Animation: return kAnimationExtension;
+        }
+        return "";
+    }
+
+    std::uint32_t AssetFile::GetCurrentVersion(const AssetType type) noexcept {
+        switch (type) {
+            case AssetType::Mesh: return kMeshVersion;
+            case AssetType::Texture: return kTextureVersion;
+            case AssetType::Skeleton: return kSkeletonVersion;
+            case AssetType::SkeletalMesh: return kSkeletalMeshVersion;
+            case AssetType::Animation: return kAnimationVersion;
+        }
+        return 0;
+    }
+
+    bool AssetFile::HasId(const AssetType type, const std::uint32_t version) noexcept {
+        return (type != AssetType::Mesh && type != AssetType::Texture) || version >= 2;
+    }
+
     void AssetFile::WriteMesh(const std::filesystem::path& path, const MeshFile& file,
                               const std::filesystem::path& projectDirectory) {
         BinaryWriter writer;
-        WriteHeader(writer, kMeshMagic, kMeshVersion, path, file.header, projectDirectory);
+        WriteHeader(writer, AssetType::Mesh, path, file.header, projectDirectory);
         WriteGeometry(writer, file.mesh);
-
-        writer.Write(static_cast<std::uint32_t>(file.materials.size()));
-        for (const MaterialAssetData& material : file.materials) {
-            writer.WriteString(material.name);
-            WriteParameters(writer, material.parameters);
-            for (const AssetReference& texture : material.textures) {
-                WriteId(writer, texture.id);
-                WritePath(writer, texture.path, projectDirectory);
-            }
-        }
-
+        WriteMaterials(writer, file.materials, projectDirectory);
         WriteFileAtomically(path, writer.GetBytes());
     }
 
     void AssetFile::WriteTexture(const std::filesystem::path& path, const TextureFile& file,
                                  const std::filesystem::path& projectDirectory) {
         BinaryWriter writer;
-        WriteHeader(writer, kTextureMagic, kTextureVersion, path, file.header, projectDirectory);
+        WriteHeader(writer, AssetType::Texture, path, file.header, projectDirectory);
         WriteTextureSettings(writer, file.settings);
         WriteImage(writer, file.image);
+        WriteFileAtomically(path, writer.GetBytes());
+    }
+
+    void AssetFile::WriteSkeleton(const std::filesystem::path& path, const SkeletonFile& file,
+                                  const std::filesystem::path& projectDirectory) {
+        if (const std::optional<std::string> problem = file.skeleton.Validate()) {
+            throw ImportError("Skeleton '" + PathToUtf8(path) + "' cannot be written: " + *problem + ".");
+        }
+
+        BinaryWriter writer;
+        WriteHeader(writer, AssetType::Skeleton, path, file.header, projectDirectory);
+        writer.Write(static_cast<std::uint32_t>(file.skeleton.bones.size()));
+        for (const Bone& bone : file.skeleton.bones) {
+            writer.WriteString(bone.name);
+            writer.Write(bone.parent);
+            WriteVec(writer, &bone.restPose.translation.x, 3);
+            WriteQuaternion(writer, bone.restPose.rotation);
+            WriteVec(writer, &bone.restPose.scale.x, 3);
+            writer.Write(static_cast<std::uint8_t>(bone.addedInEditor ? 1 : 0));
+        }
+        WriteFileAtomically(path, writer.GetBytes());
+    }
+
+    void AssetFile::WriteSkeletalMesh(const std::filesystem::path& path, const SkeletalMeshFile& file,
+                                      const std::filesystem::path& projectDirectory) {
+        if (const std::optional<std::string> problem = ValidateSkin(file.mesh)) {
+            throw ImportError("Skeletal mesh '" + PathToUtf8(path) + "' cannot be written: " + *problem + ".");
+        }
+        if (const std::optional<std::string> problem = ValidateSockets(file.sockets)) {
+            throw ImportError("Skeletal mesh '" + PathToUtf8(path) + "' cannot be written: " + *problem + ".");
+        }
+
+        BinaryWriter writer;
+        WriteHeader(writer, AssetType::SkeletalMesh, path, file.header, projectDirectory);
+        WriteReference(writer, file.skeleton, projectDirectory);
+        WriteGeometry(writer, file.mesh.mesh);
+
+        writer.Write(static_cast<std::uint32_t>(file.mesh.skin.size()));
+        for (const SkinWeights& weights : file.mesh.skin) {
+            for (const std::uint16_t bone : weights.bones) { writer.Write(bone); }
+            WriteVec(writer, weights.weights.data(), weights.weights.size());
+        }
+
+        writer.Write(static_cast<std::uint32_t>(file.mesh.bindBones.size()));
+        for (std::size_t i = 0; i < file.mesh.bindBones.size(); ++i) {
+            writer.WriteString(file.mesh.bindBones[i]);
+            WriteMatrix(writer, file.mesh.inverseBindMatrices[i]);
+        }
+
+        writer.Write(static_cast<std::uint32_t>(file.mesh.attachments.size()));
+        for (const std::int32_t attachment : file.mesh.attachments) { writer.Write(attachment); }
+
+        writer.Write(static_cast<std::uint32_t>(file.defaultAttachments.size()));
+        for (const DefaultAttachment& attachment : file.defaultAttachments) {
+            writer.WriteString(attachment.name);
+            writer.WriteString(attachment.slot);
+            writer.WriteString(attachment.bone);
+            WriteReference(writer, attachment.mesh, projectDirectory);
+        }
+
+        writer.Write(static_cast<std::uint32_t>(file.sockets.size()));
+        for (const SocketData& socket : file.sockets) {
+            writer.WriteString(socket.name);
+            writer.WriteString(socket.bone);
+            WriteVec(writer, &socket.position.x, 3);
+            WriteVec(writer, &socket.rotation.x, 3);
+            WriteVec(writer, &socket.scale.x, 3);
+        }
+
+        WriteMaterials(writer, file.materials, projectDirectory);
+        WriteFileAtomically(path, writer.GetBytes());
+    }
+
+    void AssetFile::WriteAnimation(const std::filesystem::path& path, const AnimationFile& file,
+                                   const std::filesystem::path& projectDirectory) {
+        if (const std::optional<std::string> problem = file.clip.Validate()) {
+            throw ImportError("Animation '" + PathToUtf8(path) + "' cannot be written: " + *problem + ".");
+        }
+
+        BinaryWriter writer;
+        WriteHeader(writer, AssetType::Animation, path, file.header, projectDirectory);
+        WriteReference(writer, file.skeleton, projectDirectory);
+        writer.Write(file.clip.duration);
+        writer.Write(static_cast<std::uint32_t>(file.clip.tracks.size()));
+        for (const BoneTrack& track : file.clip.tracks) {
+            writer.WriteString(track.bone);
+            WriteChannel(writer, track.translation);
+            WriteChannel(writer, track.rotation);
+            WriteChannel(writer, track.scale);
+        }
+
+        writer.Write(static_cast<std::uint32_t>(file.clip.visibilityKeys.size()));
+        for (const VisibilityKey& key : file.clip.visibilityKeys) {
+            writer.Write(key.time);
+            writer.WriteString(key.slot);
+            writer.Write(static_cast<std::uint8_t>(key.visible ? 1 : 0));
+        }
         WriteFileAtomically(path, writer.GetBytes());
     }
 
@@ -497,7 +737,7 @@ namespace Frost {
         BinaryReader reader(bytes, "Mesh asset '" + PathToUtf8(path) + "'");
 
         MeshFile file;
-        file.header = ::ReadHeader(reader, kMeshMagic, AssetType::Mesh, kMeshVersion, path, projectDirectory);
+        file.header = ::ReadHeader(reader, AssetType::Mesh, path, projectDirectory);
         ReadGeometry(reader, file.mesh);
 
         if (file.header.version == 1) {
@@ -505,18 +745,7 @@ namespace Frost {
             ValidateGeometry(reader, file.mesh, file.mesh.materials.size());
         }
         else {
-            // Each material is at least 152 bytes (an empty name's length, 12 floats, and per slot
-            // a 16-byte id and an empty path's length).
-            file.materials.resize(reader.ReadCount(152, "materials"));
-            for (MaterialAssetData& material : file.materials) {
-                material.name = reader.ReadString();
-                material.parameters = ReadParameters(reader);
-                for (AssetReference& texture : material.textures) {
-                    texture.id = ReadId(reader);
-                    texture.path = ReadPath(reader, projectDirectory, false);
-                }
-            }
-
+            file.materials = ReadMaterials(reader, projectDirectory);
             ValidateGeometry(reader, file.mesh, file.materials.size());
         }
 
@@ -535,11 +764,134 @@ namespace Frost {
         BinaryReader reader(bytes, "Texture asset '" + PathToUtf8(path) + "'");
 
         TextureFile file;
-        file.header = ::ReadHeader(reader, kTextureMagic, AssetType::Texture, kTextureVersion, path, projectDirectory);
+        file.header = ::ReadHeader(reader, AssetType::Texture, path, projectDirectory);
         file.settings = ReadTextureSettings(reader);
         file.image = ReadImage(reader);
 
         if (reader.Remaining() != 0) { reader.Fail("has unexpected trailing data"); }
+        return file;
+    }
+
+    SkeletonFile AssetFile::ReadSkeleton(const std::filesystem::path& path, const std::filesystem::path& projectDirectory) {
+        const std::vector<std::byte> bytes = ReadWholeFile(path);
+        BinaryReader reader(bytes, "Skeleton asset '" + PathToUtf8(path) + "'");
+
+        SkeletonFile file;
+        file.header = ::ReadHeader(reader, AssetType::Skeleton, path, projectDirectory);
+
+        file.skeleton.bones.resize(reader.ReadCount(kMinBoneBytes, "bones"));
+        for (Bone& bone : file.skeleton.bones) {
+            bone.name = reader.ReadString();
+            bone.parent = reader.Read<std::int32_t>();
+            ReadVec(reader, &bone.restPose.translation.x, 3);
+            bone.restPose.rotation = ReadQuaternion(reader);
+            ReadVec(reader, &bone.restPose.scale.x, 3);
+            // Version 2: flags.
+            if (file.header.version >= 2) {
+                const auto flags = reader.Read<std::uint8_t>();
+                if (flags > 1) { reader.Fail("has invalid bone flags"); }
+                bone.addedInEditor = (flags & 1) != 0;
+            }
+        }
+
+        if (reader.Remaining() != 0) { reader.Fail("has unexpected trailing data"); }
+        if (const std::optional<std::string> problem = file.skeleton.Validate()) { reader.Fail("is invalid: " + *problem); }
+        return file;
+    }
+
+    SkeletalMeshFile AssetFile::ReadSkeletalMesh(const std::filesystem::path& path,
+                                                 const std::filesystem::path& projectDirectory) {
+        const std::vector<std::byte> bytes = ReadWholeFile(path);
+        BinaryReader reader(bytes, "Skeletal mesh asset '" + PathToUtf8(path) + "'");
+
+        SkeletalMeshFile file;
+        file.header = ::ReadHeader(reader, AssetType::SkeletalMesh, path, projectDirectory);
+        file.skeleton = ReadReference(reader, projectDirectory);
+        ReadGeometry(reader, file.mesh.mesh);
+
+        file.mesh.skin.resize(reader.ReadCount(kSkinWeightBytes, "skin weights"));
+        for (SkinWeights& weights : file.mesh.skin) {
+            for (std::uint16_t& bone : weights.bones) { bone = reader.Read<std::uint16_t>(); }
+            ReadVec(reader, weights.weights.data(), weights.weights.size());
+        }
+
+        const std::uint32_t bindCount = reader.ReadCount(kMinBindEntryBytes, "bind table entries");
+        file.mesh.bindBones.resize(bindCount);
+        file.mesh.inverseBindMatrices.resize(bindCount);
+        for (std::uint32_t i = 0; i < bindCount; ++i) {
+            file.mesh.bindBones[i] = reader.ReadString();
+            file.mesh.inverseBindMatrices[i] = ReadMatrix(reader);
+        }
+
+        // Version 2: sub-meshes attached to bones (version 1 had none).
+        if (file.header.version >= 2) {
+            file.mesh.attachments.resize(reader.ReadCount(sizeof(std::int32_t), "attachments"));
+            for (std::int32_t& attachment : file.mesh.attachments) { attachment = reader.Read<std::int32_t>(); }
+        }
+
+        // Version 3: default attachments (each at least three empty strings and a reference).
+        if (file.header.version >= 3) {
+            file.defaultAttachments.resize(reader.ReadCount(4 * 3 + kReferenceBytes, "default attachments"));
+            for (DefaultAttachment& attachment : file.defaultAttachments) {
+                attachment.name = reader.ReadString();
+                attachment.slot = reader.ReadString();
+                attachment.bone = reader.ReadString();
+                attachment.mesh = ReadReference(reader, projectDirectory);
+            }
+        }
+
+        // Version 4: sockets (each at least two empty strings and nine floats).
+        if (file.header.version >= 4) {
+            file.sockets.resize(reader.ReadCount(4 * 2 + 9 * 4, "sockets"));
+            for (SocketData& socket : file.sockets) {
+                socket.name = reader.ReadString();
+                socket.bone = reader.ReadString();
+                ReadVec(reader, &socket.position.x, 3);
+                ReadVec(reader, &socket.rotation.x, 3);
+                ReadVec(reader, &socket.scale.x, 3);
+            }
+            if (const std::optional<std::string> problem = ValidateSockets(file.sockets)) { reader.Fail("is invalid: " + *problem); }
+        }
+
+        file.materials = ReadMaterials(reader, projectDirectory);
+        ValidateGeometry(reader, file.mesh.mesh, file.materials.size());
+
+        if (reader.Remaining() != 0) { reader.Fail("has unexpected trailing data"); }
+        if (const std::optional<std::string> problem = ValidateSkin(file.mesh)) { reader.Fail("is invalid: " + *problem); }
+        return file;
+    }
+
+    AnimationFile AssetFile::ReadAnimation(const std::filesystem::path& path, const std::filesystem::path& projectDirectory) {
+        const std::vector<std::byte> bytes = ReadWholeFile(path);
+        BinaryReader reader(bytes, "Animation asset '" + PathToUtf8(path) + "'");
+
+        AnimationFile file;
+        file.header = ::ReadHeader(reader, AssetType::Animation, path, projectDirectory);
+        file.skeleton = ReadReference(reader, projectDirectory);
+        file.clip.duration = reader.Read<float>();
+
+        file.clip.tracks.resize(reader.ReadCount(kMinTrackBytes, "tracks"));
+        for (BoneTrack& track : file.clip.tracks) {
+            track.bone = reader.ReadString();
+            ReadChannel(reader, track.translation);
+            ReadChannel(reader, track.rotation);
+            ReadChannel(reader, track.scale);
+        }
+
+        // Version 2: visibility keys (each at least a time, an empty slot's length and a flag).
+        if (file.header.version >= 2) {
+            file.clip.visibilityKeys.resize(reader.ReadCount(4 + 4 + 1, "visibility keys"));
+            for (VisibilityKey& key : file.clip.visibilityKeys) {
+                key.time = reader.Read<float>();
+                key.slot = reader.ReadString();
+                const auto visible = reader.Read<std::uint8_t>();
+                if (visible > 1) { reader.Fail("has an invalid visibility key"); }
+                key.visible = visible != 0;
+            }
+        }
+
+        if (reader.Remaining() != 0) { reader.Fail("has unexpected trailing data"); }
+        if (const std::optional<std::string> problem = file.clip.Validate()) { reader.Fail("is invalid: " + *problem); }
         return file;
     }
 
@@ -560,12 +912,11 @@ namespace Frost {
             BinaryReader probe(bytes, PathToUtf8(path));
             const std::array<char, 4> magic = probe.ReadMagic();
 
-            BinaryReader reader(bytes, PathToUtf8(path));
-            if (magic == kMeshMagic) {
-                return ::ReadHeader(reader, kMeshMagic, AssetType::Mesh, kMeshVersion, path, projectDirectory);
-            }
-            if (magic == kTextureMagic) {
-                return ::ReadHeader(reader, kTextureMagic, AssetType::Texture, kTextureVersion, path, projectDirectory);
+            for (const AssetType type : kAssetTypes) {
+                if (magic == MagicOf(type)) {
+                    BinaryReader reader(bytes, PathToUtf8(path));
+                    return ::ReadHeader(reader, type, path, projectDirectory);
+                }
             }
             return std::nullopt;
         }
@@ -577,7 +928,9 @@ namespace Frost {
     void AssetFile::RewriteId(const std::filesystem::path& path, const AssetId& id) {
         const std::optional<AssetHeader> header = ReadHeader(path, {});
         if (!header.has_value()) { throw ImportError("'" + PathToUtf8(path) + "' is not a Frost asset."); }
-        if (header->version < 2) { throw ImportError("'" + PathToUtf8(path) + "' predates asset ids; upgrade it first."); }
+        if (!HasId(header->type, header->version)) {
+            throw ImportError("'" + PathToUtf8(path) + "' predates asset ids; upgrade it first.");
+        }
         if (!id.IsValid()) { throw ImportError("Cannot give '" + PathToUtf8(path) + "' an empty id."); }
 
         // The id is at a fixed offset (after the magic and the version): patch it in place, on a

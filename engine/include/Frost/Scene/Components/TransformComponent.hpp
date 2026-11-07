@@ -31,6 +31,10 @@ namespace Frost {
         // shine this way, as the camera looks this way.
         [[nodiscard]]
         glm::vec3 GetForward() const noexcept;
+
+        // Sets position, rotation and scale to those of `matrix` (translate * rotate * scale; a
+        // shear in it is lost). A mirroring matrix comes out with a negative x scale.
+        void SetFromMatrix(const glm::mat4& matrix) noexcept;
     };
 
 }  // namespace Frost

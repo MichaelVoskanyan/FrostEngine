@@ -39,6 +39,8 @@ namespace Frost {
     //     Two simulated bodies push each other apart according to their masses.
     //   - Whether each body is standing on something is recorded (RigidBodyComponent::onGround).
     //   - Rotation is not simulated; bodies keep their orientation.
+    //   - Objects attached to other objects (AttachmentComponent) move with them and are left out
+    //     entirely: neither simulated nor collided with.
     //
     // Positions are written straight into the objects' TransformComponents.
     class PhysicsSystem final {

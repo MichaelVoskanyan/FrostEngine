@@ -47,6 +47,12 @@ namespace Frost {
         // The light as the renderer consumes it, placed by `transform`.
         [[nodiscard]]
         Light ToRenderLight(const TransformComponent& transform) const noexcept;
+
+        // The light as the renderer consumes it, at `position` facing along `rotation`'s forward
+        // (see TransformComponent::GetForward): for a light attached to another object (see
+        // ComputeWorldPlacement).
+        [[nodiscard]]
+        Light ToRenderLight(const glm::vec3& position, const glm::quat& rotation) const noexcept;
     };
 
     // Display/serialization name of a light type ("directional", "point", "spot").

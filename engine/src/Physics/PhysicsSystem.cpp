@@ -4,6 +4,7 @@
 #include <Frost/Scene/Components/CapsuleColliderComponent.hpp>
 #include <Frost/Scene/Components/RigidBodyComponent.hpp>
 #include <Frost/Scene/Components/TransformComponent.hpp>
+#include <Frost/Scene/Hierarchy.hpp>
 
 #include <glm/common.hpp>
 #include <glm/geometric.hpp>
@@ -129,7 +130,7 @@ namespace Frost {
 
         registry.Each<TransformComponent, RigidBodyComponent>(
                 [&](const EntityId entity, TransformComponent& transform, RigidBodyComponent& rigidBody) {
-                    if (!rigidBody.simulated) {
+                    if (!rigidBody.simulated || IsAttached(registry, entity)) {
                         rigidBody.onGround = false;  // Not simulated: not standing anywhere.
                         return;
                     }
@@ -149,13 +150,13 @@ namespace Frost {
         };
         registry.Each<TransformComponent, BoxColliderComponent>(
                 [&](const EntityId entity, const TransformComponent& transform, const BoxColliderComponent& collider) {
-                    if (!isBody(entity)) { m_Obstacles.emplace_back(MakeWorldBox(transform, collider)); }
+                    if (!isBody(entity) && !IsAttached(registry, entity)) { m_Obstacles.emplace_back(MakeWorldBox(transform, collider)); }
                 });
         registry.Each<TransformComponent, CapsuleColliderComponent>(
                 [&](const EntityId entity, const TransformComponent& transform,
                     const CapsuleColliderComponent& collider) {
                     // One collider per object: a box, if it also has one, was taken above.
-                    if (!isBody(entity) && !registry.Has<BoxColliderComponent>(entity)) {
+                    if (!isBody(entity) && !registry.Has<BoxColliderComponent>(entity) && !IsAttached(registry, entity)) {
                         m_Obstacles.emplace_back(MakeWorldCapsule(transform, collider));
                     }
                 });

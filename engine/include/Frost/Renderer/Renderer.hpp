@@ -13,6 +13,7 @@
 #include <cstdint>
 #include <memory>
 #include <optional>
+#include <span>
 #include <vector>
 
 namespace Frost {
@@ -32,6 +33,7 @@ namespace Frost {
     class Mesh;
     class RenderOverlay;
     struct MeshData;
+    struct SkinnedVertex;
 
     // Top-level render system owned by Engine. Owns the full Vulkan bring-up chain
     // (instance/surface -> physical device -> logical device -> allocator -> swapchain) plus the
@@ -41,7 +43,9 @@ namespace Frost {
     //
     // What is drawn is decided by the application each frame: every Submit() between two Tick()s
     // is one draw of a mesh (with its own transform and optional material overrides), and Tick()
-    // records them all. Lighting works the same way: every SubmitLight() adds one light to that
+    // records them all. Skinned meshes are submitted with SubmitSkinned() and their joint palette:
+    // the palettes go into the frame's joint buffer (set 0, binding 2), and the meshes are drawn
+    // with a second pipeline whose vertex shader (skinned.vert) deforms them by it. Lighting works the same way: every SubmitLight() adds one light to that
     // frame (uploaded to the shaders' light buffer), on top of a flat ambient term
     // (SetAmbientLight). There are no built-in lights: a frame with none submitted is lit by the
     // ambient term alone. Submitted meshes/materials are kept alive by the renderer until the GPU
@@ -73,6 +77,10 @@ namespace Frost {
         // a one-time warning).
         static constexpr std::uint32_t kMaxLights = 1024;
 
+        // Joint matrices per frame the joint buffer holds (2 MiB): every skinned draw's palette.
+        // SubmitSkinned() calls whose palette no longer fits are ignored (with a one-time warning).
+        static constexpr std::uint32_t kMaxJointMatrices = 32768;
+
         // A rectangle of the swapchain image in framebuffer pixels, origin at the top-left.
         struct SceneViewport {
             std::int32_t x = 0;
@@ -99,9 +107,18 @@ namespace Frost {
         // Queues one draw of `mesh` for the next Tick(): `transform` is its model matrix, and a
         // non-null materialOverrides[i] replaces sub-mesh i's material (see Mesh::Draw). Call once
         // per object per frame. The renderer shares ownership of the mesh and materials until the
-        // GPU is done with the frame that draws them.
+        // GPU is done with the frame that draws them. A skinned mesh needs SubmitSkinned (it is
+        // ignored here, with a one-time warning).
         void Submit(std::shared_ptr<const Mesh> mesh, const glm::mat4& transform,
                     std::vector<std::shared_ptr<Material>> materialOverrides = {});
+
+        // As Submit, for a skinned mesh (Mesh::IsSkinned) deformed on the GPU by `palette`: its
+        // joint matrices (skinning matrices in the mesh's object space), which the mesh's skin
+        // stream indexes. The palette is copied. Ignored (with a one-time warning) if the mesh is
+        // not skinned, the palette is shorter than the mesh's joint indices need
+        // (Mesh::GetJointCount), or the frame's joint buffer is full (kMaxJointMatrices).
+        void SubmitSkinned(std::shared_ptr<const Mesh> mesh, const glm::mat4& transform,
+                           std::vector<std::shared_ptr<Material>> materialOverrides, std::span<const glm::mat4> palette);
 
         // Adds a light to the next Tick()'s frame. Call once per light per frame.
         void SubmitLight(const Light& light);
@@ -116,6 +133,11 @@ namespace Frost {
         // malformed data (see Mesh).
         [[nodiscard]]
         std::shared_ptr<Mesh> CreateMesh(const MeshData& data) const;
+
+        // As above, for a skinned mesh: `skin` (one SkinnedVertex per vertex) is uploaded as its
+        // skin stream (see Mesh). Draw it with SubmitSkinned.
+        [[nodiscard]]
+        std::shared_ptr<Mesh> CreateMesh(const MeshData& data, std::span<const SkinnedVertex> skin) const;
 
         // Creates textures and materials (e.g. material overrides built in the editor).
         [[nodiscard]]
@@ -176,6 +198,7 @@ namespace Frost {
         struct FrameUniformBuffer {
             std::unique_ptr<VulkanBuffer> buffer;
             std::unique_ptr<VulkanBuffer> lightBuffer;
+            std::unique_ptr<VulkanBuffer> jointBuffer;  // Room for kMaxJointMatrices.
             VkDescriptorSet descriptorSet = VK_NULL_HANDLE;
         };
 
@@ -185,6 +208,7 @@ namespace Frost {
             std::shared_ptr<const Mesh> mesh;
             glm::mat4 transform{1.0f};
             std::vector<std::shared_ptr<Material>> materialOverrides;
+            std::uint32_t firstJoint = 0;  // Skinned draws: where the palette starts in the joint buffer.
         };
 
         // Everything a swapchain recreation replaces, kept alive until it is provably unused.
@@ -192,7 +216,8 @@ namespace Frost {
             VulkanSwapchain::Retired swapchain;
             std::unique_ptr<VulkanImage> depthImage;   // Sized to that swapchain's extent.
             std::vector<VkSemaphore> renderFinished;   // That swapchain's per-image semaphores.
-            std::unique_ptr<VulkanPipeline> pipeline;  // Only if the pipeline had to be rebuilt.
+            std::unique_ptr<VulkanPipeline> pipeline;  // Only if the pipelines had to be rebuilt.
+            std::unique_ptr<VulkanPipeline> skinnedPipeline;
             std::vector<VkFence> presentFences;        // Presentation fences of presents on it (extension path).
             // m_SubmittedFrame at retirement: the last submission that can reference any of this.
             std::uint64_t retireFrame = 0;
@@ -239,10 +264,14 @@ namespace Frost {
         void DestroyFrameUniformBuffers() noexcept;
 
         // Writes this frame's FrameUniforms (view and projection from m_Camera, or the placeholder
-        // if none has been set, the ambient light and the light count) and its lights into the
-        // given slot's buffers. The projection is built for the aspect ratio of `sceneRect`.
-        void UpdateFrameUniforms(std::uint32_t frameIndex, const VkRect2D& sceneRect,
-                                 const std::vector<Light>& lights) const;
+        // if none has been set, the ambient light and the light count), its lights and its joint
+        // matrices into the given slot's buffers. The projection is built for the aspect ratio of
+        // `sceneRect`.
+        void UpdateFrameUniforms(std::uint32_t frameIndex, const VkRect2D& sceneRect, const std::vector<Light>& lights,
+                                 const std::vector<glm::mat4>& joints) const;
+
+        // The graphics pipelines (static and skinned) for the current swapchain format.
+        void CreatePipelines();
 
         // Split out of the above because they are also redone on swapchain recreation: the
         // render-finished semaphores are per swapchain image, and the image count may change.
@@ -302,6 +331,7 @@ namespace Frost {
         // layout is built from its set layout).
         std::unique_ptr<VulkanDescriptorAllocator> m_DescriptorAllocator;
         std::unique_ptr<VulkanPipeline> m_Pipeline;
+        std::unique_ptr<VulkanPipeline> m_SkinnedPipeline;  // For skinned meshes; layout-compatible with m_Pipeline.
         // Creates textures/materials and owns the defaults (bound for sub-meshes without a
         // material); references the allocator, device, command pool and descriptor allocator above.
         std::unique_ptr<MaterialSystem> m_MaterialSystem;
@@ -321,6 +351,12 @@ namespace Frost {
         std::vector<Light> m_PendingLights;
         glm::vec3 m_AmbientLight{0.0f};
         bool m_LightLimitWarned = false;
+
+        // The palettes of the skinned draws submitted since the last Tick(), back to back (copied
+        // into the frame's joint buffer), and one-time warnings about skinned submissions.
+        std::vector<glm::mat4> m_PendingJoints;
+        bool m_JointLimitWarned = false;
+        bool m_SkinnedMisuseWarned = false;
 
         std::vector<VkCommandBuffer> m_CommandBuffers;
         std::vector<FrameUniformBuffer> m_FrameUniforms;  // One per frame in flight.

@@ -4,6 +4,8 @@
 #include <Frost/Scene/Components/Components.hpp>
 #include <Frost/Scene/Registry.hpp>
 
+#include <glm/mat4x4.hpp>
+
 #include <cstdint>
 #include <optional>
 #include <string>
@@ -99,7 +101,13 @@ namespace Frost {
         [[nodiscard]]
         const TransformComponent& GetTransform() const;
 
-        // World-space box around the object's model, or nullopt if it has no model loaded.
+        // The transform from the object's space to the world: its own transform, on top of the
+        // object it is attached to if it is (see AttachmentComponent, ComputeWorldMatrix).
+        [[nodiscard]]
+        glm::mat4 GetWorldMatrix() const;
+
+        // World-space box around the object's model(s) (a skeletal mesh in its current pose), or
+        // nullopt if it has no model loaded.
         [[nodiscard]]
         std::optional<Bounds> GetWorldBounds() const;
 

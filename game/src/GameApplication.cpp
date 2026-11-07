@@ -6,6 +6,7 @@
 #include <Frost/Platform/Window.hpp>
 #include <Frost/Project/Project.hpp>
 #include <Frost/Renderer/Renderer.hpp>
+#include <Frost/Scene/Hierarchy.hpp>
 #include <Frost/Scene/Level.hpp>
 #include <Frost/Scene/LevelSerializer.hpp>
 #include <Frost/Units.hpp>
@@ -90,6 +91,9 @@ void GameApplication::OnStart() {
 
     AddFreeCameraIfNeeded();
 
+    // Skeletal meshes set to play in the game start their animations.
+    m_Animation.Start(m_Level->GetRegistry());
+
     if (m_Options.playInEditor) {
         GetEngine().GetWindow().SetTitle(std::string(kApplicationName) + " - " + m_Level->GetName() +
                                          " [Play In Editor: F5 or Esc to stop]");
@@ -142,12 +146,21 @@ void GameApplication::OnUpdate(const float deltaTime) {
                 controller.Update(input, transform, body, registry.TryGet<Frost::CameraComponent>(entity));
             });
 
-    // Then physics, so what is drawn is where things are this frame.
-    m_Physics.Update(registry, deltaTime);
+    // Keys that play animations (a reload on R, say).
+    m_Animation.HandleInput(registry, input);
 
-    // Seen through the level's camera, wherever its object is now.
+    // Then physics, so what is drawn is where things are this frame, and animations, so it is
+    // posed as it is this frame.
+    m_Physics.Update(registry, deltaTime);
+    m_Animation.Update(registry, deltaTime);
+    m_Level->UpdatePoses();
+
+    // Seen through the level's camera, wherever its object is now (attached to something that
+    // moves, it moves along).
     if (const Frost::GameObject* const camera = FindCamera(*m_Level)) {
-        engine.GetRenderer().SetCamera(camera->GetComponent<Frost::CameraComponent>().ToCamera(camera->GetTransform()));
+        const Frost::WorldPlacement placement = Frost::ComputeWorldPlacement(registry, camera->GetId());
+        engine.GetRenderer().SetCamera(
+                camera->GetComponent<Frost::CameraComponent>().ToCamera(placement.position, placement.rotation));
     }
 
     m_Level->Submit(engine.GetRenderer(), engine.GetAssetManager());

@@ -198,9 +198,14 @@ namespace Frost {
         m_RendererBackendInitialized = true;
     }
 
+    bool ImGuiLayer::s_OutputLinear = false;
+
+    bool ImGuiLayer::IsOutputLinear() noexcept { return s_OutputLinear; }
+
     void ImGuiLayer::ApplyStyle(const VkFormat colorAttachmentFormat) {
         ImGuiStyle& style = ImGui::GetStyle();
         ImGui::StyleColorsDark(&style);
+        s_OutputLinear = IsSrgbFormat(colorAttachmentFormat);
 
         // ImGui's colors are sRGB-encoded values, and its shader writes them out unchanged. Into an
         // sRGB attachment (the renderer prefers one) the hardware would then encode them a second

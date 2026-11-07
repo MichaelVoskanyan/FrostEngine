@@ -17,6 +17,8 @@ target_sources(FrostEditor
         src/Panels/InspectorPanel.hpp
         src/Panels/LevelPanel.cpp
         src/Panels/LevelPanel.hpp
+        src/Panels/SkeletalAssetEditor.cpp
+        src/Panels/SkeletalAssetEditor.hpp
         src/Panels/ViewportPanel.cpp
         src/Panels/ViewportPanel.hpp
         src/Platform/ChildProcess.cpp

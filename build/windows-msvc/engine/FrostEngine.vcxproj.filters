@@ -1,6 +1,21 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
+    <ClCompile Include="D:\Projects\Frost\engine\src\Animation\AnimationClip.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Projects\Frost\engine\src\Animation\AnimationSystem.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Projects\Frost\engine\src\Animation\Skeleton.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Projects\Frost\engine\src\Animation\Socket.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Projects\Frost\engine\src\Animation\SkinnedMesh.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="D:\Projects\Frost\engine\src\Application.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -41,6 +56,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="D:\Projects\Frost\engine\src\Platform\Input.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Projects\Frost\engine\src\Platform\KeyNames.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="D:\Projects\Frost\engine\src\Platform\Window.cpp">
@@ -106,6 +124,9 @@
     <ClCompile Include="D:\Projects\Frost\engine\src\Renderer\Vulkan\VulkanSwapchain.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="D:\Projects\Frost\engine\src\Scene\Components\AnimationTriggerComponent.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="D:\Projects\Frost\engine\src\Scene\Components\CameraComponent.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -118,13 +139,22 @@
     <ClCompile Include="D:\Projects\Frost\engine\src\Scene\Components\LightComponent.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="D:\Projects\Frost\engine\src\Scene\Components\MaterialOverrides.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="D:\Projects\Frost\engine\src\Scene\Components\MeshComponent.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Projects\Frost\engine\src\Scene\Components\SkeletalMeshComponent.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="D:\Projects\Frost\engine\src\Scene\Components\TransformComponent.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="D:\Projects\Frost\engine\src\Scene\GameObject.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Projects\Frost\engine\src\Scene\Hierarchy.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="D:\Projects\Frost\engine\src\Scene\Level.cpp">
@@ -136,6 +166,21 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="D:\Projects\Frost\engine\src\Assets\Json.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Animation\AnimationClip.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Animation\AnimationSystem.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Animation\Skeleton.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Animation\Socket.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Animation\SkinnedMesh.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Application.hpp">
@@ -184,6 +229,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Platform\Input.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Platform\KeyNames.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Platform\Window.hpp">
@@ -258,6 +306,12 @@
     <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Scene\Bounds.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Scene\Components\AnimationTriggerComponent.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Scene\Components\AttachmentComponent.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Scene\Components\BoxColliderComponent.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -279,16 +333,25 @@
     <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Scene\Components\LightComponent.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Scene\Components\MaterialOverrides.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Scene\Components\MeshComponent.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Scene\Components\RigidBodyComponent.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Scene\Components\SkeletalMeshComponent.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Scene\Components\TransformComponent.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Scene\GameObject.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Scene\Hierarchy.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Scene\Level.hpp">

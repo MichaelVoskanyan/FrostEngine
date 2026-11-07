@@ -7,6 +7,7 @@
 #include <Frost/Engine.hpp>
 #include <Frost/Physics/Collision.hpp>
 #include <Frost/Renderer/Renderer.hpp>
+#include <Frost/Scene/Hierarchy.hpp>
 #include <Frost/Units.hpp>
 
 #include <glm/common.hpp>
@@ -33,6 +34,10 @@ namespace {
     constexpr float kFallbackDropDistance = 5.0f * Frost::kMeter;
 
     constexpr ImU32 kSelectionColor = IM_COL32(255, 160, 40, 255);
+
+    // The selected skeletal mesh's skeleton.
+    constexpr ImU32 kSkeletonColor = IM_COL32(240, 230, 120, 220);
+    constexpr ImU32 kSkeletonJointColor = IM_COL32(255, 250, 190, 255);
 
     // Box colliders: immovable ones, and those of simulated rigid bodies (brighter when selected).
     constexpr ImU32 kStaticColliderColor = IM_COL32(90, 220, 120, 140);
@@ -158,8 +163,10 @@ void ViewportPanel::Draw(EditorContext& context, const EditorCamera& camera) {
     if (ImGui::BeginDragDropTarget()) {
         const Frost::Ray ray = ScreenPointToRay(camera, ImGui::GetMousePos());
 
-        if (const std::optional<std::filesystem::path> mesh = EditorUI::AcceptAssetPayload(Frost::AssetType::Mesh)) {
-            context.SpawnMesh(*mesh, FindDropPoint(context, ray));
+        for (const Frost::AssetType type : {Frost::AssetType::Mesh, Frost::AssetType::SkeletalMesh}) {
+            if (const std::optional<std::filesystem::path> model = EditorUI::AcceptAssetPayload(type)) {
+                context.SpawnModel(*model, FindDropPoint(context, ray));
+            }
         }
         if (const std::optional<Frost::LightType> light = EditorUI::AcceptLightPayload()) {
             context.SpawnLight(*light, FindDropPoint(context, ray));
@@ -172,6 +179,7 @@ void ViewportPanel::Draw(EditorContext& context, const EditorCamera& camera) {
     drawList->PushClipRect(m_Origin, ImVec2(m_Origin.x + m_Size.x, m_Origin.y + m_Size.y), true);
     if (m_ShowColliders) { DrawColliders(context, projection); }
     DrawSelectionBounds(context, projection);
+    DrawSelectedSkeleton(context, projection);
     DrawLights(context, projection);
     DrawCameras(context, projection);
     drawList->PopClipRect();
@@ -271,10 +279,11 @@ Frost::GameObject* ViewportPanel::PickIcon(EditorContext& context, const Project
 
     for (const std::unique_ptr<Frost::GameObject>& object : context.GetLevel().GetObjects()) {
         // A camera's icon is where the camera is (mounted on its object, e.g. at a character's head).
-        glm::vec3 position = object->GetTransform().position;
+        const Frost::WorldPlacement placement = Frost::ComputeWorldPlacement(context.GetLevel().GetRegistry(), object->GetId());
+        glm::vec3 position = placement.position;
         if (const Frost::CameraComponent* const camera = object->TryGetComponent<Frost::CameraComponent>()) {
             if (!object->HasComponent<Frost::LightComponent>()) {
-                position = camera->ToCamera(object->GetTransform()).GetPosition();
+                position = camera->ToCamera(placement.position, placement.rotation).GetPosition();
             }
         }
         else if (!object->HasComponent<Frost::LightComponent>()) {
@@ -314,6 +323,33 @@ void ViewportPanel::DrawSelectionBounds(EditorContext& context, const Projection
     }
 }
 
+void ViewportPanel::DrawSelectedSkeleton(EditorContext& context, const Projection& projection) const {
+    const Frost::GameObject* const selected = context.GetSelectedObject();
+    if (selected == nullptr) { return; }
+
+    const Frost::SkeletalMeshComponent* const mesh = selected->TryGetComponent<Frost::SkeletalMeshComponent>();
+    if (mesh == nullptr || mesh->GetSkeletalMesh() == nullptr || mesh->GetSkeletalMesh()->skeleton == nullptr) { return; }
+
+    const Frost::SkeletonData& skeleton = mesh->GetSkeletalMesh()->skeleton->skeleton;
+    const std::vector<glm::mat4>& bones = mesh->GetBoneTransforms();
+    if (bones.size() != skeleton.bones.size()) { return; }
+
+    const glm::mat4 model = selected->GetWorldMatrix();
+    const auto jointOf = [&](const std::size_t bone) { return glm::vec3(model * bones[bone][3]); };
+
+    // Bones from their parent's joint to their own, then the joints on top.
+    for (std::size_t bone = 0; bone < skeleton.bones.size(); ++bone) {
+        const std::int32_t parent = skeleton.bones[bone].parent;
+        if (parent >= 0) { DrawWorldLine(projection, jointOf(static_cast<std::size_t>(parent)), jointOf(bone), kSkeletonColor, 2.0f); }
+    }
+    ImDrawList* const drawList = ImGui::GetWindowDrawList();
+    for (std::size_t bone = 0; bone < skeleton.bones.size(); ++bone) {
+        if (const std::optional<ImVec2> joint = WorldToScreen(projection, jointOf(bone))) {
+            drawList->AddCircleFilled(*joint, 3.0f, kSkeletonJointColor);
+        }
+    }
+}
+
 void ViewportPanel::DrawColliders(EditorContext& context, const Projection& projection) const {
     const Frost::GameObject* const selected = context.GetSelectedObject();
 
@@ -330,15 +366,20 @@ void ViewportPanel::DrawColliders(EditorContext& context, const Projection& proj
         if (isSelected) { color = simulated ? kSimulatedColliderSelectedColor : kStaticColliderSelectedColor; }
         const float thickness = isSelected ? 2.0f : 1.0f;
 
+        // (An attached object's colliders are shown where the object is, though they do nothing
+        // while it is attached.)
+        Frost::TransformComponent transform = object->GetTransform();
+        if (Frost::IsAttached(context.GetLevel().GetRegistry(), object->GetId())) { transform.SetFromMatrix(object->GetWorldMatrix()); }
+
         if (box != nullptr) {
-            const std::array<glm::vec3, 8> corners = Frost::MakeWorldBox(object->GetTransform(), *box).GetCorners();
+            const std::array<glm::vec3, 8> corners = Frost::MakeWorldBox(transform, *box).GetCorners();
             for (const auto& [first, second] : kBoxEdges) {
                 DrawWorldLine(projection, corners[static_cast<std::size_t>(first)],
                               corners[static_cast<std::size_t>(second)], color, thickness);
             }
         }
         if (capsule != nullptr) {
-            DrawCapsule(projection, Frost::MakeWorldCapsule(object->GetTransform(), *capsule), color, thickness);
+            DrawCapsule(projection, Frost::MakeWorldCapsule(transform, *capsule), color, thickness);
         }
     }
 }
@@ -395,17 +436,18 @@ void ViewportPanel::DrawLights(EditorContext& context, const Projection& project
         if (light == nullptr) { continue; }
 
         const bool isSelected = object.get() == selected;
-        const Frost::TransformComponent& transform = object->GetTransform();
+        const Frost::WorldPlacement placement = Frost::ComputeWorldPlacement(context.GetLevel().GetRegistry(), object->GetId());
+        const glm::vec3 forward = placement.rotation * glm::vec3(0.0f, 0.0f, -1.0f);
 
-        if (isSelected) { DrawLightReach(projection, *object); }
+        if (isSelected) { DrawLightReach(projection, *object, placement); }
 
         // Which way directional and spot lights shine.
         if (light->type != Frost::LightType::Point) {
-            DrawWorldLine(projection, transform.position, transform.position + transform.GetForward() * kLightArrowLength,
+            DrawWorldLine(projection, placement.position, placement.position + forward * kLightArrowLength,
                           isSelected ? kSelectionColor : LightDisplayColor(*light, 200), 2.0f);
         }
 
-        const std::optional<ImVec2> icon = WorldToScreen(projection, transform.position);
+        const std::optional<ImVec2> icon = WorldToScreen(projection, placement.position);
         if (!icon.has_value()) { continue; }
 
         // A disc in the light's color with its type letter; disabled lights are hollow and grey.
@@ -434,7 +476,8 @@ void ViewportPanel::DrawCameras(EditorContext& context, const Projection& projec
 
         // The shape of what it sees, cut off a short way out: a pyramid from the camera to a
         // rectangle (at a typical 16:9 aspect), with a notch on the top edge showing which way is up.
-        const Frost::Camera view = cameraComponent->ToCamera(object->GetTransform());
+        const Frost::WorldPlacement placement = Frost::ComputeWorldPlacement(context.GetLevel().GetRegistry(), object->GetId());
+        const Frost::Camera view = cameraComponent->ToCamera(placement.position, placement.rotation);
         const glm::vec3 apex = view.GetPosition();
         const float halfHeight = kCameraFrustumLength * std::tan(view.GetVerticalFov() * 0.5f);
         const float halfWidth = halfHeight * kCameraFrustumAspect;
@@ -464,11 +507,11 @@ void ViewportPanel::DrawCameras(EditorContext& context, const Projection& projec
     }
 }
 
-void ViewportPanel::DrawLightReach(const Projection& projection, const Frost::GameObject& object) const {
+void ViewportPanel::DrawLightReach(const Projection& projection, const Frost::GameObject& object,
+                                   const Frost::WorldPlacement& placement) const {
     const Frost::LightComponent& light = object.GetComponent<Frost::LightComponent>();
-    const Frost::TransformComponent& transform = object.GetTransform();
-    const glm::vec3& position = transform.position;
-    const glm::vec3 forward = transform.GetForward();
+    const glm::vec3& position = placement.position;
+    const glm::vec3 forward = glm::normalize(placement.rotation * glm::vec3(0.0f, 0.0f, -1.0f));
 
     glm::vec3 u;
     glm::vec3 v;

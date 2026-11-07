@@ -93,8 +93,18 @@ namespace Frost {
         [[nodiscard]]
         const Registry& GetRegistry() const noexcept;
 
-        // Submits a draw for every MeshComponent with a loaded model (see Renderer::Submit), every
-        // enabled LightComponent (Renderer::SubmitLight) and the ambient light. Call once per frame.
+        // Brings the skeletal meshes' poses (see SkeletalMeshComponent::UpdatePose) and what their
+        // animations say about the visibility of what is attached to them (see
+        // UpdateAttachmentVisibility) up to date, so objects attached to bones are where the bones
+        // are now. Submit does it first; call it earlier in a frame to place something by an
+        // attached object (a camera) before drawing. Cheap when nothing changed.
+        void UpdatePoses();
+
+        // Submits a draw for every shown MeshComponent and SkeletalMeshComponent with a loaded
+        // model (see Renderer::Submit / SubmitSkinned, IsShownInHierarchy), placed in the world
+        // (attached objects where their parents, and bones, are; see ComputeWorldMatrix) after
+        // bringing the poses up to date (UpdatePoses); every enabled LightComponent
+        // (Renderer::SubmitLight) and the ambient light. Call once per frame.
         void Submit(Renderer& renderer, AssetManager& assets);
 
         // The world-space box around every object's model and collider (whatever there is to see or
@@ -102,8 +112,8 @@ namespace Frost {
         [[nodiscard]]
         std::optional<Bounds> GetBounds() const;
 
-        // The nearest object surface the ray hits (triangles of the loaded models, both faces),
-        // if any, within maxDistance.
+        // The nearest object surface the ray hits (triangles of the loaded models, skeletal ones in
+        // their current pose, both faces), if any, within maxDistance.
         [[nodiscard]]
         std::optional<RaycastHit> Raycast(const Ray& ray, float maxDistance = 10.0f * kKilometer) const;
 

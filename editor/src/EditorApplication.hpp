@@ -6,6 +6,7 @@
 #include "Panels/AssetLibraryPanel.hpp"
 #include "Panels/InspectorPanel.hpp"
 #include "Panels/LevelPanel.hpp"
+#include "Panels/SkeletalAssetEditor.hpp"
 #include "Panels/ViewportPanel.hpp"
 #include "Widgets/FileDialog.hpp"
 
@@ -15,8 +16,10 @@
 #include <imgui.h>
 
 #include <filesystem>
+#include <memory>
 #include <optional>
 #include <string>
+#include <vector>
 
 // The level editor. Works on one Frost project (see Frost::Project) at a time: its assets and
 // levels, all inside the project's content directory. Runs the engine with ImGui enabled and lays
@@ -68,6 +71,9 @@ private:
     [[nodiscard]]
     const Frost::Project& GetProject();
 
+    // Opens the editor of the skeleton or skeletal mesh at `path`, or brings it to the front.
+    void OpenAssetEditor(const std::filesystem::path& path);
+
     void FocusObject(Frost::ObjectId id);
     void FocusLevel();
     void TogglePlaying();
@@ -86,6 +92,8 @@ private:
     LevelPanel m_LevelPanel;
     InspectorPanel m_InspectorPanel;
     AssetLibraryPanel m_AssetLibraryPanel;
+    // The open skeleton / skeletal mesh editors, one per asset (see SkeletalAssetEditor).
+    std::vector<std::unique_ptr<SkeletalAssetEditor>> m_AssetEditors;
 
     FileDialog m_OpenLevelDialog;
     FileDialog m_SaveLevelDialog;

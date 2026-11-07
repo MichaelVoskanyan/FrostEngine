@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Frost/Physics/Collision.hpp>
+#include <Frost/Scene/Hierarchy.hpp>
 #include <Frost/Scene/Level.hpp>
 
 #include <imgui.h>
@@ -26,8 +27,10 @@ class EditorCamera;
 //     the shape of their view;
 //   - box colliders are drawn as wireframes (immovable ones green, simulated bodies' blue), so
 //     invisible ones such as a ground box can be seen;
-//   - the selected object's bounds are outlined, and camera info (and whether the physics
-//     simulation or the game is running) is shown in a corner.
+//   - the selected object's bounds are outlined, and its skeleton (if it has a skeletal mesh) is
+//     drawn in its current pose, each bone a line from its parent with a dot at its joint;
+//   - camera info (and whether the physics simulation or the game is running) is shown in a
+//     corner.
 class ViewportPanel final {
 public:
     static constexpr const char* kWindowName = "Viewport";
@@ -80,11 +83,13 @@ private:
     Frost::GameObject* PickIcon(EditorContext& context, const Projection& projection, const ImVec2& screenPoint) const;
 
     void DrawSelectionBounds(EditorContext& context, const Projection& projection) const;
+    void DrawSelectedSkeleton(EditorContext& context, const Projection& projection) const;
     void DrawColliders(EditorContext& context, const Projection& projection) const;
     void DrawCapsule(const Projection& projection, const Frost::Capsule& capsule, ImU32 color, float thickness) const;
     void DrawLights(EditorContext& context, const Projection& projection) const;
     void DrawCameras(EditorContext& context, const Projection& projection) const;
-    void DrawLightReach(const Projection& projection, const Frost::GameObject& object) const;
+    // A selected light's reach, from where it is in the world (`placement`).
+    void DrawLightReach(const Projection& projection, const Frost::GameObject& object, const Frost::WorldPlacement& placement) const;
     void DrawCameraInfo(EditorContext& context, const EditorCamera& camera) const;
 
     ImVec2 m_Origin{0.0f, 0.0f};  // Top-left of the scene area, ImGui screen coordinates.

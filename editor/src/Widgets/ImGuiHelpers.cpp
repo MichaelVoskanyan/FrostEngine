@@ -1,5 +1,6 @@
 #include "ImGuiHelpers.hpp"
 
+#include <Frost/ImGui/ImGuiLayer.hpp>
 #include <Frost/Platform/Filesystem.hpp>
 
 #include <cmath>
@@ -7,14 +8,21 @@
 
 namespace {
 
-    constexpr const char* kMeshPayload = "FROST_MESH_ASSET";
-    constexpr const char* kTexturePayload = "FROST_TEXTURE_ASSET";
     constexpr const char* kLightPayload = "FROST_NEW_LIGHT";
     constexpr const char* kFolderPayload = "FROST_FOLDER";
+    constexpr const char* kObjectPayload = "FROST_OBJECT";
 
+    // One payload type per asset type (ImGui payload type names are at most 32 characters).
     [[nodiscard]]
     const char* PayloadType(const Frost::AssetType type) {
-        return type == Frost::AssetType::Mesh ? kMeshPayload : kTexturePayload;
+        switch (type) {
+            case Frost::AssetType::Mesh: return "FROST_MESH_ASSET";
+            case Frost::AssetType::Texture: return "FROST_TEXTURE_ASSET";
+            case Frost::AssetType::Skeleton: return "FROST_SKELETON_ASSET";
+            case Frost::AssetType::SkeletalMesh: return "FROST_SKELETAL_MESH_ASSET";
+            case Frost::AssetType::Animation: return "FROST_ANIMATION_ASSET";
+        }
+        return "FROST_ASSET";
     }
 
     int ResizeCallback(ImGuiInputTextCallbackData* const data) {
@@ -100,12 +108,14 @@ namespace EditorUI {
     }
 
     std::optional<std::filesystem::path> AcceptMovePayload() {
-        for (const char* const type : {kMeshPayload, kTexturePayload, kFolderPayload}) {
-            if (const ImGuiPayload* const payload = ImGui::AcceptDragDropPayload(type)) {
-                return Frost::PathFromUtf8(
-                        std::string_view(static_cast<const char*>(payload->Data), static_cast<std::size_t>(payload->DataSize)));
-            }
+        const auto pathOf = [](const ImGuiPayload& payload) {
+            return Frost::PathFromUtf8(std::string_view(static_cast<const char*>(payload.Data), static_cast<std::size_t>(payload.DataSize)));
+        };
+
+        for (const Frost::AssetType type : Frost::kAssetTypes) {
+            if (const ImGuiPayload* const payload = ImGui::AcceptDragDropPayload(PayloadType(type))) { return pathOf(*payload); }
         }
+        if (const ImGuiPayload* const payload = ImGui::AcceptDragDropPayload(kFolderPayload)) { return pathOf(*payload); }
         return std::nullopt;
     }
 
@@ -126,6 +136,29 @@ namespace EditorUI {
         return type;
     }
 
+    ImU32 DisplayColor(const int red, const int green, const int blue, const int alpha) {
+        if (!Frost::ImGuiLayer::IsOutputLinear()) { return IM_COL32(red, green, blue, alpha); }
+        const glm::vec3 linear = SrgbToLinear(glm::vec3(static_cast<float>(red), static_cast<float>(green), static_cast<float>(blue)) / 255.0f);
+        return ImGui::ColorConvertFloat4ToU32(ImVec4(linear.x, linear.y, linear.z, static_cast<float>(alpha) / 255.0f));
+    }
+
+    void ObjectDragSource(const Frost::EntityId object, const char* const label) {
+        if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_None)) {
+            ImGui::SetDragDropPayload(kObjectPayload, &object, sizeof(object));
+            ImGui::Text("%s", label);
+            ImGui::EndDragDropSource();
+        }
+    }
+
+    std::optional<Frost::EntityId> AcceptObjectPayload() {
+        const ImGuiPayload* const payload = ImGui::AcceptDragDropPayload(kObjectPayload);
+        if (payload == nullptr || payload->DataSize != static_cast<int>(sizeof(Frost::EntityId))) { return std::nullopt; }
+
+        Frost::EntityId object = 0;
+        std::memcpy(&object, payload->Data, sizeof(object));
+        return object;
+    }
+
     const char* LightDisplayName(const Frost::LightType type) {
         switch (type) {
             case Frost::LightType::Directional: return "Directional Light";
@@ -136,7 +169,25 @@ namespace EditorUI {
     }
 
     const char* AssetTypeTag(const Frost::AssetType type) {
-        return type == Frost::AssetType::Mesh ? "[Mesh]" : "[Texture]";
+        switch (type) {
+            case Frost::AssetType::Mesh: return "[Mesh]";
+            case Frost::AssetType::Texture: return "[Texture]";
+            case Frost::AssetType::Skeleton: return "[Skeleton]";
+            case Frost::AssetType::SkeletalMesh: return "[Skeletal Mesh]";
+            case Frost::AssetType::Animation: return "[Animation]";
+        }
+        return "[Asset]";
+    }
+
+    const char* AssetTypeDisplayName(const Frost::AssetType type) {
+        switch (type) {
+            case Frost::AssetType::Mesh: return "Model";
+            case Frost::AssetType::Texture: return "Texture";
+            case Frost::AssetType::Skeleton: return "Skeleton";
+            case Frost::AssetType::SkeletalMesh: return "Skeletal Mesh";
+            case Frost::AssetType::Animation: return "Animation";
+        }
+        return "Asset";
     }
 
 }  // namespace EditorUI

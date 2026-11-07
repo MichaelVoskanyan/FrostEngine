@@ -3,6 +3,7 @@
 #include <Frost/Assets/AssetId.hpp>
 #include <Frost/Renderer/Material.hpp>
 #include <Frost/Scene/Bounds.hpp>
+#include <Frost/Scene/Components/MaterialOverrides.hpp>
 
 #include <array>
 #include <cstddef>
@@ -15,37 +16,6 @@ namespace Frost {
 
     class AssetManager;
     struct MeshAsset;
-
-    // Texture slots of a material, in MaterialTextures order.
-    enum class MaterialSlot : std::uint8_t { BaseColor, MetallicRoughness, Normal, Occlusion, Emissive };
-
-    inline constexpr std::size_t kMaterialSlotCount = MaterialTextures::kSlotCount;
-
-    // True for the slots that hold color (sampled as sRGB), false for data slots.
-    [[nodiscard]]
-    bool IsColorSlot(MaterialSlot slot) noexcept;
-
-    // Display/serialization name of a slot ("baseColor", "metallicRoughness", ...).
-    [[nodiscard]]
-    const char* GetMaterialSlotName(MaterialSlot slot) noexcept;
-
-    // How one texture slot of a MaterialOverride is filled.
-    struct TextureOverride {
-        enum class Source : std::uint8_t {
-            Inherit,  // Whatever the model's own material for this sub-mesh has in the slot.
-            None,     // Nothing: the slot's neutral default (see MaterialSystem).
-            Asset,    // The texture asset `texture` refers to.
-        };
-
-        Source source = Source::Inherit;
-        AssetReference texture;  // Only meaningful for Asset.
-    };
-
-    // Replaces the material a model's sub-mesh was authored with, for one object only.
-    struct MaterialOverride {
-        MaterialParameters parameters;
-        std::array<TextureOverride, kMaterialSlotCount> textures{};
-    };
 
     // A renderable model (a mesh asset), drawn with the object's transform; each of its sub-meshes
     // may have its material overridden for this object.
@@ -88,6 +58,27 @@ namespace Frost {
         [[nodiscard]]
         std::optional<Bounds> GetLocalBounds() const;
 
+        // --- Visibility ---------------------------------------------------------------------------
+
+        // Whether the model is drawn (and can be clicked in the viewport); saved with the level. An
+        // animation of the object it is attached to can override it while it plays (see
+        // AnimationClipData::visibilityKeys).
+        [[nodiscard]]
+        bool IsVisible() const noexcept;
+
+        void SetVisible(bool visible) noexcept;
+
+        // The playing animation's say (run-time only, not saved): shown, hidden, or nullopt (no say:
+        // IsVisible decides).
+        [[nodiscard]]
+        const std::optional<bool>& GetAnimationVisibility() const noexcept;
+
+        void SetAnimationVisibility(std::optional<bool> visible) noexcept;
+
+        // Whether it is drawn now: the animation's say, else IsVisible.
+        [[nodiscard]]
+        bool IsShown() const noexcept;
+
         // Number of sub-meshes that can carry an override: the model's sub-mesh count, or (for an
         // unresolved model) however many overrides were recorded.
         [[nodiscard]]
@@ -113,10 +104,9 @@ namespace Frost {
     private:
         AssetReference m_MeshReference;
         std::shared_ptr<const MeshAsset> m_Mesh;
-        std::vector<std::optional<MaterialOverride>> m_MaterialOverrides;
-
-        std::vector<std::shared_ptr<Material>> m_ResolvedMaterials;
-        bool m_MaterialsDirty = true;
+        MaterialOverrides m_MaterialOverrides;
+        bool m_Visible = true;
+        std::optional<bool> m_AnimationVisibility;
     };
 
 }  // namespace Frost

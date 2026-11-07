@@ -2,6 +2,7 @@
 
 #include <Frost/Assets/AssetManager.hpp>
 #include <Frost/Renderer/Light.hpp>
+#include <Frost/Scene/Registry.hpp>
 
 #include <imgui.h>
 
@@ -24,6 +25,12 @@ namespace EditorUI {
 
     [[nodiscard]]
     glm::vec3 SrgbToLinear(const glm::vec3& srgb);
+
+    // A color for drawing with ImDrawList, given as sRGB values (as picked in a paint program): as
+    // is, or converted to linear when the UI is drawn into an sRGB target (see
+    // Frost::ImGuiLayer::IsOutputLinear), so it shows as given.
+    [[nodiscard]]
+    ImU32 DisplayColor(int red, int green, int blue, int alpha = 255);
 
     // Drag and drop of assets (by path) between the Asset Library and the viewport/inspector. Each
     // asset type has its own payload type, so targets only react to what they can accept.
@@ -55,12 +62,25 @@ namespace EditorUI {
     [[nodiscard]]
     std::optional<Frost::LightType> AcceptLightPayload();
 
+    // Drag an object of the level (by id; to attach it to another). Call right after the item to
+    // drag from; `label` is what the drag shows.
+    void ObjectDragSource(Frost::EntityId object, const char* label);
+
+    // The object dropped, inside a caller-opened drop target.
+    [[nodiscard]]
+    std::optional<Frost::EntityId> AcceptObjectPayload();
+
     // "Directional Light", "Point Light", "Spot Light".
     [[nodiscard]]
     const char* LightDisplayName(Frost::LightType type);
 
-    // "[Mesh]" / "[Texture]" style tag for lists.
+    // "[Mesh]" / "[Texture]" / "[Skeletal Mesh]" style tag for lists.
     [[nodiscard]]
     const char* AssetTypeTag(Frost::AssetType type);
+
+    // What the Asset Library calls a type: "Model", "Texture", "Skeleton", "Skeletal Mesh",
+    // "Animation".
+    [[nodiscard]]
+    const char* AssetTypeDisplayName(Frost::AssetType type);
 
 }  // namespace EditorUI

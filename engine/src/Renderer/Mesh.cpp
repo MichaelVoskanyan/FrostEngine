@@ -6,6 +6,7 @@
 #include <glm/gtc/matrix_inverse.hpp>
 #include <glm/mat3x3.hpp>
 
+#include <algorithm>
 #include <array>
 #include <limits>
 #include <sstream>
@@ -24,6 +25,23 @@ namespace Frost {
     Mesh::Mesh(const VulkanAllocator& allocator, const VulkanDevice& device, const VulkanCommandPool& commandPool,
                const MeshData& data) {
         Upload(allocator, device, commandPool, data.vertices, data.indices, data.subMeshes);
+    }
+
+    Mesh::Mesh(const VulkanAllocator& allocator, const VulkanDevice& device, const VulkanCommandPool& commandPool,
+               const MeshData& data, const std::span<const SkinnedVertex> skin) {
+        if (skin.size() != data.vertices.size()) {
+            throw std::invalid_argument("Mesh: a skinned mesh needs one skin entry per vertex.");
+        }
+        Upload(allocator, device, commandPool, data.vertices, data.indices, data.subMeshes);
+
+        // The palette a draw must supply: every joint a weighted influence refers to.
+        for (const SkinnedVertex& vertex : skin) {
+            for (std::size_t i = 0; i < vertex.joints.size(); ++i) {
+                if (vertex.weights[i] != 0.0f) { m_JointCount = std::max<std::uint32_t>(m_JointCount, vertex.joints[i] + 1u); }
+            }
+        }
+        m_SkinBuffer = VulkanBuffer::CreateDeviceLocal(allocator, device, commandPool, skin.data(),
+                                                        sizeof(SkinnedVertex) * skin.size(), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
     }
 
     Mesh::Mesh(const VulkanAllocator& allocator, const VulkanDevice& device, const VulkanCommandPool& commandPool,
@@ -95,23 +113,26 @@ namespace Frost {
 
     void Mesh::Draw(const VkCommandBuffer commandBuffer, const VkPipelineLayout pipelineLayout,
                     const glm::mat4& transform, const std::span<const std::shared_ptr<Material>> materialOverrides,
-                    const Material& fallbackMaterial) const {
+                    const Material& fallbackMaterial, const std::uint32_t firstJoint) const {
         // Per-draw constants. The normal matrix is the inverse-transpose of the model's linear
         // part, so normals stay perpendicular under non-uniform scale; a singular transform has no
         // meaningful normals anyway, so fall back to the linear part rather than produce NaNs.
         const glm::mat3 linear(transform);
-        const MeshPushConstants pushConstants{
+        MeshPushConstants pushConstants{
                 .model = transform,
                 .normalMatrix = glm::determinant(linear) != 0.0f ? glm::mat4(glm::inverseTranspose(linear))
                                                                  : glm::mat4(linear),
         };
+        if (IsSkinned()) { SetFirstJoint(pushConstants, firstJoint); }
         vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(pushConstants),
                            &pushConstants);
 
-        const std::array<VkBuffer, 1> vertexBuffers = {m_VertexBuffer->GetHandle()};
-        const std::array<VkDeviceSize, 1> offsets = {0};
+        // The skin stream, if any, at binding 1 (see SkinnedVertex).
+        const std::array<VkBuffer, 2> vertexBuffers = {m_VertexBuffer->GetHandle(),
+                                                       m_SkinBuffer != nullptr ? m_SkinBuffer->GetHandle() : VK_NULL_HANDLE};
+        const std::array<VkDeviceSize, 2> offsets = {0, 0};
 
-        vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers.data(), offsets.data());
+        vkCmdBindVertexBuffers(commandBuffer, 0, IsSkinned() ? 2 : 1, vertexBuffers.data(), offsets.data());
         vkCmdBindIndexBuffer(commandBuffer, m_IndexBuffer->GetHandle(), 0, VK_INDEX_TYPE_UINT32);
 
         VkDescriptorSet boundSet = VK_NULL_HANDLE;
@@ -135,6 +156,10 @@ namespace Frost {
             vkCmdDrawIndexed(commandBuffer, subMesh.indexCount, 1, subMesh.firstIndex, subMesh.vertexOffset, 0);
         }
     }
+
+    bool Mesh::IsSkinned() const noexcept { return m_SkinBuffer != nullptr; }
+
+    std::uint32_t Mesh::GetJointCount() const noexcept { return m_JointCount; }
 
     void Mesh::SetTransform(const glm::mat4& transform) noexcept { m_Transform = transform; }
 

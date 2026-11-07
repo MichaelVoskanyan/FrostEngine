@@ -13,6 +13,7 @@ include(cmake/Dependencies.cmake)
 set(FROST_SHADER_SOURCES
     ${CMAKE_SOURCE_DIR}/shaders/basic.vert
     ${CMAKE_SOURCE_DIR}/shaders/basic.frag
+    ${CMAKE_SOURCE_DIR}/shaders/skinned.vert
 )
 
 # The Frost project the game is built for and the editor opens by default: a self-contained

@@ -33,4 +33,25 @@ namespace Frost {
         static std::array<VkVertexInputAttributeDescription, kAttributeCount> GetAttributeDescriptions() noexcept;
     };
 
+    // The second vertex stream of a skinned mesh (binding 1, beside the Vertex stream at binding
+    // 0): which of the draw's joint matrices move the vertex, and how much. Indices are into the
+    // draw's joint palette (see Renderer::SubmitSkinned); weights sum to 1, or are all 0 for a
+    // vertex the palette does not move.
+    struct SkinnedVertex {
+        std::array<std::uint16_t, 4> joints{};
+        std::array<float, 4> weights{};
+
+        static constexpr std::uint32_t kBinding = 1;
+        static constexpr std::uint32_t kAttributeCount = 2;
+
+        [[nodiscard]]
+        static VkVertexInputBindingDescription GetBindingDescription() noexcept;
+
+        // Locations 5 (joints, uvec4) and 6 (weights, vec4), after Vertex's.
+        [[nodiscard]]
+        static std::array<VkVertexInputAttributeDescription, kAttributeCount> GetAttributeDescriptions() noexcept;
+    };
+
+    static_assert(sizeof(SkinnedVertex) == 24);
+
 }  // namespace Frost

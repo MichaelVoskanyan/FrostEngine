@@ -3,8 +3,10 @@
 #include "../EditorContext.hpp"
 #include "../Widgets/ImGuiHelpers.hpp"
 
+#include <Frost/Assets/AssetFile.hpp>
 #include <Frost/Assets/AssetImporter.hpp>
 #include <Frost/Assets/AssetManager.hpp>
+#include <Frost/Assets/GltfImporter.hpp>
 #include <Frost/Platform/Filesystem.hpp>
 #include <Frost/Scene/Level.hpp>
 
@@ -15,7 +17,9 @@
 #include <cstdio>
 #include <memory>
 #include <optional>
+#include <string_view>
 #include <system_error>
+#include <utility>
 
 namespace {
 
@@ -66,12 +70,42 @@ namespace {
     [[nodiscard]]
     std::filesystem::path DefaultImportFolder(const std::filesystem::path& current, const Frost::AssetType type) {
         const std::string name = Lowercase(Frost::PathToUtf8(current.filename()));
-        const std::string wanted = type == Frost::AssetType::Mesh ? "Meshes" : "Textures";
-        const std::string other = type == Frost::AssetType::Mesh ? "textures" : "meshes";
+        const bool isTexture = type == Frost::AssetType::Texture;
+        const std::string wanted = isTexture ? "Textures" : "Meshes";
 
         if (name == Lowercase(wanted)) { return current; }
-        if (name == other) { return current.parent_path() / wanted; }
+        // A sibling kind of folder (Weapons/Glock19/Textures -> Weapons/Glock19/Meshes).
+        for (const char* const sibling : {"meshes", "textures", "animations"}) {
+            if (name == sibling) { return current.parent_path() / wanted; }
+        }
         return current / wanted;
+    }
+
+    // A file name made from `text` (characters not allowed in one become '_').
+    [[nodiscard]]
+    std::string ToAssetName(const std::string& text) {
+        std::string name;
+        for (const char c : text) {
+            const bool invalid = static_cast<unsigned char>(c) < 0x20 || std::string_view("/\\:*?\"<>|").find(c) != std::string_view::npos;
+            name.push_back(invalid ? '_' : c);
+        }
+        while (!name.empty() && (name.back() == ' ' || name.back() == '.')) { name.pop_back(); }
+        return name.empty() ? "Asset" : name;
+    }
+
+    // "1.25 s".
+    [[nodiscard]]
+    std::string FormatSeconds(const float seconds) {
+        char text[32];
+        std::snprintf(text, sizeof(text), "%.2f s", static_cast<double>(seconds));
+        return text;
+    }
+
+    // Shown for a source item ("texture:Grip" -> "Grip", "animation#2" -> "2").
+    [[nodiscard]]
+    std::string ItemDisplayName(const std::string& item) {
+        const std::size_t separator = item.find_first_of(":#");
+        return separator == std::string::npos ? item : item.substr(separator + 1);
     }
 
 }  // namespace
@@ -293,7 +327,10 @@ void AssetLibraryPanel::DrawFolderRow(EditorContext& context, const std::filesys
 
 void AssetLibraryPanel::DrawAssetRow(EditorContext& context, const AssetLibrary::Entry& entry, const bool showFolder) {
     const bool sourceExists = FileExists(entry.sourcePath);
-    const bool partOfModel = !entry.sourceItem.empty();  // e.g. a texture a model came with.
+    // A texture a model came with is updated by reimporting the model; an animation (also one item
+    // of its source) is reimported by itself.
+    const bool partOfModel = !entry.sourceItem.empty() && entry.type != Frost::AssetType::Animation;
+    const bool isModel = entry.type == Frost::AssetType::Mesh || entry.type == Frost::AssetType::SkeletalMesh;
 
     ImGui::PushID(Frost::PathToUtf8(entry.path).c_str());
     ImGui::TableNextRow();
@@ -313,19 +350,33 @@ void AssetLibraryPanel::DrawAssetRow(EditorContext& context, const AssetLibrary:
                               Frost::PathToUtf8(entry.path).c_str());
     }
     else {
-        ImGui::SetItemTooltip("%s\n%s", Frost::PathToUtf8(entry.path).c_str(),
-                              entry.type == Frost::AssetType::Mesh ? "Drag into the viewport to place it, or onto a folder to move it."
-                                                                   : "Drag onto a texture slot in the Inspector, or onto a folder to move it.");
+        const char* hint = "";
+        switch (entry.type) {
+            case Frost::AssetType::Mesh: hint = "Drag into the viewport to place it, or onto a folder to move it."; break;
+            case Frost::AssetType::SkeletalMesh:
+                hint = "Double-click to edit its sockets and skeleton. Drag into the viewport to place it, or onto a folder to move it.";
+                break;
+            case Frost::AssetType::Texture: hint = "Drag onto a texture slot in the Inspector, or onto a folder to move it."; break;
+            case Frost::AssetType::Animation:
+                hint = "Drag onto a skeletal mesh's animation slot in the Inspector, or onto a folder to move it.";
+                break;
+            case Frost::AssetType::Skeleton:
+                hint = "The bones its skeletal meshes and animations are bound to. Double-click to edit it; drag onto a folder to move it.";
+                break;
+        }
+        ImGui::SetItemTooltip("%s\n%s", Frost::PathToUtf8(entry.path).c_str(), hint);
     }
 
-    // Double-clicking a model places it in front of the camera.
-    if (activated && entry.type == Frost::AssetType::Mesh) { context.SpawnMesh(entry.path, context.GetSpawnPoint()); }
+    // Double-clicking a skeletal mesh or skeleton opens its editor; a (static) model is placed in
+    // front of the camera.
+    const bool editable = entry.type == Frost::AssetType::SkeletalMesh || entry.type == Frost::AssetType::Skeleton;
+    if (activated && editable) { context.RequestOpenAssetEditor(entry.path); }
+    else if (activated && isModel) { context.SpawnModel(entry.path, context.GetSpawnPoint()); }
 
     if (ImGui::BeginPopupContextItem()) {
         const std::filesystem::path path = entry.path;
-        if (entry.type == Frost::AssetType::Mesh && ImGui::MenuItem("Add to Level")) {
-            context.SpawnMesh(path, context.GetSpawnPoint());
-        }
+        if (editable && ImGui::MenuItem("Edit...")) { context.RequestOpenAssetEditor(path); }
+        if (isModel && ImGui::MenuItem("Add to Level")) { context.SpawnModel(path, context.GetSpawnPoint()); }
 
         const bool canReimport = sourceExists && !partOfModel;
         if (ImGui::MenuItem("Reimport", nullptr, false, canReimport)) {
@@ -362,7 +413,7 @@ void AssetLibraryPanel::DrawAssetRow(EditorContext& context, const AssetLibrary:
     }
 
     ImGui::TableNextColumn();
-    ImGui::TextUnformatted(entry.type == Frost::AssetType::Mesh ? "Model" : "Texture");
+    ImGui::TextUnformatted(EditorUI::AssetTypeDisplayName(entry.type));
 
     if (showFolder) {
         ImGui::TableNextColumn();
@@ -376,7 +427,7 @@ void AssetLibraryPanel::DrawAssetRow(EditorContext& context, const AssetLibrary:
     if (entry.sourcePath.empty()) { ImGui::TextDisabled("(unknown)"); }
     else {
         std::string source = Frost::PathToUtf8(entry.sourcePath.filename());
-        if (partOfModel) { source += " > " + entry.sourceItem.substr(entry.sourceItem.find_first_of(":#") + 1); }
+        if (!entry.sourceItem.empty()) { source += " > " + ItemDisplayName(entry.sourceItem); }
 
         // A missing source is fine (the asset is self-contained); it only means no reimport.
         if (!sourceExists) { ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled)); }
@@ -490,18 +541,35 @@ void AssetLibraryPanel::RequestDelete(EditorContext& context, const std::filesys
         if (const AssetLibrary::Entry* const entry = library.FindByPath(item); entry != nullptr && entry->id.IsValid()) {
             prompt.referencers = library.FindReferencers(entry->id);
 
-            // The open level may have unsaved uses the files do not show.
-            context.GetLevel().GetRegistry().Each<Frost::MeshComponent>([&](Frost::EntityId, const Frost::MeshComponent& mesh) {
-                bool uses = mesh.GetMeshReference().id == entry->id;
-                for (std::size_t i = 0; i < mesh.GetMaterialSlotCount() && !uses; ++i) {
+            // The open level may have unsaved uses the files do not show: objects whose model,
+            // animation, skeleton or a texture override is the asset.
+            const Frost::AssetId id = entry->id;
+            const auto overridesUse = [id](const auto& mesh) {
+                for (std::size_t i = 0; i < mesh.GetMaterialSlotCount(); ++i) {
                     if (const auto& materialOverride = mesh.GetMaterialOverride(i); materialOverride.has_value()) {
                         for (const Frost::TextureOverride& texture : materialOverride->textures) {
-                            uses = uses || (texture.source == Frost::TextureOverride::Source::Asset && texture.texture.id == entry->id);
+                            if (texture.source == Frost::TextureOverride::Source::Asset && texture.texture.id == id) { return true; }
                         }
                     }
                 }
+                return false;
+            };
+
+            for (const std::unique_ptr<Frost::GameObject>& object : context.GetLevel().GetObjects()) {
+                bool uses = false;
+                if (const Frost::MeshComponent* const mesh = object->TryGetComponent<Frost::MeshComponent>()) {
+                    uses = mesh->GetMeshReference().id == id || overridesUse(*mesh);
+                }
+                if (const Frost::SkeletalMeshComponent* const mesh = object->TryGetComponent<Frost::SkeletalMeshComponent>()) {
+                    const bool usesSkeleton = mesh->GetSkeletalMesh() != nullptr && mesh->GetSkeletalMesh()->skeletonReference.id == id;
+                    uses = uses || mesh->GetSkeletalMeshReference().id == id || mesh->GetAnimationReference().id == id ||
+                           usesSkeleton || overridesUse(*mesh);
+                }
+                if (const Frost::AnimationTriggerComponent* const triggers = object->TryGetComponent<Frost::AnimationTriggerComponent>()) {
+                    for (const Frost::AnimationTrigger& trigger : triggers->triggers) { uses = uses || trigger.animationReference.id == id; }
+                }
                 prompt.usesInOpenLevel += uses ? 1 : 0;
-            });
+            }
         }
     }
 
@@ -696,6 +764,8 @@ void AssetLibraryPanel::OpenImportDialog(EditorContext& context, const std::file
     m_ImportError.clear();
     m_FixedDestination = destination;
     m_TextureFolderEdited = false;
+    m_AnimationFolderEdited = false;
+    m_FixedAnimation = 0;
 
     if (!source.empty()) {
         m_ImportSource = Frost::PathToUtf8(source);
@@ -723,17 +793,38 @@ void AssetLibraryPanel::SuggestImportDestination(EditorContext& context) {
         return path == "." ? std::string() : Frost::GenericPathToUtf8(path);
     };
 
+    const std::filesystem::path source = Frost::AssetManager::NormalizePath(Frost::PathFromUtf8(m_ImportSource));
+    const std::optional<Frost::AssetType> type = Frost::AssetImporter::GetSourceType(source);
+
     std::filesystem::path destination;
     if (m_FixedDestination.has_value()) {
         destination = *m_FixedDestination;
+
+        // Reimporting an animation from another file: the animation of the same name, if it has one.
+        if (Frost::AssetManager::GetAssetType(destination) == Frost::AssetType::Animation && Frost::AssetImporter::IsModelSource(source)) {
+            InspectModel(source);
+            const std::optional<Frost::AssetHeader> header =
+                    Frost::AssetFile::ReadHeader(destination, library.GetRegistry().GetProjectDirectory());
+            if (m_Inspection.info.has_value() && header.has_value()) {
+                const std::string wanted = ItemDisplayName(header->sourceItem);
+                for (std::size_t i = 0; i < m_Inspection.info->animations.size(); ++i) {
+                    if (m_Inspection.info->animations[i].name == wanted) { m_FixedAnimation = i; }
+                }
+            }
+        }
     }
     else {
-        const std::filesystem::path source = Frost::PathFromUtf8(m_ImportSource);
-        const std::optional<Frost::AssetType> type = Frost::AssetImporter::GetSourceType(source);
         if (!type.has_value()) { return; }
 
-        // Importing the same source again replaces the asset it became last time (wherever it is
-        // now); otherwise it goes into the current folder's Meshes/Textures folder.
+        if (*type == Frost::AssetType::Mesh) {
+            // A model: what it can become is chosen in the dialog (see SuggestModelOutputs).
+            InspectModel(source);
+            SuggestModelOutputs(context, source);
+            return;
+        }
+
+        // An image: importing the same source again replaces the texture it became last time
+        // (wherever it is now); otherwise it goes into the current folder's Textures folder.
         if (const AssetLibrary::Entry* const existing = library.FindBySource(source); existing != nullptr) {
             destination = existing->path;
         }
@@ -748,6 +839,127 @@ void AssetLibraryPanel::SuggestImportDestination(EditorContext& context) {
     if (!m_TextureFolderEdited) { m_ImportTextureFolder = relative(Frost::AssetImporter::GetDefaultTextureFolder(destination)); }
 }
 
+void AssetLibraryPanel::InspectModel(const std::filesystem::path& source) {
+    std::error_code error;
+    const std::filesystem::file_time_type modified = std::filesystem::last_write_time(source, error);
+    const std::uintmax_t size = error ? 0 : std::filesystem::file_size(source, error);
+    if (m_Inspection.source == source && m_Inspection.modified == modified && m_Inspection.size == size) { return; }
+
+    const bool sameFile = m_Inspection.source == source;
+    m_Inspection = ModelInspection{.source = source, .modified = modified, .size = size, .info = std::nullopt, .error = {}};
+    try {
+        Frost::GltfModel model = Frost::GltfModel::Open(source);
+        m_Inspection.info = model.GetInfo();
+    }
+    catch (const Frost::ImportError& e) {
+        m_Inspection.error = e.what();
+    }
+
+    // The file changed under the dialog: its animations may have too.
+    if (sameFile) { m_SuggestedForSource = "\x01"; }
+}
+
+void AssetLibraryPanel::SuggestModelOutputs(EditorContext& context, const std::filesystem::path& source) {
+    AssetLibrary& library = context.GetLibrary();
+    const std::filesystem::path content = library.GetContentDirectory();
+    const auto relative = [&](const std::filesystem::path& folder) {
+        const std::filesystem::path path = folder.lexically_relative(content);
+        return path == "." ? std::string() : Frost::GenericPathToUtf8(path);
+    };
+    const auto existingPath = [&](const Frost::AssetType type, const std::string& item = {}) -> std::optional<std::filesystem::path> {
+        const AssetLibrary::Entry* const entry = library.FindBySource(source, type, item);
+        return entry != nullptr ? std::optional(entry->path) : std::nullopt;
+    };
+
+    const Frost::GltfModelInfo* const info = m_Inspection.info.has_value() ? &*m_Inspection.info : nullptr;
+    const std::string stem = Frost::PathToUtf8(source.stem());
+
+    // Whatever an earlier import of this file made is updated where it is now.
+    const std::optional<std::filesystem::path> staticMesh = existingPath(Frost::AssetType::Mesh);
+    const std::optional<std::filesystem::path> skeletalMesh = existingPath(Frost::AssetType::SkeletalMesh);
+    const std::optional<std::filesystem::path> skeleton = existingPath(Frost::AssetType::Skeleton);
+
+    const std::filesystem::path folder = skeletalMesh.has_value() ? skeletalMesh->parent_path()
+                                         : staticMesh.has_value() ? staticMesh->parent_path()
+                                         : skeleton.has_value()   ? skeleton->parent_path()
+                                                                  : DefaultImportFolder(m_CurrentFolder, Frost::AssetType::Mesh);
+    m_ImportFolder = relative(folder);
+    if (!m_TextureFolderEdited) { m_ImportTextureFolder = relative(Frost::AssetImporter::GetDefaultTextureFolder(folder / "x.fmesh")); }
+
+    // A model with a skeleton or animations is imported as a skeletal mesh by default, anything else
+    // as a static mesh (and whatever was imported from it before, again).
+    const bool hasGeometry = info == nullptr || info->meshCount > 0;
+    const bool animated = info != nullptr && (info->skinned || !info->animations.empty());
+    const auto output = [](const bool enabled, const std::optional<std::filesystem::path>& existing, const std::string& name) {
+        return ModelOutput{.enabled = enabled,
+                           .name = existing.has_value() ? Frost::PathToUtf8(existing->stem()) : name,
+                           .existing = existing};
+    };
+    m_StaticMesh = output(hasGeometry && (staticMesh.has_value() || !animated), staticMesh, stem);
+    m_SkeletalMesh = output(hasGeometry && (skeletalMesh.has_value() || animated), skeletalMesh, stem);
+    m_Skeleton = output(true, skeleton, stem + "_Skeleton");
+
+    // The parts stay attached (and separate or not) as the earlier import had them.
+    m_AttachLooseParts = true;
+    m_PartBones.clear();
+    m_SeparateParts.clear();
+    if (skeletalMesh.has_value()) {
+        for (const auto& [part, attachment] :
+             Frost::AssetImporter::GetPartAttachments(*skeletalMesh, library.GetRegistry().GetProjectDirectory())
+                     .value_or(std::map<std::string, Frost::AssetImporter::PartAttachment>{})) {
+            m_PartBones[part] = attachment.bone;
+            m_SeparateParts[part] = attachment.separate;
+        }
+    }
+    m_PreviousPartBones = m_PartBones;
+
+    m_Animations.clear();
+    std::optional<std::filesystem::path> animationFolder;
+    Frost::AssetReference previousSkeleton;  // The one an earlier import of these animations used.
+    if (info != nullptr) {
+        for (std::size_t i = 0; i < info->animations.size(); ++i) {
+            const Frost::GltfAnimationInfo& animation = info->animations[i];
+            const std::optional<std::filesystem::path> existing =
+                    existingPath(Frost::AssetType::Animation, Frost::AssetImporter::GetAnimationItem(*info, i));
+            if (existing.has_value() && !animationFolder.has_value()) {
+                animationFolder = existing->parent_path();
+                try {
+                    previousSkeleton = Frost::AssetFile::ReadAnimation(*existing, library.GetRegistry().GetProjectDirectory()).skeleton;
+                }
+                catch (const Frost::ImportError&) {
+                }
+            }
+            // Named after the model, unless the animation's own name already is ("AK12_Firing" in
+            // AK12.glb stays "AK12_Firing", not "AK12_AK12_Firing").
+            const bool prefixed = Lowercase(animation.name).starts_with(Lowercase(stem));
+            m_Animations.push_back(output(animation.problem.empty(), existing,
+                                          ToAssetName(prefixed ? animation.name : stem + "_" + animation.name)));
+        }
+    }
+    if (!m_AnimationFolderEdited) {
+        m_AnimationFolder = relative(animationFolder.value_or(Frost::AssetImporter::GetDefaultAnimationFolder(folder / "x.fskmesh")));
+    }
+
+    // Bind to the skeleton the animations were bound to last time if that is not this file's own;
+    // a file with animations but nothing to show (an animation pack) to an existing skeleton.
+    m_UseExistingSkeleton = false;
+    m_ExistingSkeleton = {};
+    const AssetLibrary::Entry* const ownSkeleton = library.FindBySource(source, Frost::AssetType::Skeleton);
+    if (previousSkeleton.IsSet() && (ownSkeleton == nullptr || ownSkeleton->id != previousSkeleton.id)) {
+        m_UseExistingSkeleton = true;
+        m_ExistingSkeleton = previousSkeleton;
+    }
+    else if (!hasGeometry && !skeleton.has_value()) {
+        for (const AssetLibrary::Entry& entry : library.GetEntries()) {
+            if (entry.type == Frost::AssetType::Skeleton && !entry.duplicate) {
+                m_UseExistingSkeleton = true;
+                m_ExistingSkeleton = Frost::AssetReference{.id = entry.id, .path = entry.path};
+                break;
+            }
+        }
+    }
+}
+
 void AssetLibraryPanel::DrawImportDialog(EditorContext& context) {
     constexpr const char* kPopupName = "Import Asset";
 
@@ -758,12 +970,9 @@ void AssetLibraryPanel::DrawImportDialog(EditorContext& context) {
 
     const ImGuiViewport* const viewport = ImGui::GetMainViewport();
     ImGui::SetNextWindowPos(viewport->GetCenter(), ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
-    ImGui::SetNextWindowSize(ImVec2(780.0f, 560.0f), ImGuiCond_Appearing);
+    ImGui::SetNextWindowSize(ImVec2(820.0f, 680.0f), ImGuiCond_Appearing);
 
     if (!ImGui::BeginPopupModal(kPopupName, nullptr, ImGuiWindowFlags_NoSavedSettings)) { return; }
-
-    AssetLibrary& library = context.GetLibrary();
-    const std::filesystem::path content = library.GetContentDirectory();
 
     if (m_FixedDestination.has_value()) {
         ImGui::TextColored(kWarningColor, "Reimport '%s' from a different source file:",
@@ -775,19 +984,440 @@ void AssetLibraryPanel::DrawImportDialog(EditorContext& context) {
     if (ImGui::IsWindowAppearing()) { ImGui::SetKeyboardFocusHere(); }
     submit |= EditorUI::InputText("##ImportSource", m_ImportSource, ImGuiInputTextFlags_EnterReturnsTrue);
 
-    const float footer = ImGui::GetFrameHeightWithSpacing() * 5.0f + ImGui::GetTextLineHeightWithSpacing() * 3.0f;
-    const FileBrowser::Result browsed = m_ImportBrowser.Draw("ImportBrowser", ImVec2(0.0f, -footer));
+    const float browserHeight = std::max(ImGui::GetTextLineHeightWithSpacing() * 6.0f, ImGui::GetContentRegionAvail().y * 0.3f);
+    const FileBrowser::Result browsed = m_ImportBrowser.Draw("ImportBrowser", ImVec2(0.0f, browserHeight));
     if (browsed.clicked.has_value()) { m_ImportSource = Frost::PathToUtf8(*browsed.clicked); }
     if (browsed.activated.has_value()) { m_ImportSource = Frost::PathToUtf8(*browsed.activated); }
 
+    const std::filesystem::path source = Frost::AssetManager::NormalizePath(Frost::PathFromUtf8(m_ImportSource));
+    if (Frost::AssetImporter::IsModelSource(source) && FileExists(source)) { InspectModel(source); }
     SuggestImportDestination(context);
 
-    const std::filesystem::path source = Frost::AssetManager::NormalizePath(Frost::PathFromUtf8(m_ImportSource));
-    const std::optional<Frost::AssetType> type = Frost::AssetImporter::GetSourceType(source);
+    // What to import it as, and where (scrolls if a model has many animations).
+    const float footer = ImGui::GetFrameHeightWithSpacing() + ImGui::GetTextLineHeightWithSpacing() * 2.0f +
+                         ImGui::GetStyle().ItemSpacing.y * 2.0f;
+    ImportPlan plan;
+    if (ImGui::BeginChild("##ImportOptions", ImVec2(0.0f, -footer), ImGuiChildFlags_None)) {
+        const bool modelOptions = !m_FixedDestination.has_value() && Frost::AssetImporter::IsModelSource(source) &&
+                                  FileExists(source);
+        plan = modelOptions ? DrawModelImportOptions(context, source, submit) : DrawSingleImportOptions(context, source, submit);
+    }
+    ImGui::EndChild();
+
+    if (!plan.problem.empty()) { ImGui::TextDisabled("%s", plan.problem.c_str()); }
+    else { ImGui::NewLine(); }
+    if (!m_ImportError.empty()) { ImGui::TextColored(kErrorColor, "%s", m_ImportError.c_str()); }
+    else { ImGui::NewLine(); }
+
+    const bool ready = plan.problem.empty() && plan.run;
+    ImGui::BeginDisabled(!ready);
+    submit |= ImGui::Button("Import", ImVec2(120.0f, 0.0f));
+    ImGui::EndDisabled();
+    ImGui::SameLine();
+    const bool cancel = ImGui::Button("Cancel", ImVec2(120.0f, 0.0f)) || ImGui::IsKeyPressed(ImGuiKey_Escape);
+
+    if (submit && ready) {
+        m_ImportError = plan.run();
+        if (m_ImportError.empty()) {
+            m_Filter.clear();  // Make sure the new assets are visible...
+            if (!plan.folder.empty()) { m_CurrentFolder = plan.folder; }  // ...by showing where they went.
+            ImGui::CloseCurrentPopup();
+        }
+    }
+    else if (cancel) {
+        ImGui::CloseCurrentPopup();
+    }
+
+    ImGui::EndPopup();
+}
+
+namespace {
+
+    // What importing to `destination` does to what is there, shown after an output's name.
+    void DrawDestinationStatus(const std::filesystem::path& destination, const std::optional<std::filesystem::path>& existing) {
+        ImGui::SameLine();
+        if (existing.has_value() && *existing == destination) {
+            ImGui::TextColored(kWarningColor, "updates it");
+            ImGui::SetItemTooltip("Reimport: updates %s, imported earlier from this file (its id is kept, so references stay valid).",
+                                  Frost::PathToUtf8(destination).c_str());
+        }
+        else if (FileExists(destination)) {
+            ImGui::TextColored(kWarningColor, "replaces it");
+            ImGui::SetItemTooltip("Replaces the existing asset %s (it keeps its identity, so references stay valid).",
+                                  Frost::PathToUtf8(destination).c_str());
+        }
+        else {
+            ImGui::TextDisabled("new");
+            ImGui::SetItemTooltip("%s", Frost::PathToUtf8(destination).c_str());
+        }
+    }
+
+}  // namespace
+
+AssetLibraryPanel::ImportPlan AssetLibraryPanel::DrawModelImportOptions(EditorContext& context, const std::filesystem::path& source,
+                                                                       bool& submit) {
+    AssetLibrary& library = context.GetLibrary();
+    const std::filesystem::path content = library.GetContentDirectory();
+
+    if (!m_Inspection.error.empty() || !m_Inspection.info.has_value()) {
+        ImGui::PushStyleColor(ImGuiCol_Text, kErrorColor);
+        ImGui::TextWrapped("%s", m_Inspection.error.empty() ? "The model could not be read." : m_Inspection.error.c_str());
+        ImGui::PopStyleColor();
+        return ImportPlan{.problem = "The model cannot be imported.", .run = {}, .folder = {}};
+    }
+    const Frost::GltfModelInfo& info = *m_Inspection.info;
+    const bool hasGeometry = info.meshCount > 0;
+
+    // What is in it.
+    std::string summary = std::to_string(info.meshCount) + (info.meshCount == 1 ? " mesh" : " meshes");
+    if (info.skeletonProblem.empty()) {
+        summary += ", a skeleton of " + std::to_string(info.boneCount) + " bones";
+        summary += info.skinned ? " (from " + std::to_string(info.skinCount) + (info.skinCount == 1 ? " skin)" : " skins)")
+                                : " (its node hierarchy)";
+    }
+    summary += ", " + std::to_string(info.animations.size()) + (info.animations.size() == 1 ? " animation" : " animations");
+    ImGui::TextDisabled("Contains %s.", summary.c_str());
+    if (!info.skeletonProblem.empty()) {
+        ImGui::PushStyleColor(ImGuiCol_Text, kWarningColor);
+        ImGui::TextWrapped("Its skeleton cannot be made: %s", info.skeletonProblem.c_str());
+        ImGui::PopStyleColor();
+    }
+
+    const float labelWidth = ImGui::CalcTextSize("Skeletal mesh").x + ImGui::GetFrameHeight() + ImGui::GetStyle().ItemSpacing.x * 3.0f;
+    const float nameWidth = ImGui::GetFontSize() * 16.0f;
+    const auto relativeToContent = [&](const std::filesystem::path& path) {
+        return Frost::GenericPathToUtf8(path.lexically_relative(content));
+    };
+
+    // Where it goes.
+    ImGui::Spacing();
+    ImGui::AlignTextToFramePadding();
+    ImGui::TextUnformatted("Folder");
+    ImGui::SameLine(labelWidth);
+    ImGui::SetNextItemWidth(-FLT_MIN);
+    if (EditorUI::InputText("##ImportFolder", m_ImportFolder)) {
+        const std::filesystem::path mesh = content / Frost::PathFromUtf8(m_ImportFolder) / "x.fmesh";
+        if (!m_TextureFolderEdited) { m_ImportTextureFolder = relativeToContent(Frost::AssetImporter::GetDefaultTextureFolder(mesh)); }
+        if (!m_AnimationFolderEdited) { m_AnimationFolder = relativeToContent(Frost::AssetImporter::GetDefaultAnimationFolder(mesh)); }
+    }
+    ImGui::SetItemTooltip("Folder (inside the content directory) for the meshes and the skeleton.");
+
+    const bool anyMesh = m_StaticMesh.enabled || m_SkeletalMesh.enabled;
+    ImGui::BeginDisabled(!anyMesh);
+    ImGui::AlignTextToFramePadding();
+    ImGui::TextUnformatted("Its textures");
+    ImGui::SameLine(labelWidth);
+    ImGui::SetNextItemWidth(-FLT_MIN);
+    if (EditorUI::InputText("##ImportTextureFolder", m_ImportTextureFolder)) { m_TextureFolderEdited = true; }
+    ImGui::SetItemTooltip("Folder for the textures the model comes with; each becomes a texture asset of its own.\n"
+                          "Textures from an earlier import of the same model are updated where they are.");
+    ImGui::EndDisabled();
+
+    const std::filesystem::path folder = Frost::AssetManager::NormalizePath(content / Frost::PathFromUtf8(m_ImportFolder));
+    const std::filesystem::path textureFolder =
+            Frost::AssetManager::NormalizePath(content / Frost::PathFromUtf8(m_ImportTextureFolder));
+    const std::filesystem::path animationFolder =
+            Frost::AssetManager::NormalizePath(content / Frost::PathFromUtf8(m_AnimationFolder));
+
+    // An output's file: the asset an earlier import made while it keeps that asset's name, else a
+    // new one in its folder.
+    const auto destinationOf = [](const ModelOutput& output, const std::filesystem::path& outputFolder, const Frost::AssetType type) {
+        if (output.existing.has_value() && Frost::PathToUtf8(output.existing->stem()) == output.name) { return *output.existing; }
+        std::filesystem::path path = outputFolder / Frost::PathFromUtf8(output.name);
+        path += Frost::AssetImporter::GetAssetExtension(type);
+        return Frost::AssetManager::NormalizePath(path);
+    };
+
+    // One row: a checkbox, the name (and extension), and what importing it does.
+    const auto outputRow = [&](const char* label, const char* id, ModelOutput& output, const Frost::AssetType type,
+                               const std::filesystem::path& outputFolder, const bool available, const char* tooltip) {
+        ImGui::PushID(id);
+        ImGui::BeginDisabled(!available);
+        if (!available) { output.enabled = false; }
+        ImGui::Checkbox(label, &output.enabled);
+        ImGui::SetItemTooltip("%s", tooltip);
+        ImGui::SameLine(labelWidth);
+        ImGui::BeginDisabled(!output.enabled);
+        ImGui::SetNextItemWidth(nameWidth);
+        submit |= EditorUI::InputText("##Name", output.name, ImGuiInputTextFlags_EnterReturnsTrue);
+        ImGui::SameLine();
+        ImGui::TextDisabled("%s", Frost::AssetImporter::GetAssetExtension(type));
+        if (output.enabled && IsValidAssetName(output.name)) { DrawDestinationStatus(destinationOf(output, outputFolder, type), output.existing); }
+        ImGui::EndDisabled();
+        ImGui::EndDisabled();
+        ImGui::PopID();
+    };
+
+    ImGui::SeparatorText("Import as");
+    outputRow("Static mesh", "Static", m_StaticMesh, Frost::AssetType::Mesh, folder, hasGeometry,
+              "The model as posed in the file, as one rigid mesh (props, level geometry).");
+    outputRow("Skeletal mesh", "Skeletal", m_SkeletalMesh, Frost::AssetType::SkeletalMesh, folder, hasGeometry,
+              "The model bound to a skeleton, which animations pose (characters, animated weapons).");
+
+    // The skeletal mesh's rigid parts (meshes that are not skinned): whether each is part of the
+    // skeletal mesh or an object of its own attached to it, and the bone each follows.
+    if (!info.parts.empty()) {
+        ImGui::BeginDisabled(!m_SkeletalMesh.enabled);
+        ImGui::SetCursorPosX(labelWidth);
+        const std::string header = "Attached parts (" + std::to_string(info.parts.size()) + ")###AttachedParts";
+        if (ImGui::TreeNodeEx(header.c_str(), ImGuiTreeNodeFlags_DefaultOpen)) {
+            ImGui::Checkbox("Attach loose parts to bones", &m_AttachLooseParts);
+            ImGui::SetItemTooltip("Parts that are not under a bone in the file (e.g. a magazine next to the armature rather\n"
+                                  "than parented to a bone) follow the bone suggested for them (one whose name matches the\n"
+                                  "part's, else the skeleton's root). Off: they do not move with the skeleton.");
+            ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled));
+            ImGui::TextWrapped("A separate part is imported as a model of its own, placed as an object attached to the skeletal "
+                               "mesh, so a level can remove it or swap it (a suppressor, an extended magazine).");
+            ImGui::PopStyleColor();
+            const float modeWidth = ImGui::CalcTextSize("Separate object").x + ImGui::GetFrameHeight() +
+                                    ImGui::GetStyle().FramePadding.x * 2.0f;
+            float partNameWidth = ImGui::CalcTextSize("(unnamed)").x;
+            for (const Frost::GltfPartInfo& part : info.parts) { partNameWidth = std::max(partNameWidth, ImGui::CalcTextSize(part.name.c_str()).x); }
+            const float modeColumn = ImGui::GetCursorPosX() + partNameWidth + ImGui::GetStyle().ItemSpacing.x * 2.0f;
+
+            for (const Frost::GltfPartInfo& part : info.parts) {
+                ImGui::PushID(part.name.c_str());
+
+                // Separate or not: as chosen (or imported before), else loose parts are separate.
+                const auto separateChoice = m_SeparateParts.find(part.name);
+                const bool separate = separateChoice != m_SeparateParts.end() ? separateChoice->second : part.parentBone.empty();
+
+                // What the importer will do for the part: the choice made here, else the file's
+                // hierarchy, else the suggestion (if loose parts are attached).
+                const auto chosen = m_PartBones.find(part.name);
+                const std::string bone = chosen != m_PartBones.end() ? chosen->second
+                                         : !part.parentBone.empty() ? part.parentBone
+                                         : m_AttachLooseParts       ? part.suggestedBone
+                                                                    : std::string();
+                const auto previous = m_PreviousPartBones.find(part.name);
+                const bool asBefore = chosen != m_PartBones.end() && previous != m_PreviousPartBones.end() &&
+                                      previous->second == chosen->second;
+                const char* why = asBefore                      ? "as imported before"
+                                  : chosen != m_PartBones.end() ? "chosen"
+                                  : !part.parentBone.empty()    ? "under it in the file"
+                                  : m_AttachLooseParts          ? "suggested"
+                                                                : "";
+
+                ImGui::AlignTextToFramePadding();
+                ImGui::TextUnformatted(part.name.empty() ? "(unnamed)" : part.name.c_str());
+                ImGui::SameLine(modeColumn);
+                ImGui::SetNextItemWidth(modeWidth);
+                if (ImGui::BeginCombo("##Mode", separate ? "Separate object" : "Part of mesh")) {
+                    if (ImGui::Selectable("Part of mesh", !separate)) { m_SeparateParts[part.name] = false; }
+                    ImGui::SetItemTooltip("Baked into the skeletal mesh, following its bone.");
+                    if (ImGui::Selectable("Separate object", separate)) { m_SeparateParts[part.name] = true; }
+                    ImGui::SetItemTooltip("A model of its own (<skeletal mesh>_%s), attached to the skeletal mesh's object\n"
+                                          "when it is placed, following its bone; removable and replaceable.",
+                                          part.name.c_str());
+                    ImGui::EndCombo();
+                }
+                ImGui::SameLine();
+                const char* const noBone = separate ? "(the object itself)" : "(does not follow a bone)";
+                ImGui::SetNextItemWidth(ImGui::GetFontSize() * 12.0f);
+                if (ImGui::BeginCombo("##Bone", bone.empty() ? noBone : bone.c_str())) {
+                    if (ImGui::Selectable(noBone, bone.empty())) { m_PartBones[part.name] = std::string(); }
+                    for (const std::string& name : info.boneNames) {
+                        if (ImGui::Selectable(name.c_str(), name == bone)) { m_PartBones[part.name] = name; }
+                    }
+                    ImGui::EndCombo();
+                }
+                if (*why != '\0') {
+                    ImGui::SameLine();
+                    ImGui::TextDisabled("(%s)", why);
+                }
+                if (chosen != m_PartBones.end() || separateChoice != m_SeparateParts.end()) {
+                    ImGui::SameLine();
+                    if (ImGui::SmallButton("Default")) {
+                        m_PartBones.erase(part.name);
+                        m_SeparateParts.erase(part.name);
+                    }
+                    ImGui::SetItemTooltip("Back to what the file and the suggestion say (loose parts separate).");
+                }
+                ImGui::PopID();
+            }
+            ImGui::TreePop();
+        }
+        ImGui::EndDisabled();
+    }
+
+    // The skeleton the skeletal mesh and animations are bound to.
+    const bool anyAnimation = std::any_of(m_Animations.begin(), m_Animations.end(), [](const ModelOutput& output) { return output.enabled; });
+    const bool needsSkeleton = m_SkeletalMesh.enabled || anyAnimation;
+    const bool ownSkeletonAvailable = info.skeletonProblem.empty();
+    if (!ownSkeletonAvailable) { m_UseExistingSkeleton = true; }
+
+    ImGui::BeginDisabled(!needsSkeleton);
+    ImGui::AlignTextToFramePadding();
+    ImGui::TextUnformatted("Skeleton");
+    ImGui::SameLine(labelWidth);
+    ImGui::BeginDisabled(!ownSkeletonAvailable);
+    if (ImGui::RadioButton("The model's##OwnSkeleton", !m_UseExistingSkeleton)) { m_UseExistingSkeleton = false; }
+    ImGui::EndDisabled();
+    ImGui::SetItemTooltip("Import the model's own skeleton (and bind the skeletal mesh and animations to it).");
+    ImGui::SameLine();
+    ImGui::BeginDisabled(m_UseExistingSkeleton);
+    ImGui::SetNextItemWidth(nameWidth - ImGui::CalcTextSize("The model's").x - ImGui::GetFrameHeight() -
+                            ImGui::GetStyle().ItemSpacing.x * 2.0f);
+    submit |= EditorUI::InputText("##SkeletonName", m_Skeleton.name, ImGuiInputTextFlags_EnterReturnsTrue);
+    ImGui::SameLine();
+    ImGui::TextDisabled("%s", Frost::AssetImporter::GetAssetExtension(Frost::AssetType::Skeleton));
+    if (!m_UseExistingSkeleton && needsSkeleton && IsValidAssetName(m_Skeleton.name)) {
+        DrawDestinationStatus(destinationOf(m_Skeleton, folder, Frost::AssetType::Skeleton), m_Skeleton.existing);
+    }
+    ImGui::EndDisabled();
+
+    // Or one already in the project (e.g. the character's, for an animation pack of the same rig).
+    const std::optional<std::filesystem::path> existingSkeletonPath =
+            m_ExistingSkeleton.IsSet() ? library.GetRegistry().Resolve(m_ExistingSkeleton) : std::nullopt;
+    ImGui::SetCursorPosX(labelWidth);
+    if (ImGui::RadioButton("Existing##ExistingSkeleton", m_UseExistingSkeleton)) { m_UseExistingSkeleton = true; }
+    ImGui::SetItemTooltip("Bind the skeletal mesh and animations to a skeleton already in the project, by bone name\n"
+                          "(e.g. a character's, when importing more animations of the same rig from another file).");
+    ImGui::SameLine();
+    ImGui::BeginDisabled(!m_UseExistingSkeleton);
+    ImGui::SetNextItemWidth(-FLT_MIN);
+    const std::string skeletonLabel = existingSkeletonPath.has_value() ? relativeToContent(*existingSkeletonPath) : "(choose a skeleton)";
+    if (ImGui::BeginCombo("##ExistingSkeletonCombo", skeletonLabel.c_str())) {
+        bool any = false;
+        for (const AssetLibrary::Entry& entry : library.GetEntries()) {
+            if (entry.type != Frost::AssetType::Skeleton || entry.duplicate) { continue; }
+            any = true;
+            if (ImGui::Selectable(relativeToContent(entry.path).c_str(), entry.id == m_ExistingSkeleton.id)) {
+                m_ExistingSkeleton = Frost::AssetReference{.id = entry.id, .path = entry.path};
+            }
+        }
+        if (!any) { ImGui::TextDisabled("No skeletons in the project yet."); }
+        ImGui::EndCombo();
+    }
+    ImGui::EndDisabled();
+    ImGui::EndDisabled();
+
+    // Animations, one asset each.
+    ImGui::SeparatorText(("Animations (" + std::to_string(info.animations.size()) + ")").c_str());
+    if (info.animations.empty()) { ImGui::TextDisabled("The model has no animations."); }
+    else {
+        ImGui::AlignTextToFramePadding();
+        ImGui::TextUnformatted("Folder");
+        ImGui::SameLine(labelWidth);
+        ImGui::SetNextItemWidth(-ImGui::GetFontSize() * 7.0f);
+        if (EditorUI::InputText("##AnimationFolder", m_AnimationFolder)) { m_AnimationFolderEdited = true; }
+        ImGui::SetItemTooltip("Folder for new animation assets (animations imported earlier are updated where they are).");
+        ImGui::SameLine();
+        if (ImGui::SmallButton("All")) {
+            for (std::size_t i = 0; i < m_Animations.size(); ++i) { m_Animations[i].enabled = info.animations[i].problem.empty(); }
+        }
+        ImGui::SameLine();
+        if (ImGui::SmallButton("None")) {
+            for (ModelOutput& animation : m_Animations) { animation.enabled = false; }
+        }
+
+        for (std::size_t i = 0; i < m_Animations.size() && i < info.animations.size(); ++i) {
+            const Frost::GltfAnimationInfo& animation = info.animations[i];
+            ModelOutput& output = m_Animations[i];
+            const std::string label = animation.name + "  (" + FormatSeconds(animation.duration) + ")";
+
+            ImGui::PushID(static_cast<int>(i));
+            ImGui::BeginDisabled(!animation.problem.empty());
+            if (!animation.problem.empty()) { output.enabled = false; }
+            ImGui::Checkbox("##Enabled", &output.enabled);
+            ImGui::SameLine();
+            ImGui::TextUnformatted(label.c_str());
+            ImGui::EndDisabled();
+            if (!animation.problem.empty()) {
+                ImGui::SetItemTooltip("Cannot be imported: %s", animation.problem.c_str());
+            }
+            else {
+                ImGui::SetItemTooltip("%zu channel(s).", animation.channelCount);
+            }
+            ImGui::SameLine(labelWidth + ImGui::GetFontSize() * 9.0f);
+            ImGui::BeginDisabled(!output.enabled);
+            ImGui::SetNextItemWidth(nameWidth);
+            submit |= EditorUI::InputText("##Name", output.name, ImGuiInputTextFlags_EnterReturnsTrue);
+            ImGui::SameLine();
+            ImGui::TextDisabled("%s", Frost::AssetImporter::GetAssetExtension(Frost::AssetType::Animation));
+            if (output.enabled && IsValidAssetName(output.name)) {
+                DrawDestinationStatus(destinationOf(output, animationFolder, Frost::AssetType::Animation), output.existing);
+            }
+            ImGui::EndDisabled();
+            ImGui::PopID();
+        }
+    }
+
+    // Validate, and gather what to do.
+    ImportPlan plan;
+    Frost::AssetImporter::ModelOptions options;
+    std::vector<std::filesystem::path> destinations;
+    const auto fail = [&plan](std::string problem) {
+        plan.problem = std::move(problem);
+        return plan;
+    };
+
+    if (!m_StaticMesh.enabled && !m_SkeletalMesh.enabled && !anyAnimation) { return fail("Choose what to import the model as."); }
+    if (!library.IsInside(folder) || (anyMesh && !library.IsInside(textureFolder)) || (anyAnimation && !library.IsInside(animationFolder))) {
+        return fail("Folders must be inside the content directory.");
+    }
+
+    if (m_StaticMesh.enabled) {
+        if (!IsValidAssetName(m_StaticMesh.name)) { return fail("Enter a name for the static mesh (a plain file name)."); }
+        options.mesh = destinationOf(m_StaticMesh, folder, Frost::AssetType::Mesh);
+        destinations.push_back(options.mesh);
+    }
+    if (m_SkeletalMesh.enabled) {
+        if (!IsValidAssetName(m_SkeletalMesh.name)) { return fail("Enter a name for the skeletal mesh (a plain file name)."); }
+        options.skeletalMesh = destinationOf(m_SkeletalMesh, folder, Frost::AssetType::SkeletalMesh);
+        destinations.push_back(options.skeletalMesh);
+    }
+    if (needsSkeleton) {
+        if (m_UseExistingSkeleton) {
+            if (!existingSkeletonPath.has_value()) { return fail("Choose the skeleton to bind the skeletal mesh and animations to."); }
+            options.existingSkeleton = Frost::AssetReference{.id = m_ExistingSkeleton.id, .path = *existingSkeletonPath};
+        }
+        else {
+            if (!IsValidAssetName(m_Skeleton.name)) { return fail("Enter a name for the skeleton (a plain file name)."); }
+            options.skeleton = destinationOf(m_Skeleton, folder, Frost::AssetType::Skeleton);
+            destinations.push_back(options.skeleton);
+        }
+    }
+    for (std::size_t i = 0; i < m_Animations.size(); ++i) {
+        if (!m_Animations[i].enabled) { continue; }
+        if (!IsValidAssetName(m_Animations[i].name)) {
+            return fail("Enter a name for animation '" + info.animations[i].name + "' (a plain file name).");
+        }
+        options.animations.push_back(Frost::AssetImporter::ModelOptions::Animation{
+                .index = i, .destination = destinationOf(m_Animations[i], animationFolder, Frost::AssetType::Animation)});
+        destinations.push_back(options.animations.back().destination);
+    }
+
+    std::sort(destinations.begin(), destinations.end());
+    if (std::adjacent_find(destinations.begin(), destinations.end()) != destinations.end()) {
+        return fail("Two of the assets would have the same file; give them different names.");
+    }
+
+    options.textureFolder = textureFolder;
+    options.attachLooseParts = m_AttachLooseParts;
+    options.partBones = m_PartBones;
+    for (const Frost::GltfPartInfo& part : info.parts) {
+        const auto choice = m_SeparateParts.find(part.name);
+        if (choice != m_SeparateParts.end() ? choice->second : part.parentBone.empty()) { options.separateParts.insert(part.name); }
+    }
+    plan.folder = !options.skeletalMesh.empty() ? options.skeletalMesh.parent_path()
+                  : !options.mesh.empty()       ? options.mesh.parent_path()
+                                                : options.animations.front().destination.parent_path();
+    plan.run = [&context, source, options] { return context.ImportModel(source, options); };
+    return plan;
+}
+
+AssetLibraryPanel::ImportPlan AssetLibraryPanel::DrawSingleImportOptions(EditorContext& context, const std::filesystem::path& source,
+                                                                        bool& submit) {
+    AssetLibrary& library = context.GetLibrary();
+    const std::filesystem::path content = library.GetContentDirectory();
+
+    const std::optional<Frost::AssetType> sourceType = Frost::AssetImporter::GetSourceType(source);
     const bool fixed = m_FixedDestination.has_value();
+    const std::optional<Frost::AssetType> type = fixed ? Frost::AssetManager::GetAssetType(*m_FixedDestination) : sourceType;
     const float labelWidth = ImGui::CalcTextSize("Its textures").x + ImGui::GetStyle().ItemSpacing.x * 3.0f;
 
-    // Where it goes: name and folder (content-relative), and for a model, where its textures go.
+    // Where it goes: name and folder (content-relative), and for a mesh, where its textures go.
     ImGui::BeginDisabled(fixed);
     ImGui::AlignTextToFramePadding();
     ImGui::TextUnformatted("Name");
@@ -807,8 +1437,8 @@ void AssetLibraryPanel::DrawImportDialog(EditorContext& context) {
     }
     ImGui::EndDisabled();
 
-    const bool isModel = type == Frost::AssetType::Mesh;
-    ImGui::BeginDisabled(!isModel);
+    const bool isMesh = type == Frost::AssetType::Mesh || type == Frost::AssetType::SkeletalMesh;
+    ImGui::BeginDisabled(!isMesh);
     ImGui::AlignTextToFramePadding();
     ImGui::TextUnformatted("Its textures");
     ImGui::SameLine(labelWidth);
@@ -819,23 +1449,53 @@ void AssetLibraryPanel::DrawImportDialog(EditorContext& context) {
                           "where they are.");
     ImGui::EndDisabled();
 
+    // Reimporting an animation from another file: which of its animations.
+    const bool isAnimation = fixed && type == Frost::AssetType::Animation;
+    const bool haveAnimations = m_Inspection.source == source && m_Inspection.info.has_value() && !m_Inspection.info->animations.empty();
+    if (isAnimation && haveAnimations) {
+        const std::vector<Frost::GltfAnimationInfo>& animations = m_Inspection.info->animations;
+        m_FixedAnimation = std::min(m_FixedAnimation, animations.size() - 1);
+        ImGui::AlignTextToFramePadding();
+        ImGui::TextUnformatted("Animation");
+        ImGui::SameLine(labelWidth);
+        ImGui::SetNextItemWidth(ImGui::GetFontSize() * 18.0f);
+        if (ImGui::BeginCombo("##FixedAnimation", animations[m_FixedAnimation].name.c_str())) {
+            for (std::size_t i = 0; i < animations.size(); ++i) {
+                ImGui::BeginDisabled(!animations[i].problem.empty());
+                if (ImGui::Selectable((animations[i].name + "  (" + FormatSeconds(animations[i].duration) + ")").c_str(),
+                                      i == m_FixedAnimation)) {
+                    m_FixedAnimation = i;
+                }
+                ImGui::EndDisabled();
+            }
+            ImGui::EndCombo();
+        }
+    }
+    if (fixed && (type == Frost::AssetType::SkeletalMesh || type == Frost::AssetType::Animation)) {
+        ImGui::TextDisabled("It stays bound to the skeleton it was imported for.");
+    }
+
     // Validate and resolve.
     const std::filesystem::path folder = Frost::AssetManager::NormalizePath(content / Frost::PathFromUtf8(m_ImportFolder));
     const std::filesystem::path textureFolder =
             Frost::AssetManager::NormalizePath(content / Frost::PathFromUtf8(m_ImportTextureFolder));
 
+    ImportPlan plan;
     std::filesystem::path destination;
-    std::string problem;
-    if (m_ImportSource.empty()) { problem = "Choose a file to import."; }
-    else if (!type.has_value()) { problem = "Not a file that can be imported (expected .gltf, .glb, .png, .jpg or .jpeg)."; }
-    else if (!FileExists(source)) { problem = "File not found."; }
+    if (m_ImportSource.empty()) { plan.problem = "Choose a file to import."; }
+    else if (!sourceType.has_value()) { plan.problem = "Not a file that can be imported (expected .gltf, .glb, .png, .jpg or .jpeg)."; }
+    else if (!FileExists(source)) { plan.problem = "File not found."; }
     else if (fixed) {
         destination = *m_FixedDestination;
-        if (Frost::AssetManager::GetAssetType(destination) != type) { problem = "That file is not the same kind of asset."; }
+        if (!type.has_value() || !Frost::AssetImporter::CanImportAs(source, *type)) {
+            plan.problem = "That file cannot be imported as this kind of asset.";
+        }
+        else if (isAnimation && !m_Inspection.error.empty()) { plan.problem = m_Inspection.error; }
+        else if (isAnimation && !haveAnimations) { plan.problem = "That model has no animations."; }
     }
-    else if (!IsValidAssetName(m_ImportName)) { problem = "Enter a name for the asset (a plain file name)."; }
-    else if (!library.IsInside(folder) || (isModel && !library.IsInside(textureFolder))) {
-        problem = "Folders must be inside the content directory.";
+    else if (!IsValidAssetName(m_ImportName)) { plan.problem = "Enter a name for the asset (a plain file name)."; }
+    else if (!library.IsInside(folder) || (isMesh && !library.IsInside(textureFolder))) {
+        plan.problem = "Folders must be inside the content directory.";
     }
     else {
         destination = folder / Frost::PathFromUtf8(m_ImportName);
@@ -844,8 +1504,8 @@ void AssetLibraryPanel::DrawImportDialog(EditorContext& context) {
     }
 
     // Status: what will happen.
-    if (!problem.empty()) { ImGui::TextDisabled("%s", problem.c_str()); }
-    else {
+    if (plan.problem.empty()) {
+        ImGui::Spacing();
         ImGui::TextDisabled("-> %s", Frost::GenericPathToUtf8(destination.lexically_relative(content)).c_str());
 
         const AssetLibrary::Entry* const existing = library.FindByPath(destination);
@@ -856,33 +1516,15 @@ void AssetLibraryPanel::DrawImportDialog(EditorContext& context) {
             ImGui::TextColored(kWarningColor, "Replaces the existing asset '%s' (it keeps its identity, so references stay valid).",
                                Frost::PathToUtf8(destination.filename()).c_str());
         }
-        else {
-            ImGui::NewLine();
-        }
+
+        Frost::AssetImporter::Options options;
+        if (isAnimation) { options.sourceItem = Frost::AssetImporter::GetAnimationItem(*m_Inspection.info, m_FixedAnimation); }
+        plan.folder = destination.parent_path();
+        plan.run = [&context, source, destination, textureFolder = isMesh ? textureFolder : std::filesystem::path{}, options] {
+            return context.ImportAsset(source, destination, textureFolder, options);
+        };
     }
-
-    if (!m_ImportError.empty()) { ImGui::TextColored(kErrorColor, "%s", m_ImportError.c_str()); }
-    else { ImGui::NewLine(); }
-
-    ImGui::BeginDisabled(!problem.empty());
-    submit |= ImGui::Button("Import", ImVec2(120.0f, 0.0f));
-    ImGui::EndDisabled();
-    ImGui::SameLine();
-    const bool cancel = ImGui::Button("Cancel", ImVec2(120.0f, 0.0f)) || ImGui::IsKeyPressed(ImGuiKey_Escape);
-
-    if (submit && problem.empty()) {
-        m_ImportError = context.ImportAsset(source, destination, isModel ? textureFolder : std::filesystem::path{});
-        if (m_ImportError.empty()) {
-            m_Filter.clear();                         // Make sure the new asset is visible...
-            m_CurrentFolder = destination.parent_path();  // ...by showing where it went.
-            ImGui::CloseCurrentPopup();
-        }
-    }
-    else if (cancel) {
-        ImGui::CloseCurrentPopup();
-    }
-
-    ImGui::EndPopup();
+    return plan;
 }
 
 std::string AssetLibraryPanel::DisplayFolder(EditorContext& context, const std::filesystem::path& folder) const {

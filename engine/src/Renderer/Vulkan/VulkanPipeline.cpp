@@ -9,6 +9,7 @@
 #include <fstream>
 #include <sstream>
 #include <stdexcept>
+#include <vector>
 
 namespace {
 
@@ -28,10 +29,10 @@ namespace Frost {
     VulkanPipeline::VulkanPipeline(const VulkanDevice& device, const VkFormat colorAttachmentFormat,
                                    const VkFormat depthAttachmentFormat, const VkDescriptorSetLayout frameSetLayout,
                                    const VkDescriptorSetLayout materialSetLayout, const std::string& vertexShaderPath,
-                                   const std::string& fragmentShaderPath)
+                                   const std::string& fragmentShaderPath, const VertexLayout vertexLayout)
         : m_Device(device.GetHandle()), m_ColorAttachmentFormat(colorAttachmentFormat) {
         CreatePipeline(device, colorAttachmentFormat, depthAttachmentFormat, frameSetLayout, materialSetLayout,
-                       vertexShaderPath, fragmentShaderPath);
+                       vertexShaderPath, fragmentShaderPath, vertexLayout);
     }
 
     VulkanPipeline::~VulkanPipeline() {
@@ -91,7 +92,8 @@ namespace Frost {
                                         const VkFormat depthAttachmentFormat,
                                         const VkDescriptorSetLayout frameSetLayout,
                                         const VkDescriptorSetLayout materialSetLayout,
-                                        const std::string& vertexShaderPath, const std::string& fragmentShaderPath) {
+                                        const std::string& vertexShaderPath, const std::string& fragmentShaderPath,
+                                        const VertexLayout vertexLayout) {
         const VkShaderModule vertexModule = CreateShaderModule(device, ReadFile(vertexShaderPath));
         const VkShaderModule fragmentModule = CreateShaderModule(device, ReadFile(fragmentShaderPath));
 
@@ -112,16 +114,25 @@ namespace Frost {
                                                 .pSpecializationInfo = nullptr},
         };
 
-        const VkVertexInputBindingDescription bindingDescription = Vertex::GetBindingDescription();
-        const std::array<VkVertexInputAttributeDescription, Vertex::kAttributeCount> attributeDescriptions =
-                Vertex::GetAttributeDescriptions();
+        // Binding 0: Vertex; for skinned meshes also binding 1: SkinnedVertex.
+        std::vector<VkVertexInputBindingDescription> bindingDescriptions = {Vertex::GetBindingDescription()};
+        std::vector<VkVertexInputAttributeDescription> attributeDescriptions;
+        for (const VkVertexInputAttributeDescription& attribute : Vertex::GetAttributeDescriptions()) {
+            attributeDescriptions.push_back(attribute);
+        }
+        if (vertexLayout == VertexLayout::Skinned) {
+            bindingDescriptions.push_back(SkinnedVertex::GetBindingDescription());
+            for (const VkVertexInputAttributeDescription& attribute : SkinnedVertex::GetAttributeDescriptions()) {
+                attributeDescriptions.push_back(attribute);
+            }
+        }
 
         const VkPipelineVertexInputStateCreateInfo vertexInputState{
                 .sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
                 .pNext = nullptr,
                 .flags = 0,
-                .vertexBindingDescriptionCount = 1,
-                .pVertexBindingDescriptions = &bindingDescription,
+                .vertexBindingDescriptionCount = static_cast<std::uint32_t>(bindingDescriptions.size()),
+                .pVertexBindingDescriptions = bindingDescriptions.data(),
                 .vertexAttributeDescriptionCount = static_cast<std::uint32_t>(attributeDescriptions.size()),
                 .pVertexAttributeDescriptions = attributeDescriptions.data(),
         };

@@ -38,11 +38,14 @@ namespace {
     std::optional<Frost::Bounds> GetFramingBounds(const Frost::GameObject& object) {
         if (std::optional<Frost::Bounds> bounds = object.GetWorldBounds(); bounds.has_value()) { return bounds; }
 
+        // Where it is in the world (an attached object moves with what it is attached to).
+        Frost::TransformComponent transform;
+        transform.SetFromMatrix(object.GetWorldMatrix());
         if (const Frost::BoxColliderComponent* const collider = object.TryGetComponent<Frost::BoxColliderComponent>()) {
-            return Frost::MakeWorldBox(object.GetTransform(), *collider).GetBounds();
+            return Frost::MakeWorldBox(transform, *collider).GetBounds();
         }
         if (const auto* const capsule = object.TryGetComponent<Frost::CapsuleColliderComponent>()) {
-            return Frost::MakeWorldCapsule(object.GetTransform(), *capsule).GetBounds();
+            return Frost::MakeWorldCapsule(transform, *capsule).GetBounds();
         }
         return std::nullopt;
     }
@@ -94,7 +97,17 @@ void EditorApplication::OnUpdate(const float deltaTime) {
         m_Context.OnAssetsChanged();
     }
 
-    // Closing the window with unsaved changes asks first (the prompt may re-request the close).
+    // Closing the window with unsaved changes asks first (the prompt may re-request the close):
+    // the asset editors' changes (each editor asks), then the level's.
+    if (engine.GetWindow().ShouldClose()) {
+        for (const std::unique_ptr<SkeletalAssetEditor>& editor : m_AssetEditors) {
+            if (editor->IsDirty()) {
+                engine.GetWindow().SetShouldClose(false);
+                editor->RequestClose();
+                break;
+            }
+        }
+    }
     if (engine.GetWindow().ShouldClose() && m_Context.IsLevelDirty()) {
         engine.GetWindow().SetShouldClose(false);
         RequestAction(PendingAction::Exit);
@@ -107,9 +120,11 @@ void EditorApplication::OnUpdate(const float deltaTime) {
     if (m_EditorCamera.IsControlling() != wasControlling) { SetUiInputEnabled(!m_EditorCamera.IsControlling()); }
 
     m_Context.UpdateSimulation(deltaTime);
+    m_Context.UpdateAnimationPreviews(deltaTime);
     m_Context.UpdatePlaying();
 
     if (const std::optional<Frost::ObjectId> focus = m_Context.ConsumeFocusRequest()) { FocusObject(*focus); }
+    if (const std::optional<std::filesystem::path> asset = m_Context.ConsumeOpenAssetEditorRequest()) { OpenAssetEditor(*asset); }
     if (std::optional<std::filesystem::path> level = m_Context.ConsumeOpenLevelRequest()) {
         m_PendingLevelFile = std::move(*level);
         RequestAction(PendingAction::OpenLevelFile);
@@ -131,6 +146,7 @@ void EditorApplication::OnImGuiRender() {
     m_LevelPanel.Draw(m_Context);
     m_InspectorPanel.Draw(m_Context);
     m_AssetLibraryPanel.Draw(m_Context);
+    std::erase_if(m_AssetEditors, [this](const std::unique_ptr<SkeletalAssetEditor>& editor) { return !editor->Draw(m_Context); });
 
     DrawDialogs();
     HandleShortcuts();
@@ -442,6 +458,22 @@ std::string EditorApplication::CheckLevelPath(const std::filesystem::path& path,
 
 const Frost::Project& EditorApplication::GetProject() { return GetEngine().GetProject(); }
 
+void EditorApplication::OpenAssetEditor(const std::filesystem::path& path) {
+    const std::filesystem::path normalized = Frost::AssetManager::NormalizePath(path);
+    for (const std::unique_ptr<SkeletalAssetEditor>& editor : m_AssetEditors) {
+        if (editor->GetPath() == normalized) {
+            editor->Focus();
+            return;
+        }
+    }
+    try {
+        m_AssetEditors.push_back(std::make_unique<SkeletalAssetEditor>(m_Context, normalized));
+    }
+    catch (const Frost::ImportError& e) {
+        m_Context.ReportError(std::string("Could not open '") + Frost::PathToUtf8(normalized.filename()) + "': " + e.what());
+    }
+}
+
 void EditorApplication::FocusObject(const Frost::ObjectId id) {
     const Frost::GameObject* const object = m_Context.GetLevel().FindObject(id);
     if (object == nullptr) { return; }
@@ -450,7 +482,7 @@ void EditorApplication::FocusObject(const Frost::ObjectId id) {
         m_EditorCamera.Focus(bounds->GetCenter(), glm::length(bounds->GetSize()) * 0.5f);
     }
     else {
-        m_EditorCamera.Focus(object->GetTransform().position, 1.0f * Frost::kMeter);  // Empty object: frame its position.
+        m_EditorCamera.Focus(glm::vec3(object->GetWorldMatrix()[3]), 1.0f * Frost::kMeter);  // Empty object: frame its position.
     }
 }
 

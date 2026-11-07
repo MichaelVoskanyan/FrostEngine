@@ -9,6 +9,7 @@
 #include <fstream>
 #include <iostream>
 #include <iterator>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <system_error>
@@ -112,7 +113,7 @@ bool AssetLibrary::Poll(const std::chrono::milliseconds interval) {
 std::vector<std::string> AssetLibrary::UpgradeLegacyAssets() {
     std::vector<std::filesystem::path> legacy;
     for (const Entry& entry : GetEntries()) {
-        if (entry.version < 2) { legacy.push_back(entry.path); }
+        if (!Frost::AssetFile::HasId(entry.type, entry.version)) { legacy.push_back(entry.path); }
     }
 
     std::vector<std::string> messages;
@@ -148,8 +149,12 @@ std::vector<const AssetLibrary::Entry*> AssetLibrary::GetAssetsIn(const std::fil
         if (entry.path.parent_path() == normalized) { assets.push_back(&entry); }
     }
 
-    std::sort(assets.begin(), assets.end(), [](const Entry* a, const Entry* b) {
-        if (a->type != b->type) { return a->type < b->type; }
+    // Types in the order tools list them (Frost::kAssetTypes).
+    const auto typeOrder = [](const Frost::AssetType type) {
+        return std::find(std::begin(Frost::kAssetTypes), std::end(Frost::kAssetTypes), type) - std::begin(Frost::kAssetTypes);
+    };
+    std::sort(assets.begin(), assets.end(), [&](const Entry* a, const Entry* b) {
+        if (a->type != b->type) { return typeOrder(a->type) < typeOrder(b->type); }
         return Lowercase(Frost::PathToUtf8(a->path.filename())) < Lowercase(Frost::PathToUtf8(b->path.filename()));
     });
     return assets;
@@ -318,7 +323,8 @@ std::vector<std::filesystem::path> AssetLibrary::FindReferencers(const Frost::As
     std::vector<std::filesystem::path> referencers;
     if (!id.IsValid()) { return referencers; }
 
-    // Levels store ids as hex text; meshes store them as 16 raw bytes (high, then low, little-
+    // Levels store ids as hex text; binary assets (meshes' materials, skeletal meshes and
+    // animations referring to their skeleton) store them as 16 raw bytes (high, then low, little-
     // endian). Both are searched for as-is: a 128-bit random id does not occur by accident.
     const std::string text = id.ToString();
     std::string bytes(16, '\0');
@@ -337,12 +343,14 @@ std::vector<std::filesystem::path> AssetLibrary::FindReferencers(const Frost::As
 
         const std::string extension = Lowercase(Frost::PathToUtf8(it->path().extension()));
         const bool isLevel = extension == Frost::Project::kLevelExtension;
-        const bool isMesh = extension == Frost::AssetFile::kMeshExtension;
-        if (!isLevel && !isMesh) { continue; }
+        const std::optional<Frost::AssetType> type = Frost::AssetManager::GetAssetType(it->path());
+        const bool refersToAssets =
+                type == Frost::AssetType::Mesh || type == Frost::AssetType::SkeletalMesh || type == Frost::AssetType::Animation;
+        if (!isLevel && !refersToAssets) { continue; }
 
         const std::string contents = ReadTextFile(it->path());
-        // A mesh's own id is in its header (offset 8); only a match past that is a reference.
-        const std::size_t found = contents.find(isLevel ? text : bytes, isMesh ? 24 : 0);
+        // An asset's own id is in its header (offset 8); only a match past that is a reference.
+        const std::size_t found = contents.find(isLevel ? text : bytes, isLevel ? 0 : 24);
         if (found != std::string::npos) { referencers.push_back(Frost::AssetManager::NormalizePath(it->path())); }
     }
 
@@ -352,14 +360,25 @@ std::vector<std::filesystem::path> AssetLibrary::FindReferencers(const Frost::As
 
 Frost::AssetImporter::Result AssetLibrary::Import(const std::filesystem::path& source,
                                                   const std::filesystem::path& destination,
-                                                  const std::filesystem::path& textureFolder) {
-    // Current first: the importer looks up the textures an earlier import produced.
+                                                  const std::filesystem::path& textureFolder,
+                                                  Frost::AssetImporter::Options options) {
+    // Current first: the importer looks up the textures (and skeletons) an earlier import produced.
     m_Assets.GetRegistry().Refresh();
 
-    Frost::AssetImporter::Result result = Frost::AssetImporter::Import(
-            source, Frost::AssetImporter::Options{.destination = destination,
-                                                  .textureFolder = textureFolder,
-                                                  .registry = &m_Assets.GetRegistry()});
+    options.destination = destination;
+    options.textureFolder = textureFolder;
+    options.registry = &m_Assets.GetRegistry();
+    Frost::AssetImporter::Result result = Frost::AssetImporter::Import(source, options);
+    Refresh();
+    return result;
+}
+
+Frost::AssetImporter::ModelResult AssetLibrary::ImportModel(const std::filesystem::path& source,
+                                                            Frost::AssetImporter::ModelOptions options) {
+    m_Assets.GetRegistry().Refresh();
+
+    options.registry = &m_Assets.GetRegistry();
+    Frost::AssetImporter::ModelResult result = Frost::AssetImporter::ImportModel(source, options);
     Refresh();
     return result;
 }
@@ -367,6 +386,11 @@ Frost::AssetImporter::Result AssetLibrary::Import(const std::filesystem::path& s
 const AssetLibrary::Entry* AssetLibrary::FindBySource(const std::filesystem::path& source) const {
     const std::optional<Frost::AssetType> type = Frost::AssetImporter::GetSourceType(source);
     return type.has_value() ? m_Assets.GetRegistry().FindBySource(source, "", *type) : nullptr;
+}
+
+const AssetLibrary::Entry* AssetLibrary::FindBySource(const std::filesystem::path& source, const Frost::AssetType type,
+                                                      const std::string_view item) const {
+    return m_Assets.GetRegistry().FindBySource(source, item, type);
 }
 
 bool AssetLibrary::IsInside(const std::filesystem::path& path) const {

@@ -10,16 +10,17 @@
 #include <map>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace Frost {
     class AssetManager;
 }
 
-// The project's assets, as the editor organizes them: every Frost asset file (.fmesh, .ftex) under
-// the project's content directory, in whatever folder structure the user likes (e.g.
-// Weapons/Glock19/Meshes, Weapons/Glock19/Textures), plus its levels (.flevel, in Levels/ by
-// default). The content directory is the library; the engine's AssetRegistry (owned by the
+// The project's assets, as the editor organizes them: every Frost asset file (.fmesh, .ftex,
+// .fskel, .fskmesh, .fanim) under the project's content directory, in whatever folder structure
+// the user likes (e.g. Weapons/Glock19/Meshes, Weapons/Glock19/Textures), plus its levels
+// (.flevel, in Levels/ by default). The content directory is the library; the engine's AssetRegistry (owned by the
 // AssetManager) knows where each asset is. Nothing outside the content directory is part of it.
 //
 // Every operation here keeps asset ids: renaming or moving an asset or folder is a plain file
@@ -69,7 +70,8 @@ public:
     [[nodiscard]]
     const std::vector<std::filesystem::path>& GetSubfolders(const std::filesystem::path& folder) const;
 
-    // Assets directly in `folder`, models first, then by name.
+    // Assets directly in `folder`, by type (models, skeletal meshes, skeletons, animations,
+    // textures), then by name.
     [[nodiscard]]
     std::vector<const Entry*> GetAssetsIn(const std::filesystem::path& folder) const;
 
@@ -110,21 +112,35 @@ public:
     // Gives an asset whose id duplicates another's (a copy made outside the editor) its own id.
     std::string MakeUnique(const std::filesystem::path& asset);
 
-    // Saved files in the content directory that refer to the asset: levels, and meshes whose
-    // materials use it (for a texture).
+    // Saved files in the content directory that refer to the asset: levels, meshes whose
+    // materials use it (for a texture), and skeletal meshes and animations bound to it (for a
+    // skeleton).
     [[nodiscard]]
     std::vector<std::filesystem::path> FindReferencers(const Frost::AssetId& id) const;
 
     // --- Importing -------------------------------------------------------------------------------
 
-    // Imports `source` into `destination` (and, for a model, its textures into `textureFolder`;
-    // empty = the default) and rescans. Throws Frost::ImportError.
+    // Imports `source` into `destination` (and, for a mesh, its textures into `textureFolder`;
+    // empty = the default) and rescans. `options` supplies the rest (a skeletal mesh's or
+    // animation's skeleton, which animation); its destination, texture folder and registry are
+    // filled in here. Throws Frost::ImportError.
     Frost::AssetImporter::Result Import(const std::filesystem::path& source, const std::filesystem::path& destination,
-                                        const std::filesystem::path& textureFolder = {});
+                                        const std::filesystem::path& textureFolder = {},
+                                        Frost::AssetImporter::Options options = {});
 
-    // The asset imported from `source` earlier, if any.
+    // Imports several assets from one model (see AssetImporter::ImportModel; the registry is filled
+    // in here) and rescans. Throws Frost::ImportError.
+    Frost::AssetImporter::ModelResult ImportModel(const std::filesystem::path& source,
+                                                  Frost::AssetImporter::ModelOptions options);
+
+    // The asset imported from `source` earlier as its main asset (a source's model or image), if any.
     [[nodiscard]]
     const Entry* FindBySource(const std::filesystem::path& source) const;
+
+    // The asset of `type` imported from `source` (and, for one of several made from it, that item:
+    // see AssetImporter::GetAnimationItem) earlier, if any.
+    [[nodiscard]]
+    const Entry* FindBySource(const std::filesystem::path& source, Frost::AssetType type, std::string_view item = {}) const;
 
     // Whether `path` is the content directory or inside it.
     [[nodiscard]]

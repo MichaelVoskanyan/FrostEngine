@@ -13,7 +13,8 @@ namespace Frost {
     // Owns the graphics pipeline's descriptor set layouts and the pools their sets are allocated
     // from:
     //   set 0 - per-frame data: a uniform buffer (FrameUniforms, vertex + fragment stages) at
-    //           binding 0 and a storage buffer of GpuLights (fragment stage) at binding 1;
+    //           binding 0, a storage buffer of GpuLights (fragment stage) at binding 1, and a
+    //           storage buffer of joint matrices for skinned draws (vertex stage) at binding 2;
     //   set 1 - per-material: one uniform buffer (MaterialUniforms) at binding 0 and the material's
     //           textures (MaterialTextures::kSlotCount combined image samplers) at bindings 1...,
     //           fragment stage.

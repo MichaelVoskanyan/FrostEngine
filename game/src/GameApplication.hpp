@@ -1,4 +1,5 @@
 #pragma once
+#include <Frost/Animation/AnimationSystem.hpp>
 #include <Frost/Application.hpp>
 #include <Frost/Physics/PhysicsSystem.hpp>
 #include <Frost/Project/GameLaunchOptions.hpp>
@@ -44,4 +45,5 @@ private:
 
     // Moves the level's simulated rigid bodies every frame.
     Frost::PhysicsSystem m_Physics;
+    Frost::AnimationSystem m_Animation;
 };

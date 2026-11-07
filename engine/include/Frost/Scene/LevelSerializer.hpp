@@ -42,23 +42,35 @@ namespace Frost {
     // centimeters, the world unit (Frost/Units.hpp). Levels before version 7 stored them in meters;
     // they are converted to centimeters as they are read (and saved in centimeters from then on).
     //
-    // Format (version 7; versions 1 to 6 are still read: version 1 stored references as plain path
+    // Format (version 12; versions 1 to 11 are still read: version 1 stored references as plain path
     // strings, versions before 3 had no colliders or rigid bodies, before 4 no cameras, before 5 no
     // fly controllers, before 6 no capsule colliders or character controllers and cameras had no
-    // offset or rotation, and before 7 lengths were in meters):
+    // offset or rotation, before 7 lengths were in meters, before 8 there were no skeletal meshes,
+    // before 9 skeletal meshes had no playback settings or attachments toggle, before 10 there were
+    // no attachments, animation triggers or hidden models, before 11 animation triggers had no
+    // visibility keys, and before 12 attachments had no socket):
     //   {
-    //     "format": "FrostLevel", "version": 7, "name": "...",
+    //     "format": "FrostLevel", "version": 12, "name": "...",
     //     "environment": {"ambientColor": [r, g, b], "ambientIntensity": i},   (optional)
     //     "objects": [{
     //       "id": 1, "name": "...",
     //       "transform": {"position": [x, y, z], "rotation": [pitch, yaw, roll] (degrees), "scale": [x, y, z]},
+    //       "attachment": {"parent": object id, "bone": "...", "slot": "...", "socket": "..."},  (optional; a parent not in the
+    //                                                                   level, or a loop, is dropped with a warning)
     //       "mesh": {"id": "<32 hex digits>", "path": "relative/or/absolute/path.fmesh"},  (optional; {} = no model yet)
+    //       "meshVisible": false,                                   (optional, with "mesh"; absent = shown)
     //       "materials": [{                                         (optional, with "mesh"; sub-mesh overrides)
     //         "subMesh": 0, "subMeshName": "...",                   (name wins if the model has it)
     //         "baseColorFactor": [r, g, b, a], "metallic": m, "roughness": r, "normalScale": n,
     //         "occlusionStrength": o, "emissiveFactor": [r, g, b],
     //         "textures": {"baseColor": {"id", "path"}, "normal": null, ...} (absent = inherit, null = none)
     //       }],
+    //       "skeletalMesh": {"mesh": {"id", "path"} ({} = no model yet),   (optional)
+    //                        "animation": {"id", "path"} (optional; absent = the rest pose),
+    //                        "animationTime": seconds, "autoPlay": b, "loop": b, "playRate": r,
+    //                        "attachmentsFollowBones": b, "visible": b, "materials": [...] (as above)},
+    //       "animationTriggers": [{"key": "R" (see KeyNames), "animation": {"id", "path"} ({} = none),  (optional)
+    //                              "visibilityKeys": [{"time": s, "object": object id, "visible": b}]}],
     //       "light": {"type": "directional"|"point"|"spot",         (optional; missing fields = type defaults)
     //                 "enabled": b, "color": [r, g, b], "useTemperature": b, "temperature": kelvin,
     //                 "intensity": i, "range": r, "innerConeAngle": deg, "outerConeAngle": deg},

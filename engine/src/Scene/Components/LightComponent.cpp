@@ -2,6 +2,7 @@
 
 #include <Frost/Renderer/Light.hpp>
 
+#include <glm/geometric.hpp>
 #include <glm/trigonometric.hpp>
 
 #include <algorithm>
@@ -36,14 +37,18 @@ namespace Frost {
     }
 
     Light LightComponent::ToRenderLight(const TransformComponent& transform) const noexcept {
+        return ToRenderLight(transform.position, transform.GetRotation());
+    }
+
+    Light LightComponent::ToRenderLight(const glm::vec3& position, const glm::quat& rotation) const noexcept {
         // Sanitized here rather than trusted: values come from UI fields and level files.
         const float outer = std::clamp(outerConeAngle, 0.1f, 89.9f);
         const float inner = std::clamp(innerConeAngle, 0.0f, outer);
 
         return Light{
                 .type = type,
-                .position = transform.position,
-                .direction = transform.GetForward(),
+                .position = position,
+                .direction = glm::normalize(rotation * glm::vec3(0.0f, 0.0f, -1.0f)),
                 .color = GetRadiance(),
                 .range = std::max(range, 1.0f * kCentimeter),
                 .innerConeCos = std::cos(glm::radians(inner)),

@@ -7,6 +7,7 @@
 #include <Frost/Renderer/RenderOverlay.hpp>
 #include <Frost/Renderer/ShaderData.hpp>
 #include <Frost/Renderer/Texture.hpp>
+#include <Frost/Renderer/Vertex.hpp>
 #include <Frost/Renderer/Vulkan/VulkanAllocator.hpp>
 #include <Frost/Renderer/Vulkan/VulkanBuffer.hpp>
 #include <Frost/Renderer/Vulkan/VulkanCommandPool.hpp>
@@ -75,10 +76,7 @@ namespace Frost {
         m_DepthFormat = ChooseDepthFormat();
         CreateDepthImage();
 
-        m_Pipeline = std::make_unique<VulkanPipeline>(*m_Device, m_Swapchain->GetImageFormat(), m_DepthFormat,
-                                                      m_DescriptorAllocator->GetFrameSetLayout(),
-                                                      m_DescriptorAllocator->GetMaterialSetLayout(),
-                                                      "shaders/basic.vert.spv", "shaders/basic.frag.spv");
+        CreatePipelines();
 
         m_CommandBuffers = m_CommandPool->AllocateCommandBuffers(*m_Device, kFramesInFlight);
 
@@ -154,6 +152,12 @@ namespace Frost {
 
     VkFormat Renderer::GetSwapchainImageFormat() const noexcept { return m_Swapchain->GetImageFormat(); }
 
+    std::shared_ptr<Mesh> Renderer::CreateMesh(const MeshData& data, const std::span<const SkinnedVertex> skin) const {
+        // Skinned meshes carry no embedded materials of their own here: their materials are
+        // attached by whoever loads them (see AssetManager::LoadSkeletalMesh).
+        return std::make_shared<Mesh>(*m_Allocator, *m_Device, *m_CommandPool, data, skin);
+    }
+
     std::shared_ptr<Mesh> Renderer::CreateMesh(const MeshData& data) const {
         auto mesh = std::make_shared<Mesh>(*m_Allocator, *m_Device, *m_CommandPool, data);
 
@@ -201,10 +205,53 @@ namespace Frost {
     void Renderer::Submit(std::shared_ptr<const Mesh> mesh, const glm::mat4& transform,
                           std::vector<std::shared_ptr<Material>> materialOverrides) {
         if (mesh == nullptr) { return; }
+        if (mesh->IsSkinned()) {
+            if (!m_SkinnedMisuseWarned) {
+                m_SkinnedMisuseWarned = true;
+                std::cerr << "[Frost::Renderer] A skinned mesh was submitted without a palette (use SubmitSkinned); "
+                             "it is not drawn.\n";
+            }
+            return;
+        }
 
         m_PendingDraws.push_back(DrawCommand{.mesh = std::move(mesh),
                                              .transform = transform,
-                                             .materialOverrides = std::move(materialOverrides)});
+                                             .materialOverrides = std::move(materialOverrides),
+                                             .firstJoint = 0});
+    }
+
+    void Renderer::SubmitSkinned(std::shared_ptr<const Mesh> mesh, const glm::mat4& transform,
+                                 std::vector<std::shared_ptr<Material>> materialOverrides,
+                                 const std::span<const glm::mat4> palette) {
+        if (mesh == nullptr) { return; }
+
+        // The shader indexes the palette with the mesh's joint indices: a short palette would have
+        // it read other draws' matrices (or past the buffer), so such a draw is refused.
+        if (!mesh->IsSkinned() || palette.size() < mesh->GetJointCount()) {
+            if (!m_SkinnedMisuseWarned) {
+                m_SkinnedMisuseWarned = true;
+                std::cerr << "[Frost::Renderer] SubmitSkinned: " << (mesh->IsSkinned() ? "the palette is too short for the mesh"
+                                                                                      : "the mesh is not skinned")
+                          << "; it is not drawn.\n";
+            }
+            return;
+        }
+
+        if (m_PendingJoints.size() + palette.size() > kMaxJointMatrices) {
+            if (!m_JointLimitWarned) {
+                m_JointLimitWarned = true;
+                std::cerr << "[Frost::Renderer] More than " << kMaxJointMatrices
+                          << " joint matrices submitted in one frame; the skinned meshes past that are not drawn.\n";
+            }
+            return;
+        }
+
+        const auto firstJoint = static_cast<std::uint32_t>(m_PendingJoints.size());
+        m_PendingJoints.insert(m_PendingJoints.end(), palette.begin(), palette.end());
+        m_PendingDraws.push_back(DrawCommand{.mesh = std::move(mesh),
+                                             .transform = transform,
+                                             .materialOverrides = std::move(materialOverrides),
+                                             .firstJoint = firstJoint});
     }
 
     void Renderer::SubmitLight(const Light& light) {
@@ -280,6 +327,9 @@ namespace Frost {
             // frame, and a fixed size means the descriptor never has to be rewritten.
             frame.lightBuffer = std::make_unique<VulkanBuffer>(*m_Allocator, sizeof(GpuLight) * kMaxLights,
                                                                VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, true);
+            // Likewise the joint matrices (2 MiB): fixed size, only the frame's palettes written.
+            frame.jointBuffer = std::make_unique<VulkanBuffer>(*m_Allocator, sizeof(GpuJointMatrix) * kMaxJointMatrices,
+                                                               VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, true);
             frame.descriptorSet = m_DescriptorAllocator->Allocate(m_DescriptorAllocator->GetFrameSetLayout());
 
             const VkDescriptorBufferInfo bufferInfo{
@@ -294,7 +344,13 @@ namespace Frost {
                     .range = VK_WHOLE_SIZE,
             };
 
-            const std::array<VkWriteDescriptorSet, 2> writes = {{
+            const VkDescriptorBufferInfo jointBufferInfo{
+                    .buffer = frame.jointBuffer->GetHandle(),
+                    .offset = 0,
+                    .range = VK_WHOLE_SIZE,
+            };
+
+            const std::array<VkWriteDescriptorSet, 3> writes = {{
                     {
                             .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
                             .pNext = nullptr,
@@ -319,6 +375,18 @@ namespace Frost {
                             .pBufferInfo = &lightBufferInfo,
                             .pTexelBufferView = nullptr,
                     },
+                    {
+                            .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+                            .pNext = nullptr,
+                            .dstSet = frame.descriptorSet,
+                            .dstBinding = 2,
+                            .dstArrayElement = 0,
+                            .descriptorCount = 1,
+                            .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                            .pImageInfo = nullptr,
+                            .pBufferInfo = &jointBufferInfo,
+                            .pTexelBufferView = nullptr,
+                    },
             }};
 
             vkUpdateDescriptorSets(m_Device->GetHandle(), static_cast<std::uint32_t>(writes.size()), writes.data(), 0,
@@ -339,13 +407,14 @@ namespace Frost {
             }
             frame.buffer.reset();
             frame.lightBuffer.reset();
+            frame.jointBuffer.reset();
         }
 
         m_FrameUniforms.clear();
     }
 
     void Renderer::UpdateFrameUniforms(const std::uint32_t frameIndex, const VkRect2D& sceneRect,
-                                       const std::vector<Light>& lights) const {
+                                       const std::vector<Light>& lights, const std::vector<glm::mat4>& joints) const {
         // The rectangle may be empty (a collapsed viewport panel); nothing is drawn then, so any
         // finite aspect will do.
         const float aspect = sceneRect.extent.width > 0 && sceneRect.extent.height > 0
@@ -423,6 +492,23 @@ namespace Frost {
         if (!gpuLights.empty()) {
             m_FrameUniforms[frameIndex].lightBuffer->CopyData(gpuLights.data(), sizeof(GpuLight) * gpuLights.size());
         }
+        // SubmitSkinned already capped the count at kMaxJointMatrices.
+        if (!joints.empty()) {
+            m_FrameUniforms[frameIndex].jointBuffer->CopyData(joints.data(), sizeof(GpuJointMatrix) * joints.size());
+        }
+    }
+
+    void Renderer::CreatePipelines() {
+        m_Pipeline = std::make_unique<VulkanPipeline>(*m_Device, m_Swapchain->GetImageFormat(), m_DepthFormat,
+                                                      m_DescriptorAllocator->GetFrameSetLayout(),
+                                                      m_DescriptorAllocator->GetMaterialSetLayout(),
+                                                      "shaders/basic.vert.spv", "shaders/basic.frag.spv",
+                                                      VertexLayout::Static);
+        m_SkinnedPipeline = std::make_unique<VulkanPipeline>(*m_Device, m_Swapchain->GetImageFormat(), m_DepthFormat,
+                                                             m_DescriptorAllocator->GetFrameSetLayout(),
+                                                             m_DescriptorAllocator->GetMaterialSetLayout(),
+                                                             "shaders/skinned.vert.spv", "shaders/basic.frag.spv",
+                                                             VertexLayout::Skinned);
     }
 
     void Renderer::CreateSyncObjects() {
@@ -546,12 +632,9 @@ namespace Frost {
         // event the surface's format set changed underneath us. The old one may still be bound by
         // in-flight command buffers, so it retires with the swapchain rather than being destroyed.
         if (m_Pipeline->GetColorAttachmentFormat() != m_Swapchain->GetImageFormat()) {
-            auto pipeline = std::make_unique<VulkanPipeline>(*m_Device, m_Swapchain->GetImageFormat(), m_DepthFormat,
-                                                             m_DescriptorAllocator->GetFrameSetLayout(),
-                                                             m_DescriptorAllocator->GetMaterialSetLayout(),
-                                                             "shaders/basic.vert.spv", "shaders/basic.frag.spv");
             m_Retired.back().pipeline = std::move(m_Pipeline);
-            m_Pipeline = std::move(pipeline);
+            m_Retired.back().skinnedPipeline = std::move(m_SkinnedPipeline);
+            CreatePipelines();
         }
 
         // Keyed by swapchain image, and the image count can change with the extent.
@@ -678,6 +761,7 @@ namespace Frost {
             }
 
             retired.pipeline.reset();
+            retired.skinnedPipeline.reset();
             retired.depthImage.reset();
 
             // Signaled fences were already recycled above. Anything still here is an unsignaled
@@ -750,6 +834,8 @@ namespace Frost {
         m_PendingDraws.clear();
         std::vector<Light> lights = std::move(m_PendingLights);
         m_PendingLights.clear();
+        std::vector<glm::mat4> joints = std::move(m_PendingJoints);
+        m_PendingJoints.clear();
 
         // A minimized window reports a zero-area framebuffer. There is nothing to present to, and
         // a zero-extent swapchain is invalid, so neither render nor recreate: just wait for the
@@ -813,7 +899,7 @@ namespace Frost {
         m_FrameDraws[m_CurrentFrame] = std::move(draws);
 
         const VkRect2D sceneRect = GetSceneRect();
-        UpdateFrameUniforms(m_CurrentFrame, sceneRect, lights);
+        UpdateFrameUniforms(m_CurrentFrame, sceneRect, lights, joints);
 
         RecordCommandBuffer(commandBuffer, imageIndex, sceneRect);
 
@@ -1028,10 +1114,18 @@ namespace Frost {
             vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_Pipeline->GetLayout(), 0, 1,
                                     &frameSet, 0, nullptr);
 
+            // Static and skinned meshes need different pipelines. Their layouts are compatible, so
+            // switching keeps set 0 bound; only the pipeline itself is rebound when it changes.
             const Material& fallbackMaterial = *m_MaterialSystem->GetDefaultMaterial();
+            const VulkanPipeline* bound = m_Pipeline.get();
             for (const DrawCommand& draw : m_FrameDraws[m_CurrentFrame]) {
-                draw.mesh->Draw(commandBuffer, m_Pipeline->GetLayout(), draw.transform, draw.materialOverrides,
-                                fallbackMaterial);
+                const VulkanPipeline* const wanted = draw.mesh->IsSkinned() ? m_SkinnedPipeline.get() : m_Pipeline.get();
+                if (wanted != bound) {
+                    vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, wanted->GetHandle());
+                    bound = wanted;
+                }
+                draw.mesh->Draw(commandBuffer, bound->GetLayout(), draw.transform, draw.materialOverrides, fallbackMaterial,
+                                draw.firstJoint);
             }
         }
 

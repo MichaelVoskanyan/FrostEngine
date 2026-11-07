@@ -37,12 +37,20 @@ namespace Frost {
 
         void RecordOverlay(VkCommandBuffer commandBuffer, const RenderOverlayTarget& target) override;
 
+        // Whether the UI is drawn into an sRGB target, which encodes what the UI writes: colors
+        // given to ImGui (which are sRGB values) then have to be converted to linear first, as the
+        // style's are (see ApplyStyle). For code drawing with colors of its own (ImDrawList).
+        [[nodiscard]]
+        static bool IsOutputLinear() noexcept;
+
     private:
         // (Re)initializes the ImGui Vulkan backend to render into targets of the given formats.
         void InitRendererBackend(VkFormat colorAttachmentFormat, VkFormat depthAttachmentFormat);
 
         // Resets the style to the default dark theme, converted for the target's color encoding.
         static void ApplyStyle(VkFormat colorAttachmentFormat);
+
+        static bool s_OutputLinear;
 
         // Shuts down whatever has been initialized so far, in reverse order. Safe on a partially
         // constructed layer.

@@ -33,6 +33,11 @@ namespace Frost {
         // from UI fields and level files) are brought into range rather than rejected.
         [[nodiscard]]
         Camera ToCamera(const TransformComponent& transform) const;
+
+        // The camera, mounted on an object at `objectPosition` turned by `objectRotation`: for a
+        // camera on an object attached to another (see ComputeWorldPlacement).
+        [[nodiscard]]
+        Camera ToCamera(const glm::vec3& objectPosition, const glm::quat& objectRotation) const;
     };
 
 }  // namespace Frost

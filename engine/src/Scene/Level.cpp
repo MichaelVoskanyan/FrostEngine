@@ -4,6 +4,7 @@
 #include <Frost/Physics/Collision.hpp>
 #include <Frost/Renderer/Mesh.hpp>
 #include <Frost/Renderer/Renderer.hpp>
+#include <Frost/Scene/Hierarchy.hpp>
 
 #include <glm/common.hpp>
 #include <glm/geometric.hpp>
@@ -94,6 +95,14 @@ namespace Frost {
     }
 
     void Level::DestroyObject(const ObjectId id) {
+        // What was attached to it is left where it is, no longer attached.
+        for (const EntityId child : GetAttachedObjects(m_Registry, id)) {
+            if (child == id) { continue; }
+            const glm::mat4 world = ComputeWorldMatrix(m_Registry, child);
+            m_Registry.Get<AttachmentComponent>(child).parent = 0;
+            m_Registry.Get<TransformComponent>(child).SetFromMatrix(world);
+        }
+
         m_Registry.RemoveAll(id);
         std::erase_if(m_Objects, [id](const std::unique_ptr<GameObject>& object) { return object->GetId() == id; });
     }
@@ -111,18 +120,35 @@ namespace Frost {
 
     const Registry& Level::GetRegistry() const noexcept { return m_Registry; }
 
+    void Level::UpdatePoses() {
+        m_Registry.Each<SkeletalMeshComponent>([](EntityId, SkeletalMeshComponent& mesh) { mesh.UpdatePose(); });
+        UpdateAttachmentVisibility(m_Registry);
+    }
+
     void Level::Submit(Renderer& renderer, AssetManager& assets) {
         renderer.SetAmbientLight(m_Environment.ambientColor * std::max(m_Environment.ambientIntensity, 0.0f));
 
-        m_Registry.Each<TransformComponent, LightComponent>(
-                [&](EntityId, const TransformComponent& transform, const LightComponent& light) {
-                    if (light.enabled) { renderer.SubmitLight(light.ToRenderLight(transform)); }
-                });
+        // Poses first: what is attached to a bone goes where the bone is now, and is shown or hidden
+        // as the animation posing it says.
+        UpdatePoses();
 
-        m_Registry.Each<TransformComponent, MeshComponent>(
-                [&](EntityId, const TransformComponent& transform, MeshComponent& mesh) {
-                    if (mesh.GetMesh() != nullptr) {
-                        renderer.Submit(mesh.GetMesh()->mesh, transform.ToMatrix(), mesh.GetResolvedMaterials(assets));
+        m_Registry.Each<TransformComponent, LightComponent>([&](const EntityId object, const TransformComponent&, const LightComponent& light) {
+            if (!light.enabled) { return; }
+            const WorldPlacement placement = ComputeWorldPlacement(m_Registry, object);
+            renderer.SubmitLight(light.ToRenderLight(placement.position, placement.rotation));
+        });
+
+        m_Registry.Each<TransformComponent, MeshComponent>([&](const EntityId object, const TransformComponent&, MeshComponent& mesh) {
+            if (mesh.GetMesh() != nullptr && IsShownInHierarchy(m_Registry, object)) {
+                renderer.Submit(mesh.GetMesh()->mesh, ComputeWorldMatrix(m_Registry, object), mesh.GetResolvedMaterials(assets));
+            }
+        });
+
+        m_Registry.Each<TransformComponent, SkeletalMeshComponent>(
+                [&](const EntityId object, const TransformComponent&, SkeletalMeshComponent& mesh) {
+                    if (mesh.GetDrawable() != nullptr && IsShownInHierarchy(m_Registry, object)) {
+                        renderer.SubmitSkinned(mesh.GetDrawable()->mesh, ComputeWorldMatrix(m_Registry, object),
+                                               mesh.GetResolvedMaterials(assets), mesh.GetPalette());
                     }
                 });
     }
@@ -139,6 +165,7 @@ namespace Frost {
 
         for (const std::unique_ptr<GameObject>& object : m_Objects) {
             if (const std::optional<Bounds> model = object->GetWorldBounds()) { include(*model); }
+            if (IsAttached(m_Registry, object->GetId())) { continue; }  // Colliders of attached objects do not collide.
             if (const BoxColliderComponent* const collider = object->TryGetComponent<BoxColliderComponent>()) {
                 include(MakeWorldBox(object->GetTransform(), *collider).GetBounds());
             }
@@ -153,32 +180,31 @@ namespace Frost {
         std::optional<RaycastHit> nearest;
         float nearestDistance = maxDistance;
 
-        for (const std::unique_ptr<GameObject>& object : m_Objects) {
-            const MeshComponent* const mesh = object->TryGetComponent<MeshComponent>();
-            if (mesh == nullptr || mesh->GetMesh() == nullptr) { continue; }
-            const std::shared_ptr<const MeshAsset>& asset = mesh->GetMesh();
-
+        // Tests one model an object draws (its vertices at `positions`, boxed by `bounds`), keeping
+        // the nearest hit.
+        const auto testModel = [&](GameObject& object, const MeshAsset& asset, const std::vector<glm::vec3>& positions,
+                                   const Bounds& bounds) {
             // Test in the object's own space. The direction is transformed but deliberately not
             // renormalized, so the ray parameter t measures the same world-space distance on both
             // sides of the transform (and a non-uniform scale is handled exactly).
-            const glm::mat4 model = object->GetTransform().ToMatrix();
-            if (glm::determinant(glm::mat3(model)) == 0.0f) { continue; }  // Zero scale: nothing to hit.
+            const glm::mat4 model = object.GetWorldMatrix();
+            if (glm::determinant(glm::mat3(model)) == 0.0f) { return; }  // Zero scale: nothing to hit.
 
             const glm::mat4 inverse = glm::inverse(model);
             const glm::vec3 origin = glm::vec3(inverse * glm::vec4(ray.origin, 1.0f));
             const glm::vec3 direction = glm::vec3(inverse * glm::vec4(ray.direction, 0.0f));
             const glm::vec3 inverseDirection = 1.0f / direction;
 
-            if (!IntersectBox(origin, inverseDirection, asset->bounds, nearestDistance).has_value()) { continue; }
+            if (!IntersectBox(origin, inverseDirection, bounds, nearestDistance).has_value()) { return; }
 
-            const std::vector<SubMesh>& subMeshes = asset->mesh->GetSubMeshes();
+            const std::vector<SubMesh>& subMeshes = asset.mesh->GetSubMeshes();
             for (std::size_t s = 0; s < subMeshes.size(); ++s) {
                 const SubMesh& subMesh = subMeshes[s];
 
                 for (std::uint32_t i = 0; i + 2 < subMesh.indexCount; i += 3) {
                     const std::uint32_t first = subMesh.firstIndex + i;
                     const auto vertex = [&](const std::uint32_t index) -> const glm::vec3& {
-                        return asset->positions[asset->indices[index] + static_cast<std::uint32_t>(subMesh.vertexOffset)];
+                        return positions[asset.indices[index] + static_cast<std::uint32_t>(subMesh.vertexOffset)];
                     };
 
                     const std::optional<float> t =
@@ -187,10 +213,27 @@ namespace Frost {
                     if (!t.has_value()) { continue; }
 
                     nearestDistance = *t;
-                    nearest = RaycastHit{.object = object.get(),
+                    nearest = RaycastHit{.object = &object,
                                          .subMeshIndex = s,
                                          .distance = *t,
                                          .point = ray.origin + ray.direction * *t};
+                }
+            }
+        };
+
+        // Every model an object draws: its mesh, and its skeletal mesh in its current pose (hidden
+        // ones cannot be hit).
+        for (const std::unique_ptr<GameObject>& object : m_Objects) {
+            if (!IsShownInHierarchy(m_Registry, object->GetId())) { continue; }
+            if (const MeshComponent* const mesh = object->TryGetComponent<MeshComponent>(); mesh != nullptr && mesh->GetMesh() != nullptr) {
+                testModel(*object, *mesh->GetMesh(), mesh->GetMesh()->positions, mesh->GetMesh()->bounds);
+            }
+            if (const SkeletalMeshComponent* const mesh = object->TryGetComponent<SkeletalMeshComponent>();
+                mesh != nullptr && mesh->GetDrawable() != nullptr) {
+                const std::vector<glm::vec3>& positions = mesh->GetPosedPositions();
+                const std::optional<Bounds> bounds = mesh->GetLocalBounds();
+                if (bounds.has_value() && positions.size() == mesh->GetDrawable()->positions.size()) {
+                    testModel(*object, *mesh->GetDrawable(), positions, *bounds);
                 }
             }
         }

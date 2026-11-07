@@ -25,7 +25,8 @@ namespace Frost {
     VulkanDescriptorAllocator::VulkanDescriptorAllocator(const VulkanDevice& device) : m_Device(device.GetHandle()) {
         // Binding 0: FrameUniforms (the fragment stage reads the view matrix too, see basic.frag).
         // Binding 1: the frame's lights (GpuLight array), read only by the fragment stage.
-        constexpr std::array<VkDescriptorSetLayoutBinding, 2> frameBindings = {{
+        // Binding 2: the frame's joint matrices (GpuJointMatrix array), read by skinned.vert.
+        constexpr std::array<VkDescriptorSetLayoutBinding, 3> frameBindings = {{
                 {
                         .binding = 0,
                         .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
@@ -38,6 +39,13 @@ namespace Frost {
                         .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
                         .descriptorCount = 1,
                         .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
+                        .pImmutableSamplers = nullptr,
+                },
+                {
+                        .binding = 2,
+                        .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                        .descriptorCount = 1,
+                        .stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
                         .pImmutableSamplers = nullptr,
                 },
         }};
@@ -113,10 +121,10 @@ namespace Frost {
     }
 
     VkDescriptorPool VulkanDescriptorAllocator::CreatePool() {
-        // Sized so that kSetsPerPool sets of either layout fit.
+        // Sized so that kSetsPerPool sets of either layout fit (a frame set has two storage buffers).
         constexpr std::array<VkDescriptorPoolSize, 3> poolSizes = {
                 VkDescriptorPoolSize{.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, .descriptorCount = kSetsPerPool},
-                VkDescriptorPoolSize{.type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, .descriptorCount = kSetsPerPool},
+                VkDescriptorPoolSize{.type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, .descriptorCount = 2 * kSetsPerPool},
                 VkDescriptorPoolSize{.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
                                      .descriptorCount = kSetsPerPool * MaterialTextures::kSlotCount},
         };

@@ -5,7 +5,9 @@
 #include <Frost/Assets/AssetManager.hpp>
 #include <Frost/Assets/AssetRegistry.hpp>
 #include <Frost/Platform/Filesystem.hpp>
+#include <Frost/Platform/KeyNames.hpp>
 #include <Frost/Renderer/Mesh.hpp>
+#include <Frost/Scene/Hierarchy.hpp>
 #include <Frost/Scene/Level.hpp>
 #include <Frost/Units.hpp>
 
@@ -32,13 +34,18 @@ namespace {
     using Frost::Json::Value;
 
     constexpr const char* kFormatName = "FrostLevel";
+    // 12: attachments to sockets.
+    // 11: animation triggers' visibility keys.
+    // 10: attachments (objects attached to objects), animation triggers, mesh visibility.
+    // 9: skeletal meshes' playback settings and attachments toggle.
+    // 8: skeletal mesh components.
     // 7: lengths (positions, sizes, distances) and speeds in centimeters, the world unit (see
     // Frost/Units.hpp); before, in meters (converted when read, see kMetersFormatVersion).
     // 6: capsule collider and character controller components; cameras have an offset and rotation.
     // 5: fly controller components. 4: camera components. 3: box collider and rigid body
     // components; an object can have a mesh component with no model yet ("mesh": {}). 2: asset
     // references are {"id", "path"} objects. 1: plain path strings. Older versions are still read.
-    constexpr int kFormatVersion = 7;
+    constexpr int kFormatVersion = 12;
 
     // The last version that stored lengths in meters.
     constexpr int kMetersFormatVersion = 6;
@@ -99,8 +106,9 @@ namespace {
         return Value(std::move(json));
     }
 
+    // `model` is the drawn model the override applies to, if loaded (for its sub-mesh names).
     [[nodiscard]]
-    Value MaterialOverrideToJson(const std::size_t subMeshIndex, const Frost::MeshComponent& mesh,
+    Value MaterialOverrideToJson(const std::size_t subMeshIndex, const Frost::MeshAsset* const model,
                                  const Frost::MaterialOverride& materialOverride,
                                  const std::filesystem::path& levelDirectory, const Frost::AssetRegistry* const registry) {
         Object json;
@@ -108,8 +116,8 @@ namespace {
 
         // The name lets the override find its sub-mesh again if the model is re-exported with its
         // parts in a different order.
-        if (mesh.GetMesh() != nullptr) {
-            const std::vector<Frost::SubMesh>& subMeshes = mesh.GetMesh()->mesh->GetSubMeshes();
+        if (model != nullptr) {
+            const std::vector<Frost::SubMesh>& subMeshes = model->mesh->GetSubMeshes();
             if (subMeshIndex < subMeshes.size() && !subMeshes[subMeshIndex].name.empty()) {
                 json.emplace_back("subMeshName", Value(subMeshes[subMeshIndex].name));
             }
@@ -338,6 +346,52 @@ namespace {
     template <typename T>
     struct ComponentSerializer;
 
+    // The sub-mesh material overrides of a component that draws a model (MeshComponent,
+    // SkeletalMeshComponent), as a "materials" array; `model` is what it draws, if loaded.
+    template <typename Component>
+    [[nodiscard]]
+    Array MaterialOverridesToJson(const Component& component, const Frost::MeshAsset* const model, const WriteContext& context) {
+        Array materials;
+        for (std::size_t i = 0; i < component.GetMaterialSlotCount(); ++i) {
+            const std::optional<Frost::MaterialOverride>& materialOverride = component.GetMaterialOverride(i);
+            if (materialOverride.has_value()) {
+                materials.push_back(MaterialOverrideToJson(i, model, *materialOverride, context.levelDirectory, context.registry));
+            }
+        }
+        return materials;
+    }
+
+    // Reads a "materials" array (may be null) into a component's overrides, matching each to its
+    // sub-mesh of `model` (if loaded) by name when it has one of that name, else by index.
+    template <typename Component>
+    void ReadMaterialOverrides(const Value* const materials, Component& component, const Frost::MeshAsset* const model,
+                               const Frost::GameObject& object, const ReadContext& context) {
+        if (materials == nullptr || !materials->IsArray()) { return; }
+
+        for (const Value& materialJson : materials->AsArray()) {
+            std::optional<std::size_t> index;
+            const Value* const subMeshName = materialJson.Find("subMeshName");
+            if (model != nullptr && subMeshName != nullptr && subMeshName->IsString()) {
+                index = model->mesh->FindSubMesh(subMeshName->AsString());
+            }
+            if (!index.has_value()) {
+                const std::optional<double> subMesh = ReadNumber(materialJson.Find("subMesh"));
+                if (subMesh.has_value() && *subMesh >= 0.0 && std::floor(*subMesh) == *subMesh && *subMesh < 65536.0) {
+                    index = static_cast<std::size_t>(*subMesh);
+                }
+            }
+
+            const bool outOfRange = model != nullptr && index.has_value() && *index >= model->mesh->GetSubMeshes().size();
+            if (!index.has_value() || outOfRange) {
+                context.warnings.push_back("'" + object.GetName() +
+                                           "': dropped a material override for a sub-mesh the model does not have.");
+                continue;
+            }
+
+            component.SetMaterialOverride(*index, ReadMaterialOverride(materialJson, context.levelDirectory));
+        }
+    }
+
     // "transform": {"position": [x, y, z], "rotation": [pitch, yaw, roll] (degrees), "scale": [x, y, z]}
     template <>
     struct ComponentSerializer<Frost::TransformComponent> {
@@ -360,7 +414,8 @@ namespace {
     };
 
     // "mesh": {"id", "path"} (or {} for no model yet), and "materials": [...] for the sub-mesh
-    // overrides (a separate key, as in versions 1 and 2).
+    // overrides (a separate key, as in versions 1 and 2), and "meshVisible": false for a hidden
+    // model (absent = shown).
     template <>
     struct ComponentSerializer<Frost::MeshComponent> {
         static void Write(const Frost::MeshComponent& mesh, const Frost::GameObject& /*object*/, Object& json,
@@ -369,15 +424,9 @@ namespace {
                                               ? ReferenceToJson(mesh.GetMeshReference(), context.levelDirectory, context.registry)
                                               : Value(Object{}));
 
-            Array materials;
-            for (std::size_t i = 0; i < mesh.GetMaterialSlotCount(); ++i) {
-                const std::optional<Frost::MaterialOverride>& materialOverride = mesh.GetMaterialOverride(i);
-                if (materialOverride.has_value()) {
-                    materials.push_back(
-                            MaterialOverrideToJson(i, mesh, *materialOverride, context.levelDirectory, context.registry));
-                }
-            }
+            Array materials = MaterialOverridesToJson(mesh, mesh.GetMesh().get(), context);
             if (!materials.empty()) { json.emplace_back("materials", Value(std::move(materials))); }
+            if (!mesh.IsVisible()) { json.emplace_back("meshVisible", Value(false)); }
         }
 
         static void Read(const Value& json, Frost::GameObject& object, const ReadContext& context) {
@@ -403,33 +452,199 @@ namespace {
                 }
             }
 
-            if (materials == nullptr || !materials->IsArray()) { return; }
+            ReadMaterialOverrides(materials, mesh, mesh.GetMesh().get(), object, context);
+            mesh.SetVisible(ReadBool(json, "meshVisible", true));
+        }
+    };
 
-            for (const Value& materialJson : materials->AsArray()) {
-                // By name when the loaded model has a sub-mesh of that name, else by index.
-                std::optional<std::size_t> index;
-                const Value* const subMeshName = materialJson.Find("subMeshName");
-                if (mesh.GetMesh() != nullptr && subMeshName != nullptr && subMeshName->IsString()) {
-                    index = mesh.GetMesh()->mesh->FindSubMesh(subMeshName->AsString());
-                }
-                if (!index.has_value()) {
-                    const std::optional<double> subMesh = ReadNumber(materialJson.Find("subMesh"));
-                    if (subMesh.has_value() && *subMesh >= 0.0 && std::floor(*subMesh) == *subMesh &&
-                        *subMesh < 65536.0) {
-                        index = static_cast<std::size_t>(*subMesh);
+    // "skeletalMesh": {"mesh": {"id", "path"} (or {} for no model yet), "animation": {"id", "path"}
+    // (absent = the rest pose), "animationTime": seconds, "autoPlay": b, "loop": b, "playRate": r,
+    // "attachmentsFollowBones": b, "visible": b, "materials": [...] (sub-mesh overrides, as for
+    // "mesh")}. Missing settings take their defaults (version 8 had none: on, on, 1, on; before
+    // version 10 there was no "visible": on).
+    template <>
+    struct ComponentSerializer<Frost::SkeletalMeshComponent> {
+        static void Write(const Frost::SkeletalMeshComponent& mesh, const Frost::GameObject& /*object*/, Object& json,
+                          const WriteContext& context) {
+            Object skeletal;
+            skeletal.emplace_back("mesh", mesh.GetSkeletalMeshReference().IsSet()
+                                                  ? ReferenceToJson(mesh.GetSkeletalMeshReference(), context.levelDirectory,
+                                                                    context.registry)
+                                                  : Value(Object{}));
+            if (mesh.GetAnimationReference().IsSet()) {
+                skeletal.emplace_back("animation",
+                                      ReferenceToJson(mesh.GetAnimationReference(), context.levelDirectory, context.registry));
+            }
+            skeletal.emplace_back("animationTime", ToJson(mesh.GetAnimationTime()));
+            skeletal.emplace_back("autoPlay", Value(mesh.GetAutoPlay()));
+            skeletal.emplace_back("loop", Value(mesh.IsLooping()));
+            skeletal.emplace_back("playRate", ToJson(mesh.GetPlayRate()));
+            skeletal.emplace_back("attachmentsFollowBones", Value(mesh.GetAttachmentsFollowBones()));
+            skeletal.emplace_back("visible", Value(mesh.IsVisible()));
+
+            const Frost::MeshAsset* const model = mesh.GetDrawable().get();
+            Array materials = MaterialOverridesToJson(mesh, model, context);
+            if (!materials.empty()) { skeletal.emplace_back("materials", Value(std::move(materials))); }
+
+            json.emplace_back("skeletalMesh", Value(std::move(skeletal)));
+        }
+
+        static void Read(const Value& json, Frost::GameObject& object, const ReadContext& context) {
+            const Value* const skeletal = json.Find("skeletalMesh");
+            if (skeletal == nullptr || !skeletal->IsObject()) { return; }
+
+            Frost::SkeletalMeshComponent& mesh = object.AddComponent<Frost::SkeletalMeshComponent>();
+            if (const Value* const meshJson = skeletal->Find("mesh")) {
+                if (const std::optional<Frost::AssetReference> reference = ReadReference(*meshJson, context.levelDirectory)) {
+                    try {
+                        mesh.SetSkeletalMesh(context.assets.LoadSkeletalMesh(*reference));
+                    }
+                    catch (const Frost::ImportError& e) {
+                        mesh.SetUnresolvedSkeletalMesh(*reference);
+                        context.warnings.push_back("'" + object.GetName() + "': " + e.what());
                     }
                 }
+            }
 
-                const bool outOfRange = mesh.GetMesh() != nullptr && index.has_value() &&
-                                        *index >= mesh.GetMesh()->mesh->GetSubMeshes().size();
-                if (!index.has_value() || outOfRange) {
-                    context.warnings.push_back("'" + object.GetName() +
-                                               "': dropped a material override for a sub-mesh the model does not have.");
+            if (const Value* const animationJson = skeletal->Find("animation")) {
+                if (const std::optional<Frost::AssetReference> reference = ReadReference(*animationJson, context.levelDirectory)) {
+                    try {
+                        mesh.SetAnimation(context.assets.LoadAnimation(*reference));
+                    }
+                    catch (const Frost::ImportError& e) {
+                        mesh.SetUnresolvedAnimation(*reference);
+                        context.warnings.push_back("'" + object.GetName() + "': " + e.what());
+                    }
+                }
+            }
+            mesh.SetAnimationTime(ReadFloat(*skeletal, "animationTime", 0.0f));
+            mesh.SetAutoPlay(ReadBool(*skeletal, "autoPlay", mesh.GetAutoPlay()));
+            mesh.SetLooping(ReadBool(*skeletal, "loop", mesh.IsLooping()));
+            mesh.SetPlayRate(ReadFloat(*skeletal, "playRate", mesh.GetPlayRate()));
+            mesh.SetAttachmentsFollowBones(ReadBool(*skeletal, "attachmentsFollowBones", mesh.GetAttachmentsFollowBones()));
+            mesh.SetVisible(ReadBool(*skeletal, "visible", mesh.IsVisible()));
+
+            const Frost::MeshAsset* const model = mesh.GetDrawable().get();
+            ReadMaterialOverrides(skeletal->Find("materials"), mesh, model, object, context);
+        }
+    };
+
+    // "attachment": {"parent": object id, "bone": name, "slot": name, "socket": name}. A parent that is not in the
+    // level is dropped after loading (see Load).
+    template <>
+    struct ComponentSerializer<Frost::AttachmentComponent> {
+        static void Write(const Frost::AttachmentComponent& attachment, const Frost::GameObject& /*object*/, Object& json,
+                          const WriteContext& /*context*/) {
+            json.emplace_back("attachment", Value(Object{{"parent", Value(static_cast<double>(attachment.parent))},
+                                                         {"bone", Value(attachment.bone)},
+                                                         {"slot", Value(attachment.slot)},
+                                                         {"socket", Value(attachment.socket)}}));
+        }
+
+        static void Read(const Value& json, Frost::GameObject& object, const ReadContext& context) {
+            const Value* const attachmentJson = json.Find("attachment");
+            if (attachmentJson == nullptr || !attachmentJson->IsObject()) { return; }
+
+            Frost::AttachmentComponent attachment;
+            const std::optional<double> parent = ReadNumber(attachmentJson->Find("parent"));
+            if (parent.has_value() && *parent >= 1.0 && *parent <= 9007199254740992.0 && std::floor(*parent) == *parent) {
+                attachment.parent = static_cast<Frost::EntityId>(*parent);
+            }
+            else if (parent.has_value() && *parent != 0.0) {
+                context.warnings.push_back("'" + object.GetName() + "': ignored an attachment to an invalid object id.");
+            }
+            if (const Value* const bone = attachmentJson->Find("bone"); bone != nullptr && bone->IsString()) {
+                attachment.bone = bone->AsString();
+            }
+            if (const Value* const slot = attachmentJson->Find("slot"); slot != nullptr && slot->IsString()) {
+                attachment.slot = slot->AsString();
+            }
+            if (const Value* const socket = attachmentJson->Find("socket"); socket != nullptr && socket->IsString()) {
+                attachment.socket = socket->AsString();
+            }
+            object.AddComponent<Frost::AttachmentComponent>(std::move(attachment));
+        }
+    };
+
+    // "animationTriggers": [{"key": key name (see KeyNames), "animation": {"id", "path"},
+    //                        "visibilityKeys": [{"time": seconds, "object": object id, "visible": b}, ...]}, ...]
+    // Keys naming objects that are not in the level are dropped after loading (see Load).
+    template <>
+    struct ComponentSerializer<Frost::AnimationTriggerComponent> {
+        static void Write(const Frost::AnimationTriggerComponent& component, const Frost::GameObject& /*object*/,
+                          Object& json, const WriteContext& context) {
+            Array triggers;
+            for (const Frost::AnimationTrigger& trigger : component.triggers) {
+                Object triggerJson;
+                triggerJson.emplace_back("key", Value(std::string(Frost::GetKeyName(trigger.key))));
+                triggerJson.emplace_back("animation", trigger.animationReference.IsSet()
+                                                              ? ReferenceToJson(trigger.animationReference,
+                                                                                context.levelDirectory, context.registry)
+                                                              : Value(Object{}));
+                Array keys;
+                for (const Frost::TriggerVisibilityKey& key : trigger.visibilityKeys) {
+                    keys.emplace_back(Object{{"time", ToJson(key.time)},
+                                             {"object", Value(static_cast<double>(key.object))},
+                                             {"visible", Value(key.visible)}});
+                }
+                triggerJson.emplace_back("visibilityKeys", Value(std::move(keys)));
+                triggers.emplace_back(std::move(triggerJson));
+            }
+            json.emplace_back("animationTriggers", Value(std::move(triggers)));
+        }
+
+        static void Read(const Value& json, Frost::GameObject& object, const ReadContext& context) {
+            const Value* const triggersJson = json.Find("animationTriggers");
+            if (triggersJson == nullptr || !triggersJson->IsArray()) { return; }
+
+            Frost::AnimationTriggerComponent component;
+            for (const Value& triggerJson : triggersJson->AsArray()) {
+                if (!triggerJson.IsObject()) { continue; }
+
+                const Value* const keyJson = triggerJson.Find("key");
+                const std::optional<Frost::Key> key =
+                        keyJson != nullptr && keyJson->IsString() ? Frost::FindKey(keyJson->AsString()) : std::nullopt;
+                if (!key.has_value()) {
+                    context.warnings.push_back("'" + object.GetName() + "': dropped an animation trigger with an unknown key.");
                     continue;
                 }
 
-                mesh.SetMaterialOverride(*index, ReadMaterialOverride(materialJson, context.levelDirectory));
+                Frost::AnimationTrigger trigger{.key = *key, .animationReference = {}, .animation = nullptr, .visibilityKeys = {}};
+                if (const Value* const animationJson = triggerJson.Find("animation")) {
+                    if (const std::optional<Frost::AssetReference> reference = ReadReference(*animationJson, context.levelDirectory)) {
+                        trigger.animationReference = *reference;
+                        try {
+                            trigger.animation = context.assets.LoadAnimation(*reference);
+                        }
+                        catch (const Frost::ImportError& e) {
+                            context.warnings.push_back("'" + object.GetName() + "': " + e.what());
+                        }
+                    }
+                }
+
+                bool droppedKeys = false;
+                if (const Value* const keys = triggerJson.Find("visibilityKeys"); keys != nullptr && keys->IsArray()) {
+                    for (const Value& visibilityKey : keys->AsArray()) {
+                        const std::optional<double> time = visibilityKey.IsObject() ? ReadNumber(visibilityKey.Find("time")) : std::nullopt;
+                        const std::optional<double> target =
+                                visibilityKey.IsObject() ? ReadNumber(visibilityKey.Find("object")) : std::nullopt;
+                        if (!time.has_value() || !std::isfinite(*time) || *time < 0.0 || !target.has_value() || *target < 1.0 ||
+                            *target > 9007199254740992.0 || std::floor(*target) != *target) {
+                            droppedKeys = true;
+                            continue;
+                        }
+                        trigger.visibilityKeys.push_back(Frost::TriggerVisibilityKey{.time = static_cast<float>(*time),
+                                                                                     .object = static_cast<Frost::EntityId>(*target),
+                                                                                     .visible = ReadBool(visibilityKey, "visible", true)});
+                    }
+                }
+                if (droppedKeys) {
+                    context.warnings.push_back("'" + object.GetName() + "': dropped invalid visibility keys of an animation trigger.");
+                }
+                trigger.SortVisibilityKeys();
+                component.triggers.push_back(std::move(trigger));
             }
+            object.AddComponent<Frost::AnimationTriggerComponent>(std::move(component));
         }
     };
 
@@ -743,6 +958,36 @@ namespace Frost {
                     id, objectName != nullptr && objectName->IsString() ? objectName->AsString() : "Object");
 
             ReadComponents(json, object, readContext);
+        }
+
+        // Attachments to objects that are not in the level, or that would loop, are dropped, and so
+        // are animation triggers' keys naming objects that are not in it.
+        Registry& registry = result.level->GetRegistry();
+        for (const std::unique_ptr<GameObject>& object : result.level->GetObjects()) {
+            if (AnimationTriggerComponent* const triggers = object->TryGetComponent<AnimationTriggerComponent>()) {
+                std::size_t dropped = 0;
+                for (AnimationTrigger& trigger : triggers->triggers) {
+                    dropped += std::erase_if(trigger.visibilityKeys, [&](const TriggerVisibilityKey& key) {
+                        return result.level->FindObject(key.object) == nullptr;
+                    });
+                }
+                if (dropped > 0) {
+                    result.warnings.push_back("'" + object->GetName() + "': dropped " + std::to_string(dropped) +
+                                              " animation trigger visibility key(s) for objects that are not in the level.");
+                }
+            }
+
+            AttachmentComponent* const attachment = object->TryGetComponent<AttachmentComponent>();
+            if (attachment == nullptr || attachment->parent == 0) { continue; }
+
+            if (result.level->FindObject(attachment->parent) == nullptr) {
+                result.warnings.push_back("'" + object->GetName() + "' was attached to an object that is not in the level; it is no longer attached.");
+                attachment->parent = 0;
+            }
+            else if (!CanAttach(registry, object->GetId(), attachment->parent)) {
+                result.warnings.push_back("'" + object->GetName() + "' was attached in a loop; it is no longer attached.");
+                attachment->parent = 0;
+            }
         }
 
         return result;

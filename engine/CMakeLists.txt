@@ -3,6 +3,11 @@ add_library(Frost::Engine ALIAS FrostEngine)
 
 target_sources(FrostEngine
     PRIVATE
+        src/Animation/AnimationClip.cpp
+        src/Animation/AnimationSystem.cpp
+        src/Animation/Skeleton.cpp
+        src/Animation/Socket.cpp
+        src/Animation/SkinnedMesh.cpp
         src/Application.cpp
         src/Assets/AssetFile.cpp
         src/Assets/AssetId.cpp
@@ -18,6 +23,7 @@ target_sources(FrostEngine
         src/Physics/Collision.cpp
         src/Physics/PhysicsSystem.cpp
         src/Platform/Input.cpp
+        src/Platform/KeyNames.cpp
         src/Platform/Window.cpp
         src/Project/GameLaunchOptions.cpp
         src/Project/Project.cpp
@@ -39,13 +45,17 @@ target_sources(FrostEngine
         src/Renderer/Vulkan/VulkanImage.cpp
         src/Renderer/Vulkan/VulkanPipeline.cpp
         src/Renderer/Vulkan/VulkanSwapchain.cpp
+        src/Scene/Components/AnimationTriggerComponent.cpp
         src/Scene/Components/CameraComponent.cpp
         src/Scene/Components/CharacterControllerComponent.cpp
         src/Scene/Components/FlyControllerComponent.cpp
         src/Scene/Components/LightComponent.cpp
+        src/Scene/Components/MaterialOverrides.cpp
         src/Scene/Components/MeshComponent.cpp
+        src/Scene/Components/SkeletalMeshComponent.cpp
         src/Scene/Components/TransformComponent.cpp
         src/Scene/GameObject.cpp
+        src/Scene/Hierarchy.cpp
         src/Scene/Level.cpp
         src/Scene/LevelSerializer.cpp
 
@@ -54,6 +64,11 @@ target_sources(FrostEngine
         BASE_DIRS
             include
         FILES
+            include/Frost/Animation/AnimationClip.hpp
+            include/Frost/Animation/AnimationSystem.hpp
+            include/Frost/Animation/Skeleton.hpp
+            include/Frost/Animation/Socket.hpp
+            include/Frost/Animation/SkinnedMesh.hpp
             include/Frost/Application.hpp
             include/Frost/Assets/AssetFile.hpp
             include/Frost/Assets/AssetId.hpp
@@ -70,6 +85,7 @@ target_sources(FrostEngine
             include/Frost/Physics/PhysicsSystem.hpp
             include/Frost/Platform/Filesystem.hpp
             include/Frost/Platform/Input.hpp
+            include/Frost/Platform/KeyNames.hpp
             include/Frost/Platform/Window.hpp
             include/Frost/Project/GameLaunchOptions.hpp
             include/Frost/Project/Project.hpp
@@ -94,6 +110,8 @@ target_sources(FrostEngine
             include/Frost/Renderer/Vulkan/VulkanPipeline.hpp
             include/Frost/Renderer/Vulkan/VulkanSwapchain.hpp
             include/Frost/Scene/Bounds.hpp
+            include/Frost/Scene/Components/AnimationTriggerComponent.hpp
+            include/Frost/Scene/Components/AttachmentComponent.hpp
             include/Frost/Scene/Components/BoxColliderComponent.hpp
             include/Frost/Scene/Components/CameraComponent.hpp
             include/Frost/Scene/Components/CapsuleColliderComponent.hpp
@@ -101,10 +119,13 @@ target_sources(FrostEngine
             include/Frost/Scene/Components/FlyControllerComponent.hpp
             include/Frost/Scene/Components/Components.hpp
             include/Frost/Scene/Components/LightComponent.hpp
+            include/Frost/Scene/Components/MaterialOverrides.hpp
             include/Frost/Scene/Components/MeshComponent.hpp
             include/Frost/Scene/Components/RigidBodyComponent.hpp
+            include/Frost/Scene/Components/SkeletalMeshComponent.hpp
             include/Frost/Scene/Components/TransformComponent.hpp
             include/Frost/Scene/GameObject.hpp
+            include/Frost/Scene/Hierarchy.hpp
             include/Frost/Scene/Level.hpp
             include/Frost/Scene/LevelSerializer.hpp
             include/Frost/Scene/Registry.hpp

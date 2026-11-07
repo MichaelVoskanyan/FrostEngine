@@ -17,6 +17,10 @@ namespace {
 namespace Frost {
 
     Camera CameraComponent::ToCamera(const TransformComponent& transform) const {
+        return ToCamera(transform.position, transform.GetRotation());
+    }
+
+    Camera CameraComponent::ToCamera(const glm::vec3& objectPosition, const glm::quat& objectRotation) const {
         // std::clamp would pass NaN through; these comparisons replace it with the defaults.
         const CameraComponent defaults;
         const float fov = std::isfinite(verticalFov) ? std::clamp(verticalFov, kMinFov, kMaxFov) : defaults.verticalFov;
@@ -26,13 +30,12 @@ namespace Frost {
 
         // The mount: offset in the object's (rotated, unscaled) space, then its own turn on top of
         // the object's.
-        const glm::quat objectRotation = transform.GetRotation();
         const glm::quat mountRotation =
                 TransformComponent{.position = {}, .rotation = rotation, .scale = glm::vec3(1.0f)}.GetRotation();
 
         Camera camera;
         camera.SetPerspective(glm::radians(fov), nearPlane, farPlane);
-        camera.SetPosition(transform.position + objectRotation * offset);
+        camera.SetPosition(objectPosition + objectRotation * offset);
         camera.SetOrientation(objectRotation * mountRotation);
         return camera;
     }

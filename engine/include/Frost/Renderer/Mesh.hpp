@@ -95,6 +95,12 @@ namespace Frost {
         Mesh(const VulkanAllocator& allocator, const VulkanDevice& device, const VulkanCommandPool& commandPool,
              const MeshData& data);
 
+        // A skinned mesh: `skin` (one SkinnedVertex per vertex) is uploaded as a second vertex
+        // stream, and the mesh is drawn with the skinned pipeline (see Renderer::SubmitSkinned).
+        // Throws std::invalid_argument as above, or if `skin` does not have one entry per vertex.
+        Mesh(const VulkanAllocator& allocator, const VulkanDevice& device, const VulkanCommandPool& commandPool,
+             const MeshData& data, std::span<const SkinnedVertex> skin);
+
         // Convenience for a single-range mesh (the whole index buffer, vertexOffset 0).
         Mesh(const VulkanAllocator& allocator, const VulkanDevice& device, const VulkanCommandPool& commandPool,
              const std::vector<Vertex>& vertices, const std::vector<std::uint32_t>& indices);
@@ -116,10 +122,21 @@ namespace Frost {
         // As above, but with an explicit model matrix instead of the mesh's own, and per-sub-mesh
         // material overrides: a non-null materialOverrides[i] replaces sub-mesh i's material (the
         // span may be shorter than the sub-mesh count, or empty). This is how one uploaded mesh is
-        // drawn as many independently placed and textured objects (see Renderer::Submit).
+        // drawn as many independently placed and textured objects (see Renderer::Submit). A skinned
+        // mesh also binds its skin stream, and its joint palette starts at `firstJoint` in the
+        // frame's joint buffer (the skinned pipeline must be bound).
         void Draw(VkCommandBuffer commandBuffer, VkPipelineLayout pipelineLayout, const glm::mat4& transform,
-                  std::span<const std::shared_ptr<Material>> materialOverrides,
-                  const Material& fallbackMaterial) const;
+                  std::span<const std::shared_ptr<Material>> materialOverrides, const Material& fallbackMaterial,
+                  std::uint32_t firstJoint = 0) const;
+
+        // Whether the mesh has a skin stream (and must be drawn with the skinned pipeline).
+        [[nodiscard]]
+        bool IsSkinned() const noexcept;
+
+        // How many joint matrices a palette for this mesh needs: one more than the highest joint
+        // index its skin stream uses (0 if not skinned).
+        [[nodiscard]]
+        std::uint32_t GetJointCount() const noexcept;
 
         // The model matrix (object -> world): the engine-side position/rotation/scale of this mesh.
         // Read at draw time, so it can change every frame.
@@ -157,12 +174,14 @@ namespace Frost {
                     const std::vector<SubMesh>& subMeshes);
 
         std::unique_ptr<VulkanBuffer> m_VertexBuffer;
+        std::unique_ptr<VulkanBuffer> m_SkinBuffer;  // Null unless skinned.
         std::unique_ptr<VulkanBuffer> m_IndexBuffer;
         std::vector<SubMesh> m_SubMeshes;
         std::vector<std::shared_ptr<Material>> m_Materials;  // One slot per sub-mesh; null = none.
         glm::mat4 m_Transform{1.0f};
         std::uint32_t m_VertexCount = 0;
         std::uint32_t m_IndexCount = 0;
+        std::uint32_t m_JointCount = 0;
     };
 
 }  // namespace Frost

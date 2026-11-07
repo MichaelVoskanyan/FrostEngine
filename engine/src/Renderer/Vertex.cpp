@@ -37,4 +37,26 @@ namespace Frost {
         };
     }
 
+    VkVertexInputBindingDescription SkinnedVertex::GetBindingDescription() noexcept {
+        return VkVertexInputBindingDescription{
+                .binding = kBinding,
+                .stride = sizeof(SkinnedVertex),
+                .inputRate = VK_VERTEX_INPUT_RATE_VERTEX,
+        };
+    }
+
+    std::array<VkVertexInputAttributeDescription, SkinnedVertex::kAttributeCount> SkinnedVertex::GetAttributeDescriptions() noexcept {
+        // R16G16B16A16_UINT and R32G32B32A32_SFLOAT are both mandatory vertex buffer formats.
+        return {
+                VkVertexInputAttributeDescription{.location = Vertex::kAttributeCount,
+                                                  .binding = kBinding,
+                                                  .format = VK_FORMAT_R16G16B16A16_UINT,
+                                                  .offset = offsetof(SkinnedVertex, joints)},
+                VkVertexInputAttributeDescription{.location = Vertex::kAttributeCount + 1,
+                                                  .binding = kBinding,
+                                                  .format = VK_FORMAT_R32G32B32A32_SFLOAT,
+                                                  .offset = offsetof(SkinnedVertex, weights)},
+        };
+    }
+
 }  // namespace Frost

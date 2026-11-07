@@ -1,19 +1,37 @@
 #pragma once
 
+#include <Frost/Animation/AnimationClip.hpp>
+#include <Frost/Assets/AssetManager.hpp>
 #include <Frost/Scene/GameObject.hpp>
 
 #include <cstddef>
+#include <map>
+#include <memory>
+#include <vector>
 
 class EditorContext;
 
 // The "Inspector" window: everything editable about the selected object, which is its name and
 // its components, one collapsible section each (in Frost::BuiltinComponents order):
 //   - Transform (every object has one): position, rotation in degrees, scale with an optional
-//     uniform lock.
-//   - Mesh: its model, shown by name (drop a model from the Asset Library onto it to swap it), and
-//     per sub-mesh, its material: either the model's own, or an override with editable factors and
-//     texture slots. Drop an image from the Asset Library onto a slot to use it; each slot can also
-//     inherit the model's texture or be left empty.
+//     uniform lock. For an attached object, relative to its mount.
+//   - Attachment: the object it is attached to (picking one puts it on its mount; "(none)"
+//     detaches it where it is), the bone or socket of that object's skeletal mesh it moves with,
+//     and the slot (role) animations show and hide it by.
+//   - Mesh: its model, shown by name (drop a model from the Asset Library onto it to swap it;
+//     an attached object keeps its bone and slot, e.g. an extended magazine replacing a magazine),
+//     whether it is visible, and per sub-mesh, its material: either the model's own, or an override
+//     with editable factors and texture slots. Drop an image from the Asset Library onto a slot to
+//     use it; each slot can also inherit the model's texture or be left empty.
+//   - Skeletal Mesh: its model (drop a skeletal mesh onto it) and skeleton, whether it is visible,
+//     the objects attached to it (and adding those its model comes with), whether the parts
+//     attached to bones follow them, the animation (drop an animation onto it, or pick one), where
+//     in it the model is posed (a time slider, with Play to preview the animation playing), the
+//     animation's visibility keys (when it shows and hides attachments, by slot), how the game
+//     plays it (on start, looping, speed), and per-sub-mesh materials as for a Mesh.
+//   - Animation Triggers: keys that play animations once on the skeletal mesh in the game (R: a
+//     reload), each previewable (played, or posed at a moment of it), with its visibility keys:
+//     which of the objects attached to it are shown or hidden, and from when.
 //   - Light: type, color (or color temperature), intensity, radius/distance and spot cone angles.
 //     Lights are aimed by rotating the object.
 //   - Camera: field of view and clip distances, and how it is mounted on its object (offset and
@@ -46,7 +64,10 @@ private:
     // The properties of one component type; each returns whether it changed the object. Every type
     // in Frost::BuiltinComponents needs one (the build fails otherwise).
     bool DrawComponent(EditorContext& context, Frost::GameObject& object, Frost::TransformComponent& transform);
+    bool DrawComponent(EditorContext& context, Frost::GameObject& object, Frost::AttachmentComponent& attachment);
+    bool DrawComponent(EditorContext& context, Frost::GameObject& object, Frost::AnimationTriggerComponent& component);
     bool DrawComponent(EditorContext& context, Frost::GameObject& object, Frost::MeshComponent& mesh);
+    bool DrawComponent(EditorContext& context, Frost::GameObject& object, Frost::SkeletalMeshComponent& mesh);
     bool DrawComponent(EditorContext& context, Frost::GameObject& object, Frost::LightComponent& light);
     bool DrawComponent(EditorContext& context, Frost::GameObject& object, Frost::CameraComponent& camera);
     bool DrawComponent(EditorContext& context, Frost::GameObject& object, Frost::FlyControllerComponent& controller);
@@ -56,11 +77,50 @@ private:
     bool DrawComponent(EditorContext& context, Frost::GameObject& object, Frost::BoxColliderComponent& collider);
     bool DrawComponent(EditorContext& context, Frost::GameObject& object, Frost::RigidBodyComponent& body);
 
-    bool DrawMaterials(EditorContext& context, Frost::MeshComponent& mesh);
+    // The per-sub-mesh material overrides of a component that draws a model (MeshComponent or
+    // SkeletalMeshComponent); `model` is what it draws, if loaded.
+    template <typename Component>
+    bool DrawMaterials(EditorContext& context, Component& mesh, const Frost::MeshAsset* model);
+
+    // The skeletal mesh section's animation slot, time and preview controls.
+    bool DrawAnimation(EditorContext& context, const Frost::GameObject& object, Frost::SkeletalMeshComponent& mesh);
+
+    // The skeletal mesh section's list of the objects attached to it.
+    void DrawAttachedObjects(EditorContext& context, const Frost::GameObject& object, const Frost::SkeletalMeshComponent& mesh);
+
+    // The visibility keys of an animation trigger of `object`: which of the objects attached to it
+    // are shown or hidden, and from when, while the trigger's animation plays (saved with the
+    // level). "Add key" adds one at `time`. Returns whether they changed.
+    bool DrawTriggerKeys(EditorContext& context, const Frost::GameObject& object, Frost::AnimationTrigger& trigger, float time);
+
+    // The (slot-based) visibility keys of `animation` (the skeletal mesh's own animation, played on
+    // `object`), editable: each edit is saved to the animation asset when done. "Add key" adds one
+    // at `time`.
+    void DrawVisibilityKeys(EditorContext& context, const Frost::GameObject& object,
+                            const std::shared_ptr<const Frost::AnimationAsset>& animation, float time);
     bool DrawMaterialOverride(EditorContext& context, Frost::MaterialOverride& materialOverride);
     // One row of the texture slot table (label, then a button that is a drop target and opens a
     // menu).
     bool DrawTextureSlot(EditorContext& context, Frost::MaterialSlot slot, Frost::TextureOverride& texture);
 
     bool m_UniformScale = true;
+
+    // The object whose skeletal mesh animation is being previewed (played), or 0.
+    Frost::ObjectId m_PlayingObject = 0;
+
+    // The object a one-shot animation was previewed on (stopped when it is no longer shown), or 0.
+    Frost::ObjectId m_OneShotObject = 0;
+
+    // Requests from the sections, carried out once every section is drawn (they add or remove
+    // components): detach this object, add the default attachments of this one.
+    Frost::ObjectId m_DetachRequest = 0;
+    Frost::ObjectId m_AddDefaultAttachmentsRequest = 0;
+
+    // Visibility keys being edited, per animation asset: a copy of the keys of the asset version it
+    // was made from, saved to the asset when an edit is done.
+    struct KeyDraft {
+        std::weak_ptr<const Frost::AnimationAsset> source;
+        std::vector<Frost::VisibilityKey> keys;
+    };
+    std::map<Frost::AssetId, KeyDraft> m_KeyDrafts;
 };

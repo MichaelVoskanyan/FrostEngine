@@ -1,6 +1,6 @@
 {
   "format": "FrostLevel",
-  "version": 7,
+  "version": 12,
   "name": "Physics Test",
   "environment": {
     "ambientColor": [1, 1, 1],
@@ -41,22 +41,34 @@
       },
       "materials": [
         {
-          "subMesh": 4,
-          "subMeshName": "slide",
+          "subMesh": 0,
+          "subMeshName": "Barrel",
           "baseColorFactor": [1, 1, 1, 1],
           "metallic": 1,
-          "roughness": 0,
+          "roughness": 1,
           "normalScale": 1,
           "occlusionStrength": 1,
           "emissiveFactor": [0, 0, 0],
           "textures": {
-            "baseColor": {
-              "id": "9057f2aed6964ac596256728db23da14",
-              "path": "../Weapons/Glock19/Textures/black64.ftex"
-            },
             "metallicRoughness": {
-              "id": "0a2070725e9d4d9bba2f6423a843acfd",
-              "path": "../Weapons/Glock19/Textures/mr_metal_smooth.ftex"
+              "id": "deb47f698370459793021268773442c3",
+              "path": "../Weapons/Glock19/Textures/mr_metal_rough.ftex"
+            }
+          }
+        },
+        {
+          "subMesh": 1,
+          "subMeshName": "FrontSight",
+          "baseColorFactor": [1, 1, 1, 1],
+          "metallic": 0,
+          "roughness": 1,
+          "normalScale": 1,
+          "occlusionStrength": 1,
+          "emissiveFactor": [0, 0, 0],
+          "textures": {
+            "metallicRoughness": {
+              "id": "0b3d5414ce74411b99f50f487a1b2960",
+              "path": "../Weapons/Glock19/Textures/mr_rough.ftex"
             }
           }
         },
@@ -81,22 +93,6 @@
           }
         },
         {
-          "subMesh": 1,
-          "subMeshName": "FrontSight",
-          "baseColorFactor": [1, 1, 1, 1],
-          "metallic": 0,
-          "roughness": 1,
-          "normalScale": 1,
-          "occlusionStrength": 1,
-          "emissiveFactor": [0, 0, 0],
-          "textures": {
-            "metallicRoughness": {
-              "id": "0b3d5414ce74411b99f50f487a1b2960",
-              "path": "../Weapons/Glock19/Textures/mr_rough.ftex"
-            }
-          }
-        },
-        {
           "subMesh": 3,
           "subMeshName": "RearSight",
           "baseColorFactor": [1, 1, 1, 1],
@@ -113,18 +109,22 @@
           }
         },
         {
-          "subMesh": 0,
-          "subMeshName": "Barrel",
+          "subMesh": 4,
+          "subMeshName": "slide",
           "baseColorFactor": [1, 1, 1, 1],
           "metallic": 1,
-          "roughness": 1,
+          "roughness": 0,
           "normalScale": 1,
           "occlusionStrength": 1,
           "emissiveFactor": [0, 0, 0],
           "textures": {
+            "baseColor": {
+              "id": "9057f2aed6964ac596256728db23da14",
+              "path": "../Weapons/Glock19/Textures/black64.ftex"
+            },
             "metallicRoughness": {
-              "id": "deb47f698370459793021268773442c3",
-              "path": "../Weapons/Glock19/Textures/mr_metal_rough.ftex"
+              "id": "0a2070725e9d4d9bba2f6423a843acfd",
+              "path": "../Weapons/Glock19/Textures/mr_metal_smooth.ftex"
             }
           }
         }
@@ -166,7 +166,7 @@
       "camera": {
         "verticalFov": 60,
         "nearClip": 5,
-        "farClip": 100000,
+        "farClip": 1e+05,
         "offset": [0, 70, 0],
         "rotation": [-10, 0, 0]
       },
@@ -183,6 +183,129 @@
       "rigidBody": {
         "simulated": true,
         "mass": 80
+      }
+    },
+    {
+      "id": 8,
+      "name": "AK12",
+      "transform": {
+        "position": [-536.6, 179.4, 556.1],
+        "rotation": [0, 0, 0],
+        "scale": [1.78, 1.78, 1.78]
+      },
+      "skeletalMesh": {
+        "mesh": {
+          "id": "5a06cba7474149609ebfaec8d250cbdc",
+          "path": "../Weapons/AK12/Meshes/AK12.fskmesh"
+        },
+        "animationTime": 0,
+        "autoPlay": true,
+        "loop": true,
+        "playRate": 1,
+        "attachmentsFollowBones": true,
+        "visible": true
+      },
+      "animationTriggers": [
+        {
+          "key": "R",
+          "animation": {
+            "id": "9ae86289aa904936b26aeb9eb87be28a",
+            "path": "../Weapons/AK12/Animations/AK12_Empty_Reload.fanim"
+          },
+          "visibilityKeys": [
+            {
+              "time": 0,
+              "object": 9,
+              "visible": false
+            },
+            {
+              "time": 0,
+              "object": 9,
+              "visible": false
+            },
+            {
+              "time": 1.31,
+              "object": 13,
+              "visible": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "name": "AK12Mag",
+      "transform": {
+        "position": [0, 0, 0],
+        "rotation": [0, 0, 0],
+        "scale": [1, 1, 1]
+      },
+      "attachment": {
+        "parent": 8,
+        "bone": "",
+        "slot": "AK12Mag",
+        "socket": ""
+      },
+      "mesh": {
+        "id": "9d99d9939ff64972a8c652d8c3666166",
+        "path": "../Weapons/AK12/Meshes/AK12_AK12Mag.fmesh"
+      }
+    },
+    {
+      "id": 10,
+      "name": "AK12MuzzleBrake",
+      "transform": {
+        "position": [0, 0, 0],
+        "rotation": [0, 0, 0],
+        "scale": [1, 1, 1]
+      },
+      "attachment": {
+        "parent": 8,
+        "bone": "Root",
+        "slot": "AK12MuzzleBrake",
+        "socket": ""
+      },
+      "mesh": {
+        "id": "2534f4b7b231455fa722eaaa0cad116d",
+        "path": "../Weapons/AK12/Meshes/AK12_AK12MuzzleBrake.fmesh"
+      }
+    },
+    {
+      "id": 11,
+      "name": "MagSpare",
+      "transform": {
+        "position": [0, 0, 0],
+        "rotation": [0, 0, 0],
+        "scale": [1, 1, 1]
+      },
+      "attachment": {
+        "parent": 8,
+        "bone": "MagSpare",
+        "slot": "",
+        "socket": ""
+      },
+      "mesh": {
+        "id": "9d99d9939ff64972a8c652d8c3666166",
+        "path": "../Weapons/AK12/Meshes/AK12_AK12Mag.fmesh"
+      }
+    },
+    {
+      "id": 13,
+      "name": "MagEquipped",
+      "transform": {
+        "position": [0, 0, 0],
+        "rotation": [0, 0, 0],
+        "scale": [1, 1, 1]
+      },
+      "attachment": {
+        "parent": 8,
+        "bone": "MagEquipped",
+        "slot": "AK12Mag",
+        "socket": ""
+      },
+      "mesh": {
+        "id": "9d99d9939ff64972a8c652d8c3666166",
+        "path": "../Weapons/AK12/Meshes/AK12_AK12Mag.fmesh"
       }
     }
   ]

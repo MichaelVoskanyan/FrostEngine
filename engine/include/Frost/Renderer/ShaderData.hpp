@@ -9,7 +9,7 @@
 namespace Frost {
 
     // CPU-side mirrors of the data blocks the shaders declare. Layouts must match shaders/basic.*
-    // exactly. Every member is a mat4, a (u)vec4 or a float placed after the vec4s in groups of four,
+    // and shaders/skinned.vert exactly. Every member is a mat4, a (u)vec4 or a float placed after the vec4s in groups of four,
     // so the std140 (uniform buffer) and std430 (push constant) layouts coincide with glm's and no
     // explicit padding is needed; the static_asserts below pin that down.
 
@@ -40,10 +40,29 @@ namespace Frost {
     // Per-draw constants, pushed by Mesh::Draw from the mesh's transform: the model (object -> world)
     // matrix, and the matrix that takes normals along with it (inverse-transpose of its linear part,
     // stored as a mat4 so the block has no mat3 padding to get wrong).
+    //
+    // The shaders only use the normal matrix's upper-left 3x3, so the rest of its fourth column
+    // carries per-draw data without growing the block past the 128 bytes every device supports:
+    // for a skinned draw, normalMatrix[3].x is the index of the draw's first joint matrix in the
+    // frame's joint buffer (see SetFirstJoint and shaders/skinned.vert), as an exactly
+    // representable float.
     struct MeshPushConstants {
         glm::mat4 model{1.0f};
         glm::mat4 normalMatrix{1.0f};
     };
+
+    // Joint buffer indices up to this are exact as floats (2^24).
+    inline constexpr std::uint32_t kMaxFirstJoint = 1u << 24;
+
+    inline void SetFirstJoint(MeshPushConstants& constants, const std::uint32_t firstJoint) noexcept {
+        constants.normalMatrix[3].x = static_cast<float>(firstJoint);
+    }
+
+    // One of the frame's joint matrices: descriptor set 0, binding 2, a read-only storage buffer
+    // (std430) of up to Renderer::kMaxJointMatrices of these, read by the skinned vertex shader.
+    // Each skinned draw's palette is a contiguous run of them: its skinning matrices (bone
+    // model-space transform x inverse bind matrix), in the object's space.
+    using GpuJointMatrix = glm::mat4;
 
     // Per-material constants: descriptor set 1, binding 0 (the material's textures follow at
     // bindings 1-5). Written once when the Material is created; see MaterialParameters for the
