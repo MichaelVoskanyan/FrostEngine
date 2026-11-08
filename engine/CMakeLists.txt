@@ -18,10 +18,18 @@ target_sources(FrostEngine
         src/Assets/Image.cpp
         src/Assets/Json.cpp
         src/Assets/Json.hpp
+        src/Debug/DebugDraw.cpp
+        src/Debug/DebugDrawImGui.cpp
+        src/Debug/PhysicsDebugDraw.cpp
         src/Engine.cpp
         src/ImGui/ImGuiLayer.cpp
         src/Physics/Collision.cpp
         src/Physics/PhysicsSystem.cpp
+        src/Physics/ColliderQuery.hpp
+        src/Physics/Overlap.cpp
+        src/Physics/PhysicsQuerySystem.cpp
+        src/Physics/Raycast.cpp
+        src/Physics/ShapeCast.cpp
         src/Platform/Input.cpp
         src/Platform/KeyNames.cpp
         src/Platform/Window.cpp
@@ -52,6 +60,7 @@ target_sources(FrostEngine
         src/Scene/Components/LightComponent.cpp
         src/Scene/Components/MaterialOverrides.cpp
         src/Scene/Components/MeshComponent.cpp
+        src/Scene/Components/PhysicsQueryComponent.cpp
         src/Scene/Components/SkeletalMeshComponent.cpp
         src/Scene/Components/TransformComponent.cpp
         src/Scene/GameObject.cpp
@@ -79,10 +88,17 @@ target_sources(FrostEngine
             include/Frost/Assets/GltfImporter.hpp
             include/Frost/Assets/Image.hpp
             include/Frost/Assets/ImportError.hpp
+            include/Frost/Debug/DebugDraw.hpp
+            include/Frost/Debug/PhysicsDebugDraw.hpp
             include/Frost/Engine.hpp
             include/Frost/ImGui/ImGuiLayer.hpp
             include/Frost/Physics/Collision.hpp
+            include/Frost/Physics/CollisionFilter.hpp
+            include/Frost/Physics/Overlap.hpp
+            include/Frost/Physics/PhysicsQuerySystem.hpp
             include/Frost/Physics/PhysicsSystem.hpp
+            include/Frost/Physics/Raycast.hpp
+            include/Frost/Physics/ShapeCast.hpp
             include/Frost/Platform/Filesystem.hpp
             include/Frost/Platform/Input.hpp
             include/Frost/Platform/KeyNames.hpp
@@ -121,6 +137,7 @@ target_sources(FrostEngine
             include/Frost/Scene/Components/LightComponent.hpp
             include/Frost/Scene/Components/MaterialOverrides.hpp
             include/Frost/Scene/Components/MeshComponent.hpp
+            include/Frost/Scene/Components/PhysicsQueryComponent.hpp
             include/Frost/Scene/Components/RigidBodyComponent.hpp
             include/Frost/Scene/Components/SkeletalMeshComponent.hpp
             include/Frost/Scene/Components/TransformComponent.hpp
@@ -128,6 +145,7 @@ target_sources(FrostEngine
             include/Frost/Scene/Hierarchy.hpp
             include/Frost/Scene/Level.hpp
             include/Frost/Scene/LevelSerializer.hpp
+            include/Frost/Scene/Ray.hpp
             include/Frost/Scene/Registry.hpp
             include/Frost/Units.hpp
 )

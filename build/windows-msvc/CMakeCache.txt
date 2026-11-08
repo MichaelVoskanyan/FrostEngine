@@ -55,9 +55,6 @@ CMAKE_EXE_LINKER_FLAGS_RELEASE:STRING=/INCREMENTAL:NO
 //Flags used by the linker during RELWITHDEBINFO builds.
 CMAKE_EXE_LINKER_FLAGS_RELWITHDEBINFO:STRING=/debug /INCREMENTAL
 
-//No help, variable specified on the command line.
-CMAKE_EXPORT_COMPILE_COMMANDS:BOOL=TRUE
-
 //Value Computed by CMake.
 CMAKE_FIND_PACKAGE_REDIRECTS_DIR:STATIC=D:/Projects/Frost/build/windows-msvc/CMakeFiles/pkgRedirects
 
@@ -179,7 +176,7 @@ CMAKE_STATIC_LINKER_FLAGS_RELEASE:STRING=
 // during RELWITHDEBINFO builds.
 CMAKE_STATIC_LINKER_FLAGS_RELWITHDEBINFO:STRING=
 
-//No help, variable specified on the command line.
+//The CMake toolchain file
 CMAKE_TOOLCHAIN_FILE:FILEPATH=C:/Users/micha/vcpkg/scripts/buildsystems/vcpkg.cmake
 
 //If this value is on, makefiles will be generated without the
@@ -270,10 +267,10 @@ Vulkan_GLSLANG_VALIDATOR_EXECUTABLE:FILEPATH=C:/VulkanSDK/1.4.350.0/Bin/glslangV
 Vulkan_GLSLC_EXECUTABLE:FILEPATH=C:/VulkanSDK/1.4.350.0/Bin/glslc.exe
 
 //Path to a file.
-Vulkan_INCLUDE_DIR:PATH=C:/VulkanSDK/1.4.350.0/Include
+Vulkan_INCLUDE_DIR:PATH=D:/Projects/Frost/build/windows-msvc/vcpkg_installed/x64-windows/include
 
 //Path to a library.
-Vulkan_LIBRARY:FILEPATH=C:/VulkanSDK/1.4.350.0/Lib/vulkan-1.lib
+Vulkan_LIBRARY:FILEPATH=D:/Projects/Frost/build/windows-msvc/vcpkg_installed/x64-windows/debug/lib/vulkan-1.lib
 
 //(experimental) Automatically copy dependencies into the install
 // target directory for executables. Requires CMake 3.14.
@@ -426,7 +423,7 @@ CMAKE_VERBOSE_MAKEFILE-ADVANCED:INTERNAL=1
 //Details about finding Threads
 FIND_PACKAGE_MESSAGE_DETAILS_Threads:INTERNAL=[TRUE][v()]
 //Details about finding Vulkan
-FIND_PACKAGE_MESSAGE_DETAILS_Vulkan:INTERNAL=[C:/VulkanSDK/1.4.350.0/Lib/vulkan-1.lib][C:/VulkanSDK/1.4.350.0/Include][cfound components: glslc glslangValidator ][v1.4.350()]
+FIND_PACKAGE_MESSAGE_DETAILS_Vulkan:INTERNAL=[D:/Projects/Frost/build/windows-msvc/vcpkg_installed/x64-windows/debug/lib/vulkan-1.lib][D:/Projects/Frost/build/windows-msvc/vcpkg_installed/x64-windows/include][cfound components: glslc glslangValidator ][v1.4.350()]
 //ADVANCED property for variable: Stb_INCLUDE_DIR
 Stb_INCLUDE_DIR-ADVANCED:INTERNAL=1
 //ADVANCED property for variable: VCPKG_VERBOSE

@@ -15,6 +15,7 @@
 #include <imgui.h>
 
 #include <glm/common.hpp>
+#include <glm/geometric.hpp>
 #include <glm/vec3.hpp>
 #include <glm/vec4.hpp>
 
@@ -181,6 +182,72 @@ namespace {
             ImGui::TextUnformatted(label);
         }
         ImGui::PopID();
+        return changed;
+    }
+
+    // How a collision layer is shown. Layers are numbered until projects can name them.
+    [[nodiscard]]
+    std::string CollisionLayerLabel(const int layer) {
+        return layer == Frost::kDefaultCollisionLayer ? std::string("Default") : "Layer " + std::to_string(layer);
+    }
+
+    // A set of collision layers, as a list of checkboxes in a combo whose preview sums it up.
+    // Returns whether it changed.
+    bool DrawLayerMask(const char* const label, Frost::CollisionLayerMask& mask, const char* const tooltip) {
+        bool changed = false;
+
+        std::string summary;
+        if (mask == Frost::kAllCollisionLayers) { summary = "Everything"; }
+        else if (mask == Frost::kNoCollisionLayers) { summary = "Nothing"; }
+        else {
+            for (int layer = 0; layer < Frost::kCollisionLayerCount; ++layer) {
+                if ((mask & Frost::CollisionLayerBit(layer)) == 0) { continue; }
+                summary += (summary.empty() ? "" : ", ") + CollisionLayerLabel(layer);
+            }
+        }
+        if (ImGui::BeginCombo(label, summary.c_str(), ImGuiComboFlags_HeightLarge)) {
+            if (ImGui::SmallButton("Everything")) {
+                mask = Frost::kAllCollisionLayers;
+                changed = true;
+            }
+            ImGui::SameLine();
+            if (ImGui::SmallButton("Nothing")) {
+                mask = Frost::kNoCollisionLayers;
+                changed = true;
+            }
+            ImGui::Separator();
+            // Checkboxes keep the list open, so several layers can be toggled in one go.
+            for (int layer = 0; layer < Frost::kCollisionLayerCount; ++layer) {
+                changed |= ImGui::CheckboxFlags(CollisionLayerLabel(layer).c_str(), &mask, Frost::CollisionLayerBit(layer));
+            }
+            ImGui::EndCombo();
+        }
+        ImGui::SetItemTooltip("%s", tooltip);
+
+        return changed;
+    }
+
+    // A collider's layer and the layers it collides with (the part of the collider sections both
+    // kinds share). Returns whether either changed.
+    bool DrawCollisionFilter(Frost::CollisionFilter& filter) {
+        bool changed = false;
+
+        if (ImGui::BeginCombo("Layer", CollisionLayerLabel(filter.layer).c_str(), ImGuiComboFlags_HeightLarge)) {
+            for (int layer = 0; layer < Frost::kCollisionLayerCount; ++layer) {
+                if (ImGui::Selectable(CollisionLayerLabel(layer).c_str(), layer == filter.layer)) {
+                    filter.layer = layer;
+                    changed = true;
+                }
+            }
+            ImGui::EndCombo();
+        }
+        ImGui::SetItemTooltip("The collision layer the collider is on: what other colliders' masks and raycasts\n"
+                              "choose to collide with or hit.");
+
+        changed |= DrawLayerMask("Collides with", filter.mask,
+                                 "The layers it collides with. Two colliders collide only if each one's mask has the\n"
+                                 "other's layer. (Raycasts choose the layers they hit themselves.)");
+
         return changed;
     }
 
@@ -1462,11 +1529,15 @@ bool InspectorPanel::DrawComponent(EditorContext& /*context*/, Frost::GameObject
     changed |= ImGui::DragFloat("Height", &collider.height, 1.0f * Frost::kCentimeter, 0.0f, 100.0f * Frost::kMeter, "%.1f cm",
                                 ImGuiSliderFlags_AlwaysClamp);
     ImGui::SetItemTooltip("Total, tip to tip, along the object's up axis (at most 2 x radius: a sphere).");
+    changed |= DrawCollisionFilter(collider.filter);
 
     const std::optional<Frost::Bounds> bounds = ModelBounds(object);
     ImGui::BeginDisabled(!bounds.has_value());
     if (ImGui::SmallButton("Fit to Model")) {
+        // Only the shape is refitted: the collider stays on its layer.
+        const Frost::CollisionFilter filter = collider.filter;
         collider = Frost::CapsuleColliderComponent::FromBounds(*bounds);
+        collider.filter = filter;
         changed = true;
     }
     ImGui::EndDisabled();
@@ -1491,11 +1562,15 @@ bool InspectorPanel::DrawComponent(EditorContext& /*context*/, Frost::GameObject
     changed |= ImGui::DragFloat3("Size", &collider.size.x, 1.0f * Frost::kCentimeter, 0.0f, 1.0f * Frost::kKilometer, "%.1f cm",
                                  ImGuiSliderFlags_AlwaysClamp);
     ImGui::SetItemTooltip("Edge lengths, in the object's own space (the object's scale applies on top).");
+    changed |= DrawCollisionFilter(collider.filter);
 
     const std::optional<Frost::Bounds> bounds = ModelBounds(object);
     ImGui::BeginDisabled(!bounds.has_value());
     if (ImGui::SmallButton("Fit to Model")) {
+        // Only the shape is refitted: the collider stays on its layer.
+        const Frost::CollisionFilter filter = collider.filter;
         collider = Frost::BoxColliderComponent::FromBounds(*bounds);
+        collider.filter = filter;
         changed = true;
     }
     ImGui::EndDisabled();
@@ -1538,6 +1613,92 @@ bool InspectorPanel::DrawComponent(EditorContext& context, Frost::GameObject& ob
         const glm::vec3& velocity = body.linearVelocity;
         ImGui::TextDisabled("Velocity %.1f, %.1f, %.1f cm/s", velocity.x, velocity.y, velocity.z);
     }
+
+    return changed;
+}
+
+bool InspectorPanel::DrawComponent(EditorContext& /*context*/, Frost::GameObject& /*object*/,
+                                   Frost::PhysicsQueryComponent& query) {
+    using Frost::PhysicsQueryType;
+    bool changed = false;
+
+    changed |= ImGui::Checkbox("Enabled", &query.enabled);
+    ImGui::SetItemTooltip("Whether it runs in the game (every frame, from where the object is).");
+    ImGui::SameLine();
+    changed |= ImGui::Checkbox("Debug", &query.debug);
+    ImGui::SetItemTooltip("Prints what it starts and stops hitting (or overlapping) to the game's log.");
+
+    constexpr std::pair<PhysicsQueryType, const char*> kTypes[] = {
+            {PhysicsQueryType::Raycast, "Raycast"},
+            {PhysicsQueryType::SphereCast, "Sphere Cast"},
+            {PhysicsQueryType::CapsuleCast, "Capsule Cast"},
+            {PhysicsQueryType::SphereOverlap, "Sphere Overlap"},
+            {PhysicsQueryType::BoxOverlap, "Box Overlap"},
+    };
+    const char* typeLabel = kTypes[0].second;
+    for (const auto& [type, label] : kTypes) {
+        if (type == query.type) { typeLabel = label; }
+    }
+    if (ImGui::BeginCombo("Type", typeLabel)) {
+        for (const auto& [type, label] : kTypes) {
+            if (ImGui::Selectable(label, type == query.type)) {
+                query.type = type;
+                changed = true;
+            }
+        }
+        ImGui::EndCombo();
+    }
+
+    if (query.IsCast()) {
+        int mode = query.mode == Frost::PhysicsQueryMode::All ? 1 : 0;
+        if (ImGui::Combo("Hits", &mode, "Closest only\0All along the way\0")) {
+            query.mode = mode == 1 ? Frost::PhysicsQueryMode::All : Frost::PhysicsQueryMode::Closest;
+            changed = true;
+        }
+    }
+
+    changed |= ImGui::DragFloat3("Offset", &query.offset.x, 1.0f * Frost::kCentimeter, 0.0f, 0.0f, "%.1f cm");
+    ImGui::SetItemTooltip(query.IsCast() ? "Where the cast starts, from the object, along its own axes (its scale does not apply)."
+                                         : "The volume's center, from the object, along its own axes (its scale does not apply).");
+
+    if (query.IsCast()) {
+        changed |= ImGui::DragFloat3("Direction", &query.direction.x, 0.01f, -1.0f, 1.0f, "%.2f");
+        ImGui::SetItemTooltip("Which way it goes, along the object's own axes: (0, 0, -1) is forward, (0, -1, 0) down.");
+        if (!(glm::length(query.direction) > 1.0e-6f)) {
+            ImGui::PushStyleColor(ImGuiCol_Text, kWarningColor);
+            ImGui::TextWrapped("No direction: it goes forward.");
+            ImGui::PopStyleColor();
+        }
+        changed |= ImGui::DragFloat("Max distance", &query.maxDistance, 5.0f * Frost::kCentimeter, 0.0f, 10.0f * Frost::kKilometer,
+                                    "%.0f cm", ImGuiSliderFlags_AlwaysClamp | ImGuiSliderFlags_Logarithmic);
+    }
+
+    if (query.type == PhysicsQueryType::SphereCast || query.type == PhysicsQueryType::CapsuleCast ||
+        query.type == PhysicsQueryType::SphereOverlap) {
+        changed |= ImGui::DragFloat("Radius", &query.radius, 0.5f * Frost::kCentimeter, 0.0f, 100.0f * Frost::kMeter, "%.1f cm",
+                                    ImGuiSliderFlags_AlwaysClamp);
+    }
+    if (query.type == PhysicsQueryType::CapsuleCast) {
+        changed |= ImGui::DragFloat("Height", &query.height, 1.0f * Frost::kCentimeter, 0.0f, 100.0f * Frost::kMeter, "%.1f cm",
+                                    ImGuiSliderFlags_AlwaysClamp);
+        ImGui::SetItemTooltip("Tip to tip, along the object's up axis (at most 2 x radius: a sphere).");
+    }
+    if (query.type == PhysicsQueryType::BoxOverlap) {
+        changed |= ImGui::DragFloat3("Size", &query.boxSize.x, 1.0f * Frost::kCentimeter, 0.0f, 1.0f * Frost::kKilometer, "%.1f cm",
+                                     ImGuiSliderFlags_AlwaysClamp);
+        ImGui::SetItemTooltip("Edge lengths, along the object's own axes.");
+    }
+
+    changed |= DrawLayerMask("Hits layers", query.layers,
+                             "The collision layers of the colliders it hits (their own masks do not matter to it).");
+    changed |= ImGui::Checkbox("Ignore self", &query.ignoreSelf);
+    ImGui::SetItemTooltip("Never hits this object, nor what it is attached to: a query on a character (or on a weapon\n"
+                          "it holds) does not hit the character.");
+
+    ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled));
+    ImGui::TextWrapped("Runs in the game, where F3 shows it: the way it goes, what it hits (point, normal, distance) "
+                       "and the colliders it touches.");
+    ImGui::PopStyleColor();
 
     return changed;
 }

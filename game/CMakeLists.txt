@@ -5,6 +5,10 @@ target_sources(FrostGame
         src/Main.cpp
         src/GameApplication.cpp
         src/GameApplication.hpp
+        src/PhysicsBenchmark.cpp
+        src/PhysicsBenchmark.hpp
+        src/PhysicsQueryLog.cpp
+        src/PhysicsQueryLog.hpp
 )
 
 target_compile_features(FrostGame

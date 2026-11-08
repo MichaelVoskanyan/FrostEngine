@@ -147,7 +147,7 @@ void ViewportPanel::Draw(EditorContext& context, const EditorCamera& camera) {
             context.Select(icon->GetId());
         }
         else {
-            const std::optional<Frost::RaycastHit> hit =
+            const std::optional<Frost::MeshRaycastHit> hit =
                     context.GetLevel().Raycast(ScreenPointToRay(camera, ImGui::GetMousePos()));
             context.Select(hit.has_value() ? hit->object->GetId() : 0);
         }
@@ -260,7 +260,7 @@ void ViewportPanel::DrawWorldCircle(const Projection& projection, const glm::vec
 }
 
 glm::vec3 ViewportPanel::FindDropPoint(EditorContext& context, const Frost::Ray& ray) const {
-    if (const std::optional<Frost::RaycastHit> hit = context.GetLevel().Raycast(ray); hit.has_value()) {
+    if (const std::optional<Frost::MeshRaycastHit> hit = context.GetLevel().Raycast(ray); hit.has_value()) {
         return hit->point;
     }
 

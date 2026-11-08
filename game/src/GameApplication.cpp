@@ -1,6 +1,10 @@
 #include "GameApplication.hpp"
 
+#include "PhysicsQueryLog.hpp"
+
+#include <Frost/Debug/PhysicsDebugDraw.hpp>
 #include <Frost/Engine.hpp>
+#include <Frost/Physics/PhysicsQuerySystem.hpp>
 #include <Frost/Platform/Filesystem.hpp>
 #include <Frost/Platform/Input.hpp>
 #include <Frost/Platform/Window.hpp>
@@ -39,6 +43,9 @@ namespace {
     // Looking at the whole level leaves this much room around it.
     constexpr float kFrameMargin = 1.25f;
 
+    // Toggles debug drawing.
+    constexpr Frost::Key kDebugDrawKey = Frost::Key::F3;
+
     // The project to run: the one on the command line, else the working directory.
     [[nodiscard]]
     Frost::Project ResolveProject(const Frost::GameLaunchOptions& options) {
@@ -61,6 +68,8 @@ GameApplication::GameApplication(const Frost::GameLaunchOptions& options)
                                                     .windowWidth = 1280,
                                                     .windowHeight = 720,
                                                     .windowResizable = true,
+                                                    // For debug drawing (see OnImGuiRender).
+                                                    .enableImGui = true,
                                                     .project = ResolveProject(options)}),
       m_Options(options) {}
 
@@ -93,6 +102,12 @@ void GameApplication::OnStart() {
 
     // Skeletal meshes set to play in the game start their animations.
     m_Animation.Start(m_Level->GetRegistry());
+
+    if (const auto* const queries = m_Level->GetRegistry().FindPool<Frost::PhysicsQueryComponent>();
+        queries != nullptr && queries->Size() > 0) {
+        std::cout << "[Game] " << queries->Size() << " physics quer" << (queries->Size() == 1 ? "y" : "ies")
+                  << " in the level. F3 shows/hides debug drawing.\n";
+    }
 
     if (m_Options.playInEditor) {
         GetEngine().GetWindow().SetTitle(std::string(kApplicationName) + " - " + m_Level->GetName() +
@@ -155,15 +170,52 @@ void GameApplication::OnUpdate(const float deltaTime) {
     m_Animation.Update(registry, deltaTime);
     m_Level->UpdatePoses();
 
+    // Physics queries, from where their objects are now, against where everything else is now.
+    Frost::UpdatePhysicsQueries(registry);
+    LogPhysicsQueries();
+
+    if (input.WasKeyPressed(kDebugDrawKey)) {
+        m_ShowDebugDraw = !m_ShowDebugDraw;
+        std::cout << "[Game] Debug drawing " << (m_ShowDebugDraw ? "on" : "off") << " (F3).\n";
+    }
+    if (m_ShowDebugDraw) { DrawPhysicsQueries(); }
+
     // Seen through the level's camera, wherever its object is now (attached to something that
     // moves, it moves along).
+    m_ViewCamera.reset();
     if (const Frost::GameObject* const camera = FindCamera(*m_Level)) {
         const Frost::WorldPlacement placement = Frost::ComputeWorldPlacement(registry, camera->GetId());
-        engine.GetRenderer().SetCamera(
-                camera->GetComponent<Frost::CameraComponent>().ToCamera(placement.position, placement.rotation));
+        m_ViewCamera = camera->GetComponent<Frost::CameraComponent>().ToCamera(placement.position, placement.rotation);
+        engine.GetRenderer().SetCamera(*m_ViewCamera);
     }
 
     m_Level->Submit(engine.GetRenderer(), engine.GetAssetManager());
+}
+
+void GameApplication::OnImGuiRender() {
+    if (m_ViewCamera.has_value()) { m_DebugDraw.Render(*m_ViewCamera); }
+    m_DebugDraw.Clear();
+}
+
+void GameApplication::LogPhysicsQueries() {
+    const auto nameOf = [this](const Frost::EntityId entity) { return NameOf(entity); };
+    m_Level->GetRegistry().Each<Frost::PhysicsQueryComponent>(
+            [&](const Frost::EntityId entity, const Frost::PhysicsQueryComponent& query) {
+                for (const std::string& line : DescribePhysicsQueryEvents(entity, query, nameOf)) { std::cout << line << '\n'; }
+            });
+}
+
+void GameApplication::DrawPhysicsQueries() {
+    const Frost::Registry& registry = m_Level->GetRegistry();
+    const Frost::DebugNameLookup nameOf = [this](const Frost::EntityId entity) { return NameOf(entity); };
+    registry.Each<Frost::PhysicsQueryComponent>([&](Frost::EntityId, const Frost::PhysicsQueryComponent& query) {
+        Frost::DrawPhysicsQuery(m_DebugDraw, registry, query, nameOf);
+    });
+}
+
+std::string GameApplication::NameOf(const Frost::EntityId entity) const {
+    const Frost::GameObject* const object = m_Level->FindObject(entity);
+    return object != nullptr && !object->GetName().empty() ? object->GetName() : "#" + std::to_string(entity);
 }
 
 void GameApplication::AddFreeCameraIfNeeded() {

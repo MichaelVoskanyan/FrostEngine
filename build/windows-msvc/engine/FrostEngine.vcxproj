@@ -80,7 +80,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <AdditionalIncludeDirectories>D:\Projects\Frost\engine\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <AdditionalOptions>%(AdditionalOptions) /external:I "D:/Projects/Frost/build/windows-msvc/vcpkg_installed/x64-windows/include" /external:I "C:/VulkanSDK/1.4.350.0/Include" /external:I "D:/Projects/Frost/build/windows-msvc/vcpkg_installed/x64-windows/include/vma" /Zc:__cplusplus</AdditionalOptions>
+      <AdditionalOptions>%(AdditionalOptions) /external:I "D:/Projects/Frost/build/windows-msvc/vcpkg_installed/x64-windows/include" /external:I "D:/Projects/Frost/build/windows-msvc/vcpkg_installed/x64-windows/include/vma" /Zc:__cplusplus</AdditionalOptions>
       <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <ConformanceMode>true</ConformanceMode>
@@ -101,10 +101,10 @@
     </ClCompile>
     <ResourceCompile>
       <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_DEBUG;_WINDOWS;GLFW_DLL;CMAKE_INTDIR=\"Debug\"</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>D:\Projects\Frost\engine\include;D:\Projects\Frost\build\windows-msvc\vcpkg_installed\x64-windows\include;C:\VulkanSDK\1.4.350.0\Include;D:\Projects\Frost\build\windows-msvc\vcpkg_installed\x64-windows\include\vma;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>D:\Projects\Frost\engine\include;D:\Projects\Frost\build\windows-msvc\vcpkg_installed\x64-windows\include;D:\Projects\Frost\build\windows-msvc\vcpkg_installed\x64-windows\include\vma;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
     <Midl>
-      <AdditionalIncludeDirectories>D:\Projects\Frost\engine\include;D:\Projects\Frost\build\windows-msvc\vcpkg_installed\x64-windows\include;C:\VulkanSDK\1.4.350.0\Include;D:\Projects\Frost\build\windows-msvc\vcpkg_installed\x64-windows\include\vma;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>D:\Projects\Frost\engine\include;D:\Projects\Frost\build\windows-msvc\vcpkg_installed\x64-windows\include;D:\Projects\Frost\build\windows-msvc\vcpkg_installed\x64-windows\include\vma;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
       <HeaderFileName>%(Filename).h</HeaderFileName>
       <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
@@ -118,7 +118,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
       <AdditionalIncludeDirectories>D:\Projects\Frost\engine\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <AdditionalOptions>%(AdditionalOptions) /external:I "D:/Projects/Frost/build/windows-msvc/vcpkg_installed/x64-windows/include" /external:I "C:/VulkanSDK/1.4.350.0/Include" /external:I "D:/Projects/Frost/build/windows-msvc/vcpkg_installed/x64-windows/include/vma" /Zc:__cplusplus</AdditionalOptions>
+      <AdditionalOptions>%(AdditionalOptions) /external:I "D:/Projects/Frost/build/windows-msvc/vcpkg_installed/x64-windows/include" /external:I "D:/Projects/Frost/build/windows-msvc/vcpkg_installed/x64-windows/include/vma" /Zc:__cplusplus</AdditionalOptions>
       <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
       <ConformanceMode>true</ConformanceMode>
       <ExceptionHandling>Sync</ExceptionHandling>
@@ -139,10 +139,10 @@
     </ClCompile>
     <ResourceCompile>
       <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;GLFW_DLL;CMAKE_INTDIR=\"Release\"</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>D:\Projects\Frost\engine\include;D:\Projects\Frost\build\windows-msvc\vcpkg_installed\x64-windows\include;C:\VulkanSDK\1.4.350.0\Include;D:\Projects\Frost\build\windows-msvc\vcpkg_installed\x64-windows\include\vma;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>D:\Projects\Frost\engine\include;D:\Projects\Frost\build\windows-msvc\vcpkg_installed\x64-windows\include;D:\Projects\Frost\build\windows-msvc\vcpkg_installed\x64-windows\include\vma;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
     <Midl>
-      <AdditionalIncludeDirectories>D:\Projects\Frost\engine\include;D:\Projects\Frost\build\windows-msvc\vcpkg_installed\x64-windows\include;C:\VulkanSDK\1.4.350.0\Include;D:\Projects\Frost\build\windows-msvc\vcpkg_installed\x64-windows\include\vma;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>D:\Projects\Frost\engine\include;D:\Projects\Frost\build\windows-msvc\vcpkg_installed\x64-windows\include;D:\Projects\Frost\build\windows-msvc\vcpkg_installed\x64-windows\include\vma;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
       <HeaderFileName>%(Filename).h</HeaderFileName>
       <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
@@ -156,7 +156,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">
     <ClCompile>
       <AdditionalIncludeDirectories>D:\Projects\Frost\engine\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <AdditionalOptions>%(AdditionalOptions) /external:I "D:/Projects/Frost/build/windows-msvc/vcpkg_installed/x64-windows/include" /external:I "C:/VulkanSDK/1.4.350.0/Include" /external:I "D:/Projects/Frost/build/windows-msvc/vcpkg_installed/x64-windows/include/vma" /Zc:__cplusplus</AdditionalOptions>
+      <AdditionalOptions>%(AdditionalOptions) /external:I "D:/Projects/Frost/build/windows-msvc/vcpkg_installed/x64-windows/include" /external:I "D:/Projects/Frost/build/windows-msvc/vcpkg_installed/x64-windows/include/vma" /Zc:__cplusplus</AdditionalOptions>
       <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
       <ConformanceMode>true</ConformanceMode>
       <ExceptionHandling>Sync</ExceptionHandling>
@@ -177,10 +177,10 @@
     </ClCompile>
     <ResourceCompile>
       <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;GLFW_DLL;CMAKE_INTDIR=\"MinSizeRel\"</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>D:\Projects\Frost\engine\include;D:\Projects\Frost\build\windows-msvc\vcpkg_installed\x64-windows\include;C:\VulkanSDK\1.4.350.0\Include;D:\Projects\Frost\build\windows-msvc\vcpkg_installed\x64-windows\include\vma;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>D:\Projects\Frost\engine\include;D:\Projects\Frost\build\windows-msvc\vcpkg_installed\x64-windows\include;D:\Projects\Frost\build\windows-msvc\vcpkg_installed\x64-windows\include\vma;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
     <Midl>
-      <AdditionalIncludeDirectories>D:\Projects\Frost\engine\include;D:\Projects\Frost\build\windows-msvc\vcpkg_installed\x64-windows\include;C:\VulkanSDK\1.4.350.0\Include;D:\Projects\Frost\build\windows-msvc\vcpkg_installed\x64-windows\include\vma;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>D:\Projects\Frost\engine\include;D:\Projects\Frost\build\windows-msvc\vcpkg_installed\x64-windows\include;D:\Projects\Frost\build\windows-msvc\vcpkg_installed\x64-windows\include\vma;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
       <HeaderFileName>%(Filename).h</HeaderFileName>
       <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
@@ -194,7 +194,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">
     <ClCompile>
       <AdditionalIncludeDirectories>D:\Projects\Frost\engine\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <AdditionalOptions>%(AdditionalOptions) /external:I "D:/Projects/Frost/build/windows-msvc/vcpkg_installed/x64-windows/include" /external:I "C:/VulkanSDK/1.4.350.0/Include" /external:I "D:/Projects/Frost/build/windows-msvc/vcpkg_installed/x64-windows/include/vma" /Zc:__cplusplus</AdditionalOptions>
+      <AdditionalOptions>%(AdditionalOptions) /external:I "D:/Projects/Frost/build/windows-msvc/vcpkg_installed/x64-windows/include" /external:I "D:/Projects/Frost/build/windows-msvc/vcpkg_installed/x64-windows/include/vma" /Zc:__cplusplus</AdditionalOptions>
       <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
       <ConformanceMode>true</ConformanceMode>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
@@ -214,10 +214,10 @@
     </ClCompile>
     <ResourceCompile>
       <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;GLFW_DLL;CMAKE_INTDIR=\"RelWithDebInfo\"</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>D:\Projects\Frost\engine\include;D:\Projects\Frost\build\windows-msvc\vcpkg_installed\x64-windows\include;C:\VulkanSDK\1.4.350.0\Include;D:\Projects\Frost\build\windows-msvc\vcpkg_installed\x64-windows\include\vma;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>D:\Projects\Frost\engine\include;D:\Projects\Frost\build\windows-msvc\vcpkg_installed\x64-windows\include;D:\Projects\Frost\build\windows-msvc\vcpkg_installed\x64-windows\include\vma;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
     <Midl>
-      <AdditionalIncludeDirectories>D:\Projects\Frost\engine\include;D:\Projects\Frost\build\windows-msvc\vcpkg_installed\x64-windows\include;C:\VulkanSDK\1.4.350.0\Include;D:\Projects\Frost\build\windows-msvc\vcpkg_installed\x64-windows\include\vma;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>D:\Projects\Frost\engine\include;D:\Projects\Frost\build\windows-msvc\vcpkg_installed\x64-windows\include;D:\Projects\Frost\build\windows-msvc\vcpkg_installed\x64-windows\include\vma;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
       <HeaderFileName>%(Filename).h</HeaderFileName>
       <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
@@ -301,10 +301,18 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
     <ClCompile Include="D:\Projects\Frost\engine\src\Assets\Image.cpp" />
     <ClCompile Include="D:\Projects\Frost\engine\src\Assets\Json.cpp" />
     <ClInclude Include="D:\Projects\Frost\engine\src\Assets\Json.hpp" />
+    <ClCompile Include="D:\Projects\Frost\engine\src\Debug\DebugDraw.cpp" />
+    <ClCompile Include="D:\Projects\Frost\engine\src\Debug\DebugDrawImGui.cpp" />
+    <ClCompile Include="D:\Projects\Frost\engine\src\Debug\PhysicsDebugDraw.cpp" />
     <ClCompile Include="D:\Projects\Frost\engine\src\Engine.cpp" />
     <ClCompile Include="D:\Projects\Frost\engine\src\ImGui\ImGuiLayer.cpp" />
     <ClCompile Include="D:\Projects\Frost\engine\src\Physics\Collision.cpp" />
     <ClCompile Include="D:\Projects\Frost\engine\src\Physics\PhysicsSystem.cpp" />
+    <ClInclude Include="D:\Projects\Frost\engine\src\Physics\ColliderQuery.hpp" />
+    <ClCompile Include="D:\Projects\Frost\engine\src\Physics\Overlap.cpp" />
+    <ClCompile Include="D:\Projects\Frost\engine\src\Physics\PhysicsQuerySystem.cpp" />
+    <ClCompile Include="D:\Projects\Frost\engine\src\Physics\Raycast.cpp" />
+    <ClCompile Include="D:\Projects\Frost\engine\src\Physics\ShapeCast.cpp" />
     <ClCompile Include="D:\Projects\Frost\engine\src\Platform\Input.cpp" />
     <ClCompile Include="D:\Projects\Frost\engine\src\Platform\KeyNames.cpp" />
     <ClCompile Include="D:\Projects\Frost\engine\src\Platform\Window.cpp" />
@@ -335,6 +343,7 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
     <ClCompile Include="D:\Projects\Frost\engine\src\Scene\Components\LightComponent.cpp" />
     <ClCompile Include="D:\Projects\Frost\engine\src\Scene\Components\MaterialOverrides.cpp" />
     <ClCompile Include="D:\Projects\Frost\engine\src\Scene\Components\MeshComponent.cpp" />
+    <ClCompile Include="D:\Projects\Frost\engine\src\Scene\Components\PhysicsQueryComponent.cpp" />
     <ClCompile Include="D:\Projects\Frost\engine\src\Scene\Components\SkeletalMeshComponent.cpp" />
     <ClCompile Include="D:\Projects\Frost\engine\src\Scene\Components\TransformComponent.cpp" />
     <ClCompile Include="D:\Projects\Frost\engine\src\Scene\GameObject.cpp" />
@@ -356,10 +365,17 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
     <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Assets\GltfImporter.hpp" />
     <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Assets\Image.hpp" />
     <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Assets\ImportError.hpp" />
+    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Debug\DebugDraw.hpp" />
+    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Debug\PhysicsDebugDraw.hpp" />
     <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Engine.hpp" />
     <ClInclude Include="D:\Projects\Frost\engine\include\Frost\ImGui\ImGuiLayer.hpp" />
     <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Physics\Collision.hpp" />
+    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Physics\CollisionFilter.hpp" />
+    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Physics\Overlap.hpp" />
+    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Physics\PhysicsQuerySystem.hpp" />
     <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Physics\PhysicsSystem.hpp" />
+    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Physics\Raycast.hpp" />
+    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Physics\ShapeCast.hpp" />
     <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Platform\Filesystem.hpp" />
     <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Platform\Input.hpp" />
     <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Platform\KeyNames.hpp" />
@@ -398,6 +414,7 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
     <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Scene\Components\LightComponent.hpp" />
     <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Scene\Components\MaterialOverrides.hpp" />
     <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Scene\Components\MeshComponent.hpp" />
+    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Scene\Components\PhysicsQueryComponent.hpp" />
     <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Scene\Components\RigidBodyComponent.hpp" />
     <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Scene\Components\SkeletalMeshComponent.hpp" />
     <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Scene\Components\TransformComponent.hpp" />
@@ -405,6 +422,7 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
     <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Scene\Hierarchy.hpp" />
     <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Scene\Level.hpp" />
     <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Scene\LevelSerializer.hpp" />
+    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Scene\Ray.hpp" />
     <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Scene\Registry.hpp" />
     <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Units.hpp" />
   </ItemGroup>

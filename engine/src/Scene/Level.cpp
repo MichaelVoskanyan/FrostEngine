@@ -176,8 +176,8 @@ namespace Frost {
         return all;
     }
 
-    std::optional<RaycastHit> Level::Raycast(const Ray& ray, const float maxDistance) const {
-        std::optional<RaycastHit> nearest;
+    std::optional<MeshRaycastHit> Level::Raycast(const Ray& ray, const float maxDistance) const {
+        std::optional<MeshRaycastHit> nearest;
         float nearestDistance = maxDistance;
 
         // Tests one model an object draws (its vertices at `positions`, boxed by `bounds`), keeping
@@ -213,10 +213,10 @@ namespace Frost {
                     if (!t.has_value()) { continue; }
 
                     nearestDistance = *t;
-                    nearest = RaycastHit{.object = &object,
-                                         .subMeshIndex = s,
-                                         .distance = *t,
-                                         .point = ray.origin + ray.direction * *t};
+                    nearest = MeshRaycastHit{.object = &object,
+                                             .subMeshIndex = s,
+                                             .distance = *t,
+                                             .point = ray.origin + ray.direction * *t};
                 }
             }
         };

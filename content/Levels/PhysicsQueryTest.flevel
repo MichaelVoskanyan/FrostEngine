@@ -1,0 +1,306 @@
+{
+  "format": "FrostLevel",
+  "version": 14,
+  "name": "Physics Query Test",
+  "environment": {
+    "ambientColor": [1, 1, 1],
+    "ambientIntensity": 0.12
+  },
+  "objects": [
+    {
+      "id": 1,
+      "name": "Sun",
+      "transform": {
+        "position": [0, 200, 200],
+        "rotation": [-36.6569, -29.7449, 0],
+        "scale": [1, 1, 1]
+      },
+      "light": {
+        "type": "directional",
+        "enabled": true,
+        "color": [1, 1, 1],
+        "useTemperature": false,
+        "temperature": 6500,
+        "intensity": 3,
+        "range": 1000,
+        "innerConeAngle": 20,
+        "outerConeAngle": 30
+      }
+    },
+    {
+      "id": 2,
+      "name": "Ground",
+      "transform": {
+        "position": [0, -50, 0],
+        "rotation": [0, 0, 0],
+        "scale": [40, 1, 40]
+      },
+      "mesh": {
+        "id": "eb1655bbeab04909a37d5d6cc01caf19",
+        "path": "../Primitives/Cube.fmesh"
+      },
+      "boxCollider": {
+        "center": [0, 0, 0],
+        "size": [100, 100, 100],
+        "layer": 0,
+        "mask": 4294967295
+      }
+    },
+    {
+      "id": 3,
+      "name": "Player",
+      "transform": {
+        "position": [0, 90, 800],
+        "rotation": [0, 0, 0],
+        "scale": [1, 1, 1]
+      },
+      "camera": {
+        "verticalFov": 60,
+        "nearClip": 5,
+        "farClip": 1e+05,
+        "offset": [0, 70, 0],
+        "rotation": [-10, 0, 0]
+      },
+      "characterController": {
+        "walkSpeed": 500,
+        "jumpSpeed": 500,
+        "lookSensitivity": 0.115
+      },
+      "capsuleCollider": {
+        "center": [0, 0, 0],
+        "radius": 35,
+        "height": 180,
+        "layer": 1,
+        "mask": 4294967295
+      },
+      "rigidBody": {
+        "simulated": true,
+        "mass": 80
+      },
+      "physicsQuery": {
+        "type": "raycast",
+        "mode": "closest",
+        "enabled": true,
+        "debug": true,
+        "offset": [25, 10, 0],
+        "direction": [0, 0, -1],
+        "maxDistance": 1500,
+        "radius": 25,
+        "height": 100,
+        "boxSize": [100, 100, 100],
+        "layers": 4294967291,
+        "ignoreSelf": true
+      }
+    },
+    {
+      "id": 4,
+      "name": "Crate",
+      "transform": {
+        "position": [0, 50, 0],
+        "rotation": [0, 0, 0],
+        "scale": [1, 1, 1]
+      },
+      "mesh": {
+        "id": "eb1655bbeab04909a37d5d6cc01caf19",
+        "path": "../Primitives/Cube.fmesh"
+      },
+      "boxCollider": {
+        "center": [0, 0, 0],
+        "size": [100, 100, 100],
+        "layer": 0,
+        "mask": 4294967295
+      }
+    },
+    {
+      "id": 5,
+      "name": "Glass (Layer 2)",
+      "transform": {
+        "position": [0, 50, 300],
+        "rotation": [0, 0, 0],
+        "scale": [1, 1, 1]
+      },
+      "mesh": {
+        "id": "eb1655bbeab04909a37d5d6cc01caf19",
+        "path": "../Primitives/Cube.fmesh"
+      },
+      "boxCollider": {
+        "center": [0, 0, 0],
+        "size": [100, 100, 100],
+        "layer": 2,
+        "mask": 4294967295
+      }
+    },
+    {
+      "id": 6,
+      "name": "Tripwire",
+      "transform": {
+        "position": [-600, 40, 450],
+        "rotation": [0, -90, 0],
+        "scale": [1, 1, 1]
+      },
+      "physicsQuery": {
+        "type": "sphereCast",
+        "mode": "all",
+        "enabled": true,
+        "debug": true,
+        "offset": [0, 0, 0],
+        "direction": [0, 0, -1],
+        "maxDistance": 1200,
+        "radius": 15,
+        "height": 100,
+        "boxSize": [100, 100, 100],
+        "layers": 4294967295,
+        "ignoreSelf": true
+      }
+    },
+    {
+      "id": 7,
+      "name": "Ground Probe",
+      "transform": {
+        "position": [400, 300, 0],
+        "rotation": [0, 0, 0],
+        "scale": [1, 1, 1]
+      },
+      "physicsQuery": {
+        "type": "capsuleCast",
+        "mode": "closest",
+        "enabled": true,
+        "debug": true,
+        "offset": [0, 0, 0],
+        "direction": [0, -1, 0],
+        "maxDistance": 500,
+        "radius": 20,
+        "height": 80,
+        "boxSize": [100, 100, 100],
+        "layers": 4294967295,
+        "ignoreSelf": true
+      }
+    },
+    {
+      "id": 8,
+      "name": "Drop Crate",
+      "transform": {
+        "position": [400, 700, 0],
+        "rotation": [0, 0, 0],
+        "scale": [1, 1, 1]
+      },
+      "mesh": {
+        "id": "eb1655bbeab04909a37d5d6cc01caf19",
+        "path": "../Primitives/Cube.fmesh"
+      },
+      "boxCollider": {
+        "center": [0, 0, 0],
+        "size": [100, 100, 100],
+        "layer": 0,
+        "mask": 4294967295
+      },
+      "rigidBody": {
+        "simulated": true,
+        "mass": 10
+      }
+    },
+    {
+      "id": 9,
+      "name": "Trigger Zone",
+      "transform": {
+        "position": [-400, 100, -100],
+        "rotation": [0, 0, 0],
+        "scale": [1, 1, 1]
+      },
+      "physicsQuery": {
+        "type": "boxOverlap",
+        "mode": "closest",
+        "enabled": true,
+        "debug": true,
+        "offset": [0, 0, 0],
+        "direction": [0, 0, -1],
+        "maxDistance": 1000,
+        "radius": 25,
+        "height": 100,
+        "boxSize": [300, 200, 300],
+        "layers": 4294967295,
+        "ignoreSelf": true
+      }
+    },
+    {
+      "id": 10,
+      "name": "Blast Radius",
+      "transform": {
+        "position": [400, 50, -400],
+        "rotation": [0, 0, 0],
+        "scale": [1, 1, 1]
+      },
+      "physicsQuery": {
+        "type": "sphereOverlap",
+        "mode": "closest",
+        "enabled": true,
+        "debug": false,
+        "offset": [0, 0, 0],
+        "direction": [0, 0, -1],
+        "maxDistance": 1000,
+        "radius": 150,
+        "height": 100,
+        "boxSize": [100, 100, 100],
+        "layers": 8,
+        "ignoreSelf": true
+      }
+    },
+    {
+      "id": 11,
+      "name": "Crate Inside (Layer 3)",
+      "transform": {
+        "position": [400, 50, -400],
+        "rotation": [0, 0, 0],
+        "scale": [1, 1, 1]
+      },
+      "mesh": {
+        "id": "eb1655bbeab04909a37d5d6cc01caf19",
+        "path": "../Primitives/Cube.fmesh"
+      },
+      "boxCollider": {
+        "center": [0, 0, 0],
+        "size": [100, 100, 100],
+        "layer": 3,
+        "mask": 4294967295
+      }
+    },
+    {
+      "id": 12,
+      "name": "Crate Partly In (Layer 3)",
+      "transform": {
+        "position": [520, 50, -400],
+        "rotation": [0, 0, 0],
+        "scale": [1, 1, 1]
+      },
+      "mesh": {
+        "id": "eb1655bbeab04909a37d5d6cc01caf19",
+        "path": "../Primitives/Cube.fmesh"
+      },
+      "boxCollider": {
+        "center": [0, 0, 0],
+        "size": [100, 100, 100],
+        "layer": 3,
+        "mask": 4294967295
+      }
+    },
+    {
+      "id": 13,
+      "name": "Crate Outside (Layer 3)",
+      "transform": {
+        "position": [620, 50, -400],
+        "rotation": [0, 0, 0],
+        "scale": [1, 1, 1]
+      },
+      "mesh": {
+        "id": "eb1655bbeab04909a37d5d6cc01caf19",
+        "path": "../Primitives/Cube.fmesh"
+      },
+      "boxCollider": {
+        "center": [0, 0, 0],
+        "size": [100, 100, 100],
+        "layer": 3,
+        "mask": 4294967295
+      }
+    }
+  ]
+}

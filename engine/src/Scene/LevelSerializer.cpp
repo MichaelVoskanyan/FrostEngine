@@ -34,6 +34,8 @@ namespace {
     using Frost::Json::Value;
 
     constexpr const char* kFormatName = "FrostLevel";
+    // 14: physics query components.
+    // 13: colliders' collision layers and masks.
     // 12: attachments to sockets.
     // 11: animation triggers' visibility keys.
     // 10: attachments (objects attached to objects), animation triggers, mesh visibility.
@@ -45,7 +47,7 @@ namespace {
     // 5: fly controller components. 4: camera components. 3: box collider and rigid body
     // components; an object can have a mesh component with no model yet ("mesh": {}). 2: asset
     // references are {"id", "path"} objects. 1: plain path strings. Older versions are still read.
-    constexpr int kFormatVersion = 12;
+    constexpr int kFormatVersion = 14;
 
     // The last version that stored lengths in meters.
     constexpr int kMetersFormatVersion = 6;
@@ -162,6 +164,13 @@ namespace {
                             {"outerConeAngle", ToJson(light.outerConeAngle)}});
     }
 
+    // A collider's "layer" (0 to 31) and "mask" (the layers it collides with, as a 32-bit number:
+    // bit n for layer n), added to its JSON.
+    void AppendCollisionFilter(const Frost::CollisionFilter& filter, Object& json) {
+        json.emplace_back("layer", Value(static_cast<double>(filter.layer)));
+        json.emplace_back("mask", Value(static_cast<double>(filter.mask)));
+    }
+
     // --- Reading -----------------------------------------------------------------------------------
 
     [[nodiscard]]
@@ -248,6 +257,33 @@ namespace {
         light.innerConeAngle = ReadFloat(json, "innerConeAngle", light.innerConeAngle);
         light.outerConeAngle = ReadFloat(json, "outerConeAngle", light.outerConeAngle);
         return light;
+    }
+
+    // A collider's layer and mask (see AppendCollisionFilter). Missing (levels before version 13):
+    // the defaults, the Default layer colliding with everything. Out of range: the default, with a
+    // warning.
+    [[nodiscard]]
+    Frost::CollisionFilter ReadCollisionFilter(const Value& json, const std::string& objectName,
+                                               std::vector<std::string>& warnings) {
+        Frost::CollisionFilter filter;
+        const auto readWhole = [&](const char* const key, const double max) -> std::optional<double> {
+            const Value* const value = json.Find(key);
+            if (value == nullptr) { return std::nullopt; }
+            const std::optional<double> number = ReadNumber(value);
+            if (!number.has_value() || *number < 0.0 || *number > max || std::floor(*number) != *number) {
+                warnings.push_back("'" + objectName + "': a collider's " + key + " is not valid; using the default.");
+                return std::nullopt;
+            }
+            return number;
+        };
+
+        if (const std::optional<double> layer = readWhole("layer", Frost::kCollisionLayerCount - 1)) {
+            filter.layer = static_cast<int>(*layer);
+        }
+        if (const std::optional<double> mask = readWhole("mask", static_cast<double>(Frost::kAllCollisionLayers))) {
+            filter.mask = static_cast<Frost::CollisionLayerMask>(*mask);
+        }
+        return filter;
     }
 
     [[nodiscard]]
@@ -740,14 +776,16 @@ namespace {
         }
     };
 
-    // "capsuleCollider": {"center": [x, y, z], "radius": r, "height": h}
+    // "capsuleCollider": {"center": [x, y, z], "radius": r, "height": h, "layer": n, "mask": m}
     template <>
     struct ComponentSerializer<Frost::CapsuleColliderComponent> {
         static void Write(const Frost::CapsuleColliderComponent& collider, const Frost::GameObject& /*object*/,
                           Object& json, const WriteContext& /*context*/) {
-            json.emplace_back("capsuleCollider", Value(Object{{"center", ToJson(collider.center)},
-                                                              {"radius", ToJson(collider.radius)},
-                                                              {"height", ToJson(collider.height)}}));
+            Object capsule{{"center", ToJson(collider.center)},
+                           {"radius", ToJson(collider.radius)},
+                           {"height", ToJson(collider.height)}};
+            AppendCollisionFilter(collider.filter, capsule);
+            json.emplace_back("capsuleCollider", Value(std::move(capsule)));
         }
 
         static void Read(const Value& json, Frost::GameObject& object, const ReadContext& context) {
@@ -758,17 +796,19 @@ namespace {
             component.center = ReadLengthVector(collider->Find("center"), component.center, context.lengthScale);
             component.radius = ReadLength(*collider, "radius", component.radius, context.lengthScale);
             component.height = ReadLength(*collider, "height", component.height, context.lengthScale);
+            component.filter = ReadCollisionFilter(*collider, object.GetName(), context.warnings);
             object.AddComponent<Frost::CapsuleColliderComponent>(component);
         }
     };
 
-    // "boxCollider": {"center": [x, y, z], "size": [x, y, z]}
+    // "boxCollider": {"center": [x, y, z], "size": [x, y, z], "layer": n, "mask": m}
     template <>
     struct ComponentSerializer<Frost::BoxColliderComponent> {
         static void Write(const Frost::BoxColliderComponent& collider, const Frost::GameObject& /*object*/, Object& json,
                           const WriteContext& /*context*/) {
-            json.emplace_back("boxCollider",
-                              Value(Object{{"center", ToJson(collider.center)}, {"size", ToJson(collider.size)}}));
+            Object box{{"center", ToJson(collider.center)}, {"size", ToJson(collider.size)}};
+            AppendCollisionFilter(collider.filter, box);
+            json.emplace_back("boxCollider", Value(std::move(box)));
         }
 
         static void Read(const Value& json, Frost::GameObject& object, const ReadContext& context) {
@@ -778,6 +818,7 @@ namespace {
             Frost::BoxColliderComponent component;
             component.center = ReadLengthVector(collider->Find("center"), component.center, context.lengthScale);
             component.size = ReadLengthVector(collider->Find("size"), component.size, context.lengthScale);
+            component.filter = ReadCollisionFilter(*collider, object.GetName(), context.warnings);
             object.AddComponent<Frost::BoxColliderComponent>(component);
         }
     };
@@ -798,6 +839,70 @@ namespace {
             component.simulated = ReadBool(*body, "simulated", component.simulated);
             component.mass = ReadFloat(*body, "mass", component.mass);
             object.AddComponent<Frost::RigidBodyComponent>(component);
+        }
+    };
+
+    // "physicsQuery": {"type": "raycast" | "sphereCast" | "capsuleCast" | "sphereOverlap" | "boxOverlap",
+    //                  "mode": "closest" | "all", "enabled": b, "debug": b, "offset": [x, y, z],
+    //                  "direction": [x, y, z], "maxDistance": d, "radius": r, "height": h,
+    //                  "boxSize": [x, y, z], "layers": mask, "ignoreSelf": b}
+    // The results are not saved. An unknown type or mode is read as the default, with a warning.
+    template <>
+    struct ComponentSerializer<Frost::PhysicsQueryComponent> {
+        static void Write(const Frost::PhysicsQueryComponent& query, const Frost::GameObject& /*object*/, Object& json,
+                          const WriteContext& /*context*/) {
+            json.emplace_back("physicsQuery",
+                              Value(Object{{"type", Value(std::string(Frost::GetPhysicsQueryTypeName(query.type)))},
+                                           {"mode", Value(std::string(Frost::GetPhysicsQueryModeName(query.mode)))},
+                                           {"enabled", Value(query.enabled)},
+                                           {"debug", Value(query.debug)},
+                                           {"offset", ToJson(query.offset)},
+                                           {"direction", ToJson(query.direction)},
+                                           {"maxDistance", ToJson(query.maxDistance)},
+                                           {"radius", ToJson(query.radius)},
+                                           {"height", ToJson(query.height)},
+                                           {"boxSize", ToJson(query.boxSize)},
+                                           {"layers", Value(static_cast<double>(query.layers))},
+                                           {"ignoreSelf", Value(query.ignoreSelf)}}));
+        }
+
+        static void Read(const Value& json, Frost::GameObject& object, const ReadContext& context) {
+            const Value* const query = json.Find("physicsQuery");
+            if (query == nullptr || !query->IsObject()) { return; }
+
+            Frost::PhysicsQueryComponent component;
+            const auto readName = [&](const char* const key, auto parse, auto& target) {
+                const Value* const value = query->Find(key);
+                if (value == nullptr) { return; }
+                if (value->IsString()) {
+                    if (const auto parsed = parse(value->AsString())) {
+                        target = *parsed;
+                        return;
+                    }
+                }
+                context.warnings.push_back("'" + object.GetName() + "': a physics query's " + key +
+                                           " is not known; using the default.");
+            };
+            readName("type", Frost::ParsePhysicsQueryType, component.type);
+            readName("mode", Frost::ParsePhysicsQueryMode, component.mode);
+            component.enabled = ReadBool(*query, "enabled", component.enabled);
+            component.debug = ReadBool(*query, "debug", component.debug);
+            component.offset = ReadLengthVector(query->Find("offset"), component.offset, context.lengthScale);
+            component.direction = ReadVector<glm::vec3, 3>(query->Find("direction"), component.direction);
+            component.maxDistance = ReadLength(*query, "maxDistance", component.maxDistance, context.lengthScale);
+            component.radius = ReadLength(*query, "radius", component.radius, context.lengthScale);
+            component.height = ReadLength(*query, "height", component.height, context.lengthScale);
+            component.boxSize = ReadLengthVector(query->Find("boxSize"), component.boxSize, context.lengthScale);
+            if (const std::optional<double> layers = ReadNumber(query->Find("layers"));
+                layers.has_value() && *layers >= 0.0 && *layers <= static_cast<double>(Frost::kAllCollisionLayers) &&
+                std::floor(*layers) == *layers) {
+                component.layers = static_cast<Frost::CollisionLayerMask>(*layers);
+            }
+            else if (query->Find("layers") != nullptr) {
+                context.warnings.push_back("'" + object.GetName() + "': a physics query's layers are not valid; using all.");
+            }
+            component.ignoreSelf = ReadBool(*query, "ignoreSelf", component.ignoreSelf);
+            object.AddComponent<Frost::PhysicsQueryComponent>(component);
         }
     };
 

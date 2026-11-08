@@ -81,6 +81,10 @@ namespace Frost {
 
     bool PhysicsSystem::Body::Collides() const noexcept { return box != nullptr || capsule != nullptr; }
 
+    const CollisionFilter& PhysicsSystem::Body::GetFilter() const noexcept {
+        return box != nullptr ? box->filter : capsule->filter;
+    }
+
     CollisionShape PhysicsSystem::Body::GetShape() const noexcept {
         if (box != nullptr) { return MakeWorldBox(*transform, *box); }
         return MakeWorldCapsule(*transform, *capsule);
@@ -150,14 +154,16 @@ namespace Frost {
         };
         registry.Each<TransformComponent, BoxColliderComponent>(
                 [&](const EntityId entity, const TransformComponent& transform, const BoxColliderComponent& collider) {
-                    if (!isBody(entity) && !IsAttached(registry, entity)) { m_Obstacles.emplace_back(MakeWorldBox(transform, collider)); }
+                    if (!isBody(entity) && !IsAttached(registry, entity)) {
+                        m_Obstacles.push_back(Obstacle{.shape = MakeWorldBox(transform, collider), .filter = collider.filter});
+                    }
                 });
         registry.Each<TransformComponent, CapsuleColliderComponent>(
                 [&](const EntityId entity, const TransformComponent& transform,
                     const CapsuleColliderComponent& collider) {
                     // One collider per object: a box, if it also has one, was taken above.
                     if (!isBody(entity) && !registry.Has<BoxColliderComponent>(entity) && !IsAttached(registry, entity)) {
-                        m_Obstacles.emplace_back(MakeWorldCapsule(transform, collider));
+                        m_Obstacles.push_back(Obstacle{.shape = MakeWorldCapsule(transform, collider), .filter = collider.filter});
                     }
                 });
     }
@@ -166,7 +172,7 @@ namespace Frost {
         float thinnest = std::numeric_limits<float>::max();
         float fastest = 0.0f;
 
-        for (const CollisionShape& obstacle : m_Obstacles) { thinnest = std::min(thinnest, MinHalfExtent(obstacle)); }
+        for (const Obstacle& obstacle : m_Obstacles) { thinnest = std::min(thinnest, MinHalfExtent(obstacle.shape)); }
         for (const Body& body : m_Bodies) {
             if (!body.Collides()) { continue; }  // Collides with nothing, so cannot tunnel.
             thinnest = std::min(thinnest, MinHalfExtent(body.GetShape()));
@@ -198,16 +204,18 @@ namespace Frost {
                 Body& body = m_Bodies[i];
                 if (!body.Collides()) { continue; }
                 const CollisionShape shape = inflated(body);
+                const CollisionFilter& filter = body.GetFilter();
 
-                for (const CollisionShape& obstacle : m_Obstacles) {
-                    if (const std::optional<Contact> contact = FindContact(shape, obstacle)) {
+                for (const Obstacle& obstacle : m_Obstacles) {
+                    if (!filter.CollidesWith(obstacle.filter)) { continue; }
+                    if (const std::optional<Contact> contact = FindContact(shape, obstacle.shape)) {
                         StopBody(body, contact->normal, approachSpeed(*contact));
                     }
                 }
 
                 for (std::size_t j = i + 1; j < m_Bodies.size(); ++j) {
                     Body& other = m_Bodies[j];
-                    if (!other.Collides()) { continue; }
+                    if (!other.Collides() || !filter.CollidesWith(other.GetFilter())) { continue; }
 
                     if (const std::optional<Contact> contact = FindContact(shape, other.GetShape())) {
                         StopPair(body, other, contact->normal, approachSpeed(*contact));
@@ -224,10 +232,12 @@ namespace Frost {
             for (std::size_t i = 0; i < m_Bodies.size(); ++i) {
                 Body& body = m_Bodies[i];
                 if (!body.Collides()) { continue; }
+                const CollisionFilter& filter = body.GetFilter();
 
-                for (const CollisionShape& obstacle : m_Obstacles) {
+                for (const Obstacle& obstacle : m_Obstacles) {
+                    if (!filter.CollidesWith(obstacle.filter)) { continue; }
                     // Rebuilt per test: the previous contact may have moved the body.
-                    const std::optional<Contact> contact = FindContact(body.GetShape(), obstacle);
+                    const std::optional<Contact> contact = FindContact(body.GetShape(), obstacle.shape);
                     if (!contact.has_value()) { continue; }
 
                     body.transform->position += contact->normal * contact->depth;
@@ -237,7 +247,7 @@ namespace Frost {
 
                 for (std::size_t j = i + 1; j < m_Bodies.size(); ++j) {
                     Body& other = m_Bodies[j];
-                    if (!other.Collides()) { continue; }
+                    if (!other.Collides() || !filter.CollidesWith(other.GetFilter())) { continue; }
 
                     const std::optional<Contact> contact = FindContact(body.GetShape(), other.GetShape());
                     if (!contact.has_value()) { continue; }

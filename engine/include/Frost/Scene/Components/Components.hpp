@@ -9,6 +9,7 @@
 #include <Frost/Scene/Components/FlyControllerComponent.hpp>
 #include <Frost/Scene/Components/LightComponent.hpp>
 #include <Frost/Scene/Components/MeshComponent.hpp>
+#include <Frost/Scene/Components/PhysicsQueryComponent.hpp>
 #include <Frost/Scene/Components/RigidBodyComponent.hpp>
 #include <Frost/Scene/Components/SkeletalMeshComponent.hpp>
 #include <Frost/Scene/Components/TransformComponent.hpp>
@@ -47,6 +48,6 @@ namespace Frost {
             ComponentList<TransformComponent, AttachmentComponent, MeshComponent, SkeletalMeshComponent,
                           AnimationTriggerComponent, LightComponent, CameraComponent, FlyControllerComponent,
                           CharacterControllerComponent, BoxColliderComponent, CapsuleColliderComponent,
-                          RigidBodyComponent>;
+                          RigidBodyComponent, PhysicsQueryComponent>;
 
 }  // namespace Frost

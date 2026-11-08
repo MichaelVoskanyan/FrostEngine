@@ -31,24 +31,6 @@ Abi: edfc969c431b3f41cae82d0a8ea7ef2cba8f2569f24a5db86c2716c10f31007a
 Description: OpenGL Mathematics (GLM)
 Status: install ok installed
 
-Package: vulkan-memory-allocator
-Version: 3.4.0
-Depends: vcpkg-cmake, vcpkg-cmake-config
-Architecture: x64-windows
-Multi-Arch: same
-Abi: 607a0c55103cbb14392f732ce07ab08ff441be30cbce5d2406647a5538c354f8
-Description: Easy to integrate Vulkan memory allocation library from GPUOpen
-Status: install ok installed
-
-Package: stb
-Version: 2024-07-29
-Port-Version: 1
-Architecture: x64-windows
-Multi-Arch: same
-Abi: 3a6e73c48ca434af069663b9435e20ae8a0758b6cd30a69e8d2080d625459629
-Description: public domain header-only libraries
-Status: install ok installed
-
 Package: vulkan-headers
 Version: 1.4.350.1
 Depends: vcpkg-cmake, vcpkg-cmake-config
@@ -108,5 +90,23 @@ Depends: vulkan
 Architecture: x64-windows
 Multi-Arch: same
 Description: Make available Vulkan binding
+Status: install ok installed
+
+Package: stb
+Version: 2024-07-29
+Port-Version: 1
+Architecture: x64-windows
+Multi-Arch: same
+Abi: 3a6e73c48ca434af069663b9435e20ae8a0758b6cd30a69e8d2080d625459629
+Description: public domain header-only libraries
+Status: install ok installed
+
+Package: vulkan-memory-allocator
+Version: 3.4.0
+Depends: vcpkg-cmake, vcpkg-cmake-config
+Architecture: x64-windows
+Multi-Arch: same
+Abi: 607a0c55103cbb14392f732ce07ab08ff441be30cbce5d2406647a5538c354f8
+Description: Easy to integrate Vulkan memory allocation library from GPUOpen
 Status: install ok installed
 

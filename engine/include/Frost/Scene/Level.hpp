@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Frost/Scene/GameObject.hpp>
+#include <Frost/Scene/Ray.hpp>
 #include <Frost/Scene/Registry.hpp>
 #include <Frost/Units.hpp>
 
@@ -17,11 +18,6 @@ namespace Frost {
     class AssetManager;
     class Renderer;
 
-    struct Ray {
-        glm::vec3 origin{0.0f};
-        glm::vec3 direction{0.0f, 0.0f, -1.0f};  // Unit length.
-    };
-
     // Level-wide lighting settings.
     struct LevelEnvironment {
         // Flat light added to every surface, standing in for indirect/sky light (which the renderer
@@ -30,7 +26,9 @@ namespace Frost {
         float ambientIntensity = 0.12f;
     };
 
-    struct RaycastHit {
+    // Where a ray meets a model, for picking in the editor (see Level::Raycast). Not a physics hit:
+    // physics raycasts (Frost/Physics/Raycast.hpp) test colliders and return a RaycastHit.
+    struct MeshRaycastHit {
         GameObject* object = nullptr;
         std::size_t subMeshIndex = 0;
         float distance = 0.0f;  // Along the ray, in world units (centimeters).
@@ -113,9 +111,11 @@ namespace Frost {
         std::optional<Bounds> GetBounds() const;
 
         // The nearest object surface the ray hits (triangles of the loaded models, skeletal ones in
-        // their current pose, both faces), if any, within maxDistance.
+        // their current pose, both faces), if any, within maxDistance: mesh picking, for the
+        // editor. It tests what is drawn, not colliders, and ignores collision layers; for the
+        // physics world, see RaycastClosest and RaycastAll in Frost/Physics/Raycast.hpp.
         [[nodiscard]]
-        std::optional<RaycastHit> Raycast(const Ray& ray, float maxDistance = 10.0f * kKilometer) const;
+        std::optional<MeshRaycastHit> Raycast(const Ray& ray, float maxDistance = 10.0f * kKilometer) const;
 
     private:
         friend class LevelSerializer;  // Restores saved ids.

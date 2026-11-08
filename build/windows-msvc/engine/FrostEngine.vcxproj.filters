@@ -43,6 +43,15 @@
     <ClCompile Include="D:\Projects\Frost\engine\src\Assets\Json.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="D:\Projects\Frost\engine\src\Debug\DebugDraw.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Projects\Frost\engine\src\Debug\DebugDrawImGui.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Projects\Frost\engine\src\Debug\PhysicsDebugDraw.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="D:\Projects\Frost\engine\src\Engine.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -53,6 +62,18 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="D:\Projects\Frost\engine\src\Physics\PhysicsSystem.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Projects\Frost\engine\src\Physics\Overlap.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Projects\Frost\engine\src\Physics\PhysicsQuerySystem.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Projects\Frost\engine\src\Physics\Raycast.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Projects\Frost\engine\src\Physics\ShapeCast.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="D:\Projects\Frost\engine\src\Platform\Input.cpp">
@@ -145,6 +166,9 @@
     <ClCompile Include="D:\Projects\Frost\engine\src\Scene\Components\MeshComponent.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="D:\Projects\Frost\engine\src\Scene\Components\PhysicsQueryComponent.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="D:\Projects\Frost\engine\src\Scene\Components\SkeletalMeshComponent.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -166,6 +190,9 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="D:\Projects\Frost\engine\src\Assets\Json.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D:\Projects\Frost\engine\src\Physics\ColliderQuery.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Animation\AnimationClip.hpp">
@@ -213,6 +240,12 @@
     <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Assets\ImportError.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Debug\DebugDraw.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Debug\PhysicsDebugDraw.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Engine.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -222,7 +255,22 @@
     <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Physics\Collision.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Physics\CollisionFilter.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Physics\Overlap.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Physics\PhysicsQuerySystem.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Physics\PhysicsSystem.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Physics\Raycast.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Physics\ShapeCast.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Platform\Filesystem.hpp">
@@ -339,6 +387,9 @@
     <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Scene\Components\MeshComponent.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Scene\Components\PhysicsQueryComponent.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Scene\Components\RigidBodyComponent.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -358,6 +409,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Scene\LevelSerializer.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Scene\Ray.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Scene\Registry.hpp">
