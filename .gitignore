@@ -1,9 +1,9 @@
-/build/
-/test_build/
-/out/
-/bin/
-/obj/
-/cmake-build-*/
+build/
+test_build/
+out/
+bin/
+obj/
+cmake-build-*/
 
 CMakeCache.txt
 CMakeFiles/
