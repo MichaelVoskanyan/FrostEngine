@@ -1,435 +1,423 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <ClCompile Include="D:\Projects\Frost\engine\src\Animation\AnimationClip.cpp">
+    <ClCompile Include="D:\Projects\Frost_Audio\engine\src\Animation\AnimationClip.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Projects\Frost\engine\src\Animation\AnimationSystem.cpp">
+    <ClCompile Include="D:\Projects\Frost_Audio\engine\src\Animation\AnimationSystem.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Projects\Frost\engine\src\Animation\Skeleton.cpp">
+    <ClCompile Include="D:\Projects\Frost_Audio\engine\src\Animation\Skeleton.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Projects\Frost\engine\src\Animation\Socket.cpp">
+    <ClCompile Include="D:\Projects\Frost_Audio\engine\src\Animation\Socket.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Projects\Frost\engine\src\Animation\SkinnedMesh.cpp">
+    <ClCompile Include="D:\Projects\Frost_Audio\engine\src\Animation\SkinnedMesh.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Projects\Frost\engine\src\Application.cpp">
+    <ClCompile Include="D:\Projects\Frost_Audio\engine\src\Application.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Projects\Frost\engine\src\Assets\AssetFile.cpp">
+    <ClCompile Include="D:\Projects\Frost_Audio\engine\src\Assets\AssetFile.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Projects\Frost\engine\src\Assets\AssetId.cpp">
+    <ClCompile Include="D:\Projects\Frost_Audio\engine\src\Assets\AssetId.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Projects\Frost\engine\src\Assets\AssetImporter.cpp">
+    <ClCompile Include="D:\Projects\Frost_Audio\engine\src\Assets\AssetImporter.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Projects\Frost\engine\src\Assets\AssetManager.cpp">
+    <ClCompile Include="D:\Projects\Frost_Audio\engine\src\Assets\AssetManager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Projects\Frost\engine\src\Assets\AssetRegistry.cpp">
+    <ClCompile Include="D:\Projects\Frost_Audio\engine\src\Assets\AssetRegistry.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Projects\Frost\engine\src\Assets\GltfImporter.cpp">
+    <ClCompile Include="D:\Projects\Frost_Audio\engine\src\Assets\GltfImporter.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Projects\Frost\engine\src\Assets\Image.cpp">
+    <ClCompile Include="D:\Projects\Frost_Audio\engine\src\Assets\Image.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Projects\Frost\engine\src\Assets\Json.cpp">
+    <ClCompile Include="D:\Projects\Frost_Audio\engine\src\Assets\Json.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Projects\Frost\engine\src\Debug\DebugDraw.cpp">
+    <ClCompile Include="D:\Projects\Frost_Audio\engine\src\Assets\Sound.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Projects\Frost\engine\src\Debug\DebugDrawImGui.cpp">
+    <ClCompile Include="D:\Projects\Frost_Audio\engine\src\Audio\AudioEngine.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Projects\Frost\engine\src\Debug\PhysicsDebugDraw.cpp">
+    <ClCompile Include="D:\Projects\Frost_Audio\engine\src\Audio\AudioSystem.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Projects\Frost\engine\src\Engine.cpp">
+    <ClCompile Include="D:\Projects\Frost_Audio\engine\src\Engine.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Projects\Frost\engine\src\ImGui\ImGuiLayer.cpp">
+    <ClCompile Include="D:\Projects\Frost_Audio\engine\src\ImGui\ImGuiLayer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Projects\Frost\engine\src\Physics\Collision.cpp">
+    <ClCompile Include="D:\Projects\Frost_Audio\engine\src\Physics\Collision.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Projects\Frost\engine\src\Physics\PhysicsSystem.cpp">
+    <ClCompile Include="D:\Projects\Frost_Audio\engine\src\Physics\PhysicsSystem.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Projects\Frost\engine\src\Physics\Overlap.cpp">
+    <ClCompile Include="D:\Projects\Frost_Audio\engine\src\Physics\Raycast.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Projects\Frost\engine\src\Physics\PhysicsQuerySystem.cpp">
+    <ClCompile Include="D:\Projects\Frost_Audio\engine\src\Platform\Input.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Projects\Frost\engine\src\Physics\Raycast.cpp">
+    <ClCompile Include="D:\Projects\Frost_Audio\engine\src\Platform\KeyNames.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Projects\Frost\engine\src\Physics\ShapeCast.cpp">
+    <ClCompile Include="D:\Projects\Frost_Audio\engine\src\Platform\Window.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Projects\Frost\engine\src\Platform\Input.cpp">
+    <ClCompile Include="D:\Projects\Frost_Audio\engine\src\Project\GameLaunchOptions.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Projects\Frost\engine\src\Platform\KeyNames.cpp">
+    <ClCompile Include="D:\Projects\Frost_Audio\engine\src\Project\Project.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Projects\Frost\engine\src\Platform\Window.cpp">
+    <ClCompile Include="D:\Projects\Frost_Audio\engine\src\Renderer\Camera.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Projects\Frost\engine\src\Project\GameLaunchOptions.cpp">
+    <ClCompile Include="D:\Projects\Frost_Audio\engine\src\Renderer\Light.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Projects\Frost\engine\src\Project\Project.cpp">
+    <ClCompile Include="D:\Projects\Frost_Audio\engine\src\Renderer\Material.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Projects\Frost\engine\src\Renderer\Camera.cpp">
+    <ClCompile Include="D:\Projects\Frost_Audio\engine\src\Renderer\MaterialSystem.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Projects\Frost\engine\src\Renderer\Light.cpp">
+    <ClCompile Include="D:\Projects\Frost_Audio\engine\src\Renderer\Mesh.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Projects\Frost\engine\src\Renderer\Material.cpp">
+    <ClCompile Include="D:\Projects\Frost_Audio\engine\src\Renderer\Renderer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Projects\Frost\engine\src\Renderer\MaterialSystem.cpp">
+    <ClCompile Include="D:\Projects\Frost_Audio\engine\src\Renderer\Texture.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Projects\Frost\engine\src\Renderer\Mesh.cpp">
+    <ClCompile Include="D:\Projects\Frost_Audio\engine\src\Renderer\Vertex.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Projects\Frost\engine\src\Renderer\Renderer.cpp">
+    <ClCompile Include="D:\Projects\Frost_Audio\engine\src\Renderer\Vulkan\VulkanAllocator.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Projects\Frost\engine\src\Renderer\Texture.cpp">
+    <ClCompile Include="D:\Projects\Frost_Audio\engine\src\Renderer\Vulkan\VulkanBuffer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Projects\Frost\engine\src\Renderer\Vertex.cpp">
+    <ClCompile Include="D:\Projects\Frost_Audio\engine\src\Renderer\Vulkan\VulkanCommandPool.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Projects\Frost\engine\src\Renderer\Vulkan\VulkanAllocator.cpp">
+    <ClCompile Include="D:\Projects\Frost_Audio\engine\src\Renderer\Vulkan\VulkanContext.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Projects\Frost\engine\src\Renderer\Vulkan\VulkanBuffer.cpp">
+    <ClCompile Include="D:\Projects\Frost_Audio\engine\src\Renderer\Vulkan\VulkanDescriptorAllocator.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Projects\Frost\engine\src\Renderer\Vulkan\VulkanCommandPool.cpp">
+    <ClCompile Include="D:\Projects\Frost_Audio\engine\src\Renderer\Vulkan\VulkanPhysicalDevice.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Projects\Frost\engine\src\Renderer\Vulkan\VulkanContext.cpp">
+    <ClCompile Include="D:\Projects\Frost_Audio\engine\src\Renderer\Vulkan\VulkanDevice.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Projects\Frost\engine\src\Renderer\Vulkan\VulkanDescriptorAllocator.cpp">
+    <ClCompile Include="D:\Projects\Frost_Audio\engine\src\Renderer\Vulkan\VulkanImage.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Projects\Frost\engine\src\Renderer\Vulkan\VulkanPhysicalDevice.cpp">
+    <ClCompile Include="D:\Projects\Frost_Audio\engine\src\Renderer\Vulkan\VulkanPipeline.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Projects\Frost\engine\src\Renderer\Vulkan\VulkanDevice.cpp">
+    <ClCompile Include="D:\Projects\Frost_Audio\engine\src\Renderer\Vulkan\VulkanSwapchain.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Projects\Frost\engine\src\Renderer\Vulkan\VulkanImage.cpp">
+    <ClCompile Include="D:\Projects\Frost_Audio\engine\src\Scene\Components\AnimationTriggerComponent.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Projects\Frost\engine\src\Renderer\Vulkan\VulkanPipeline.cpp">
+    <ClCompile Include="D:\Projects\Frost_Audio\engine\src\Scene\Components\AudioListenerComponent.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Projects\Frost\engine\src\Renderer\Vulkan\VulkanSwapchain.cpp">
+    <ClCompile Include="D:\Projects\Frost_Audio\engine\src\Scene\Components\AudioSourceComponent.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Projects\Frost\engine\src\Scene\Components\AnimationTriggerComponent.cpp">
+    <ClCompile Include="D:\Projects\Frost_Audio\engine\src\Scene\Components\CameraComponent.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Projects\Frost\engine\src\Scene\Components\CameraComponent.cpp">
+    <ClCompile Include="D:\Projects\Frost_Audio\engine\src\Scene\Components\CharacterControllerComponent.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Projects\Frost\engine\src\Scene\Components\CharacterControllerComponent.cpp">
+    <ClCompile Include="D:\Projects\Frost_Audio\engine\src\Scene\Components\FlyControllerComponent.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Projects\Frost\engine\src\Scene\Components\FlyControllerComponent.cpp">
+    <ClCompile Include="D:\Projects\Frost_Audio\engine\src\Scene\Components\LightComponent.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Projects\Frost\engine\src\Scene\Components\LightComponent.cpp">
+    <ClCompile Include="D:\Projects\Frost_Audio\engine\src\Scene\Components\MaterialOverrides.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Projects\Frost\engine\src\Scene\Components\MaterialOverrides.cpp">
+    <ClCompile Include="D:\Projects\Frost_Audio\engine\src\Scene\Components\MeshComponent.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Projects\Frost\engine\src\Scene\Components\MeshComponent.cpp">
+    <ClCompile Include="D:\Projects\Frost_Audio\engine\src\Scene\Components\SkeletalMeshComponent.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Projects\Frost\engine\src\Scene\Components\PhysicsQueryComponent.cpp">
+    <ClCompile Include="D:\Projects\Frost_Audio\engine\src\Scene\Components\TransformComponent.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Projects\Frost\engine\src\Scene\Components\SkeletalMeshComponent.cpp">
+    <ClCompile Include="D:\Projects\Frost_Audio\engine\src\Scene\GameObject.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Projects\Frost\engine\src\Scene\Components\TransformComponent.cpp">
+    <ClCompile Include="D:\Projects\Frost_Audio\engine\src\Scene\Hierarchy.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Projects\Frost\engine\src\Scene\GameObject.cpp">
+    <ClCompile Include="D:\Projects\Frost_Audio\engine\src\Scene\Level.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Projects\Frost\engine\src\Scene\Hierarchy.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="D:\Projects\Frost\engine\src\Scene\Level.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="D:\Projects\Frost\engine\src\Scene\LevelSerializer.cpp">
+    <ClCompile Include="D:\Projects\Frost_Audio\engine\src\Scene\LevelSerializer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="D:\Projects\Frost\engine\src\Assets\Json.hpp">
+    <ClInclude Include="D:\Projects\Frost_Audio\engine\src\Assets\Json.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="D:\Projects\Frost\engine\src\Physics\ColliderQuery.hpp">
+    <ClInclude Include="D:\Projects\Frost_Audio\engine\src\Physics\ColliderQuery.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Animation\AnimationClip.hpp">
+    <ClInclude Include="D:\Projects\Frost_Audio\engine\include\Frost\Animation\AnimationClip.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Animation\AnimationSystem.hpp">
+    <ClInclude Include="D:\Projects\Frost_Audio\engine\include\Frost\Animation\AnimationSystem.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Animation\Skeleton.hpp">
+    <ClInclude Include="D:\Projects\Frost_Audio\engine\include\Frost\Animation\Skeleton.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Animation\Socket.hpp">
+    <ClInclude Include="D:\Projects\Frost_Audio\engine\include\Frost\Animation\Socket.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Animation\SkinnedMesh.hpp">
+    <ClInclude Include="D:\Projects\Frost_Audio\engine\include\Frost\Animation\SkinnedMesh.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Application.hpp">
+    <ClInclude Include="D:\Projects\Frost_Audio\engine\include\Frost\Application.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Assets\AssetFile.hpp">
+    <ClInclude Include="D:\Projects\Frost_Audio\engine\include\Frost\Audio\AudioEngine.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Assets\AssetId.hpp">
+    <ClInclude Include="D:\Projects\Frost_Audio\engine\include\Frost\Audio\AudioSystem.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Assets\AssetImporter.hpp">
+    <ClInclude Include="D:\Projects\Frost_Audio\engine\include\Frost\Assets\AssetFile.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Assets\AssetManager.hpp">
+    <ClInclude Include="D:\Projects\Frost_Audio\engine\include\Frost\Assets\AssetId.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Assets\AssetRegistry.hpp">
+    <ClInclude Include="D:\Projects\Frost_Audio\engine\include\Frost\Assets\AssetImporter.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Assets\AssetType.hpp">
+    <ClInclude Include="D:\Projects\Frost_Audio\engine\include\Frost\Assets\AssetManager.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Assets\GltfImporter.hpp">
+    <ClInclude Include="D:\Projects\Frost_Audio\engine\include\Frost\Assets\AssetRegistry.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Assets\Image.hpp">
+    <ClInclude Include="D:\Projects\Frost_Audio\engine\include\Frost\Assets\AssetType.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Assets\ImportError.hpp">
+    <ClInclude Include="D:\Projects\Frost_Audio\engine\include\Frost\Assets\GltfImporter.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Debug\DebugDraw.hpp">
+    <ClInclude Include="D:\Projects\Frost_Audio\engine\include\Frost\Assets\Image.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Debug\PhysicsDebugDraw.hpp">
+    <ClInclude Include="D:\Projects\Frost_Audio\engine\include\Frost\Assets\ImportError.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Engine.hpp">
+    <ClInclude Include="D:\Projects\Frost_Audio\engine\include\Frost\Assets\Sound.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\ImGui\ImGuiLayer.hpp">
+    <ClInclude Include="D:\Projects\Frost_Audio\engine\include\Frost\Engine.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Physics\Collision.hpp">
+    <ClInclude Include="D:\Projects\Frost_Audio\engine\include\Frost\ImGui\ImGuiLayer.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Physics\CollisionFilter.hpp">
+    <ClInclude Include="D:\Projects\Frost_Audio\engine\include\Frost\Physics\Collision.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Physics\Overlap.hpp">
+    <ClInclude Include="D:\Projects\Frost_Audio\engine\include\Frost\Physics\PhysicsSystem.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Physics\PhysicsQuerySystem.hpp">
+    <ClInclude Include="D:\Projects\Frost_Audio\engine\include\Frost\Physics\Raycast.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Physics\PhysicsSystem.hpp">
+    <ClInclude Include="D:\Projects\Frost_Audio\engine\include\Frost\Platform\Filesystem.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Physics\Raycast.hpp">
+    <ClInclude Include="D:\Projects\Frost_Audio\engine\include\Frost\Platform\Input.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Physics\ShapeCast.hpp">
+    <ClInclude Include="D:\Projects\Frost_Audio\engine\include\Frost\Platform\KeyNames.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Platform\Filesystem.hpp">
+    <ClInclude Include="D:\Projects\Frost_Audio\engine\include\Frost\Platform\Window.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Platform\Input.hpp">
+    <ClInclude Include="D:\Projects\Frost_Audio\engine\include\Frost\Project\GameLaunchOptions.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Platform\KeyNames.hpp">
+    <ClInclude Include="D:\Projects\Frost_Audio\engine\include\Frost\Project\Project.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Platform\Window.hpp">
+    <ClInclude Include="D:\Projects\Frost_Audio\engine\include\Frost\Renderer\Camera.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Project\GameLaunchOptions.hpp">
+    <ClInclude Include="D:\Projects\Frost_Audio\engine\include\Frost\Renderer\Light.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Project\Project.hpp">
+    <ClInclude Include="D:\Projects\Frost_Audio\engine\include\Frost\Renderer\Material.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Renderer\Camera.hpp">
+    <ClInclude Include="D:\Projects\Frost_Audio\engine\include\Frost\Renderer\MaterialSystem.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Renderer\Light.hpp">
+    <ClInclude Include="D:\Projects\Frost_Audio\engine\include\Frost\Renderer\Mesh.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Renderer\Material.hpp">
+    <ClInclude Include="D:\Projects\Frost_Audio\engine\include\Frost\Renderer\RenderOverlay.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Renderer\MaterialSystem.hpp">
+    <ClInclude Include="D:\Projects\Frost_Audio\engine\include\Frost\Renderer\Renderer.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Renderer\Mesh.hpp">
+    <ClInclude Include="D:\Projects\Frost_Audio\engine\include\Frost\Renderer\ShaderData.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Renderer\RenderOverlay.hpp">
+    <ClInclude Include="D:\Projects\Frost_Audio\engine\include\Frost\Renderer\Texture.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Renderer\Renderer.hpp">
+    <ClInclude Include="D:\Projects\Frost_Audio\engine\include\Frost\Renderer\Vertex.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Renderer\ShaderData.hpp">
+    <ClInclude Include="D:\Projects\Frost_Audio\engine\include\Frost\Renderer\Vulkan\VulkanAllocator.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Renderer\Texture.hpp">
+    <ClInclude Include="D:\Projects\Frost_Audio\engine\include\Frost\Renderer\Vulkan\VulkanBuffer.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Renderer\Vertex.hpp">
+    <ClInclude Include="D:\Projects\Frost_Audio\engine\include\Frost\Renderer\Vulkan\VulkanCommandPool.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Renderer\Vulkan\VulkanAllocator.hpp">
+    <ClInclude Include="D:\Projects\Frost_Audio\engine\include\Frost\Renderer\Vulkan\VulkanContext.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Renderer\Vulkan\VulkanBuffer.hpp">
+    <ClInclude Include="D:\Projects\Frost_Audio\engine\include\Frost\Renderer\Vulkan\VulkanDescriptorAllocator.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Renderer\Vulkan\VulkanCommandPool.hpp">
+    <ClInclude Include="D:\Projects\Frost_Audio\engine\include\Frost\Renderer\Vulkan\VulkanPhysicalDevice.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Renderer\Vulkan\VulkanContext.hpp">
+    <ClInclude Include="D:\Projects\Frost_Audio\engine\include\Frost\Renderer\Vulkan\VulkanDevice.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Renderer\Vulkan\VulkanDescriptorAllocator.hpp">
+    <ClInclude Include="D:\Projects\Frost_Audio\engine\include\Frost\Renderer\Vulkan\VulkanImage.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Renderer\Vulkan\VulkanPhysicalDevice.hpp">
+    <ClInclude Include="D:\Projects\Frost_Audio\engine\include\Frost\Renderer\Vulkan\VulkanPipeline.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Renderer\Vulkan\VulkanDevice.hpp">
+    <ClInclude Include="D:\Projects\Frost_Audio\engine\include\Frost\Renderer\Vulkan\VulkanSwapchain.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Renderer\Vulkan\VulkanImage.hpp">
+    <ClInclude Include="D:\Projects\Frost_Audio\engine\include\Frost\Scene\Bounds.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Renderer\Vulkan\VulkanPipeline.hpp">
+    <ClInclude Include="D:\Projects\Frost_Audio\engine\include\Frost\Scene\Components\AnimationTriggerComponent.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Renderer\Vulkan\VulkanSwapchain.hpp">
+    <ClInclude Include="D:\Projects\Frost_Audio\engine\include\Frost\Scene\Components\AttachmentComponent.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Scene\Bounds.hpp">
+    <ClInclude Include="D:\Projects\Frost_Audio\engine\include\Frost\Scene\Components\AudioListenerComponent.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Scene\Components\AnimationTriggerComponent.hpp">
+    <ClInclude Include="D:\Projects\Frost_Audio\engine\include\Frost\Scene\Components\AudioSourceComponent.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Scene\Components\AttachmentComponent.hpp">
+    <ClInclude Include="D:\Projects\Frost_Audio\engine\include\Frost\Scene\Components\BoxColliderComponent.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Scene\Components\BoxColliderComponent.hpp">
+    <ClInclude Include="D:\Projects\Frost_Audio\engine\include\Frost\Scene\Components\CameraComponent.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Scene\Components\CameraComponent.hpp">
+    <ClInclude Include="D:\Projects\Frost_Audio\engine\include\Frost\Scene\Components\CapsuleColliderComponent.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Scene\Components\CapsuleColliderComponent.hpp">
+    <ClInclude Include="D:\Projects\Frost_Audio\engine\include\Frost\Scene\Components\CharacterControllerComponent.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Scene\Components\CharacterControllerComponent.hpp">
+    <ClInclude Include="D:\Projects\Frost_Audio\engine\include\Frost\Scene\Components\FlyControllerComponent.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Scene\Components\FlyControllerComponent.hpp">
+    <ClInclude Include="D:\Projects\Frost_Audio\engine\include\Frost\Scene\Components\Components.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Scene\Components\Components.hpp">
+    <ClInclude Include="D:\Projects\Frost_Audio\engine\include\Frost\Scene\Components\LightComponent.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Scene\Components\LightComponent.hpp">
+    <ClInclude Include="D:\Projects\Frost_Audio\engine\include\Frost\Scene\Components\MaterialOverrides.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Scene\Components\MaterialOverrides.hpp">
+    <ClInclude Include="D:\Projects\Frost_Audio\engine\include\Frost\Scene\Components\MeshComponent.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Scene\Components\MeshComponent.hpp">
+    <ClInclude Include="D:\Projects\Frost_Audio\engine\include\Frost\Scene\Components\RigidBodyComponent.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Scene\Components\PhysicsQueryComponent.hpp">
+    <ClInclude Include="D:\Projects\Frost_Audio\engine\include\Frost\Scene\Components\SkeletalMeshComponent.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Scene\Components\RigidBodyComponent.hpp">
+    <ClInclude Include="D:\Projects\Frost_Audio\engine\include\Frost\Scene\Components\TransformComponent.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Scene\Components\SkeletalMeshComponent.hpp">
+    <ClInclude Include="D:\Projects\Frost_Audio\engine\include\Frost\Scene\GameObject.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Scene\Components\TransformComponent.hpp">
+    <ClInclude Include="D:\Projects\Frost_Audio\engine\include\Frost\Scene\Hierarchy.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Scene\GameObject.hpp">
+    <ClInclude Include="D:\Projects\Frost_Audio\engine\include\Frost\Scene\Level.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Scene\Hierarchy.hpp">
+    <ClInclude Include="D:\Projects\Frost_Audio\engine\include\Frost\Scene\Ray.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Scene\Level.hpp">
+    <ClInclude Include="D:\Projects\Frost_Audio\engine\include\Frost\Scene\LevelSerializer.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Scene\LevelSerializer.hpp">
+    <ClInclude Include="D:\Projects\Frost_Audio\engine\include\Frost\Scene\Registry.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Scene\Ray.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Scene\Registry.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="D:\Projects\Frost\engine\include\Frost\Units.hpp">
+    <ClInclude Include="D:\Projects\Frost_Audio\engine\include\Frost\Units.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <CustomBuild Include="D:\Projects\Frost\engine\CMakeLists.txt" />
+    <CustomBuild Include="D:\Projects\Frost_Audio\engine\CMakeLists.txt" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Header Files">
-      <UniqueIdentifier>{088F1069-F569-38DA-B351-C35CA578B1AA}</UniqueIdentifier>
+      <UniqueIdentifier>{A4C46F6F-FC38-3C1E-ABB7-D010963057F8}</UniqueIdentifier>
     </Filter>
     <Filter Include="Source Files">
-      <UniqueIdentifier>{8C3C12FB-AA7F-3E64-B2E2-514EFB2CB1E9}</UniqueIdentifier>
+      <UniqueIdentifier>{26F9CEF1-5E28-3A08-BA80-8415D3C10F74}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

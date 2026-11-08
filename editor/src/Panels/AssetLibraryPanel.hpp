@@ -4,6 +4,7 @@
 #include "../Widgets/FileBrowser.hpp"
 
 #include <Frost/Assets/GltfImporter.hpp>
+#include <Frost/Assets/Sound.hpp>
 
 #include <cstdint>
 #include <filesystem>
@@ -26,9 +27,11 @@ class EditorContext;
 //     Inspector. Double-click a skeletal mesh or skeleton (or right-click > Edit...) to open its
 //     editor (see SkeletalAssetEditor).
 //   - Import...: turns a source file into assets, into the current folder by default: an image
-//     (.png/.jpg) into a texture, a model (.gltf/.glb) into any of a static mesh, a skeletal mesh,
-//     its skeleton (or the skeletal mesh and animations bound to an existing skeleton) and each of
-//     its animations, chosen one by one. A mesh's textures become separate texture assets.
+//     (.png/.jpg) into a texture, a sound (.wav/.mp3) into a sound asset holding a copy of the file
+//     (its properties show in its tooltip), a model (.gltf/.glb) into any of a static mesh, a
+//     skeletal mesh, its skeleton (or the skeletal mesh and animations bound to an existing
+//     skeleton) and each of its animations, chosen one by one. A mesh's textures become separate
+//     texture assets.
 //   - File System tab: browse the disk; double-click a source file to import it.
 //   - Lights tab: directional, point and spot lights, to drag into the viewport.
 class AssetLibraryPanel final {
@@ -112,9 +115,21 @@ private:
     [[nodiscard]]
     std::string DisplayFolder(EditorContext& context, const std::filesystem::path& folder) const;
 
+    // A sound asset's properties (nullopt if they cannot be read), cached per version of its file.
+    [[nodiscard]]
+    const std::optional<Frost::SoundInfo>& GetSoundInfo(const AssetLibrary::Entry& entry);
+
     // Operations requested while drawing (moves, deletions, ...) change the library, which would
     // invalidate the lists being drawn; they run after the window is done.
     std::vector<std::function<void()>> m_Deferred;
+
+    struct CachedSoundInfo {
+        bool read = false;
+        std::uintmax_t size = 0;
+        std::filesystem::file_time_type modified{};
+        std::optional<Frost::SoundInfo> info;
+    };
+    std::map<std::filesystem::path, CachedSoundInfo> m_SoundInfo;  // By asset path.
 
     std::filesystem::path m_CurrentFolder;  // Empty until the first Draw (then the content directory).
     std::string m_Filter;

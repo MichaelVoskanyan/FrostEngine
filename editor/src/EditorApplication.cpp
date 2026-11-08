@@ -131,6 +131,12 @@ void EditorApplication::OnUpdate(const float deltaTime) {
     }
 
     const Frost::Camera& camera = m_EditorCamera.GetCamera();
+
+    // Previewed sounds are heard from the viewport camera, whatever audio listener the level has (that
+    // is where the game hears from).
+    m_Context.UpdateAudio(Frost::AudioListener{.position = camera.GetPosition(), .forward = camera.GetForward(), .up = camera.GetUp()},
+                          deltaTime);
+
     m_Context.SetSpawnPoint(camera.GetPosition() + camera.GetForward() * kSpawnDistance);
     m_Context.SetView(Frost::ViewPoint{.position = m_EditorCamera.GetPosition(),
                                        .yawDegrees = m_EditorCamera.GetYawDegrees(),

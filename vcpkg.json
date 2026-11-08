@@ -13,6 +13,7 @@
         "vulkan-binding"
       ]
     },
+    "miniaudio",
     "stb",
     "vulkan-memory-allocator"
   ]

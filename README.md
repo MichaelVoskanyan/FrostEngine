@@ -72,19 +72,6 @@ Objects whose Rigid Body has *Simulated* ticked fall under gravity (981 cm/s², 
 
 The game simulates its level from the start, and so does playing a level from the editor (`F5`, see below). Play > Simulate Physics Here (`Alt+S`) runs the simulation in the editor's own viewport instead; stopping it (again `Alt+S`, or saving) puts every object back where it was when it started, so simulating never changes the level.
 
-#### Raycasts
-
-Game and editor code can cast rays into the physics world with `engine/include/Frost/Physics/Raycast.hpp`, against the same colliders the simulation uses (box and capsule colliders, simulated or not, drawn or not; attached objects are left out, as the simulation leaves them out). `Frost::RaycastAll(registry, ray, maxDistance)` returns every collider the ray hits, nearest first; `Frost::RaycastClosest(registry, ray, maxDistance)` returns only the nearest. Each `RaycastHit` has the `entity` hit (its object id), the `distance` along the ray (in centimeters), the world-space `point` and the surface `normal` there (pointing back towards the ray). A ray starting inside a collider does not hit it, so a ray cast from a character's camera, inside its own capsule, does not hit the character. For example, what the player is looking at, up to 100 m away:
-
-```cpp
-const Frost::Ray ray{.origin = camera.GetPosition(), .direction = camera.GetForward()};
-if (const std::optional<Frost::RaycastHit> hit = Frost::RaycastClosest(level.GetRegistry(), ray, 100.0f * Frost::kMeter)) {
-    // hit->entity, hit->distance, hit->point, hit->normal
-}
-```
-
-`Level::Raycast` is the editor's picking ray: it tests the triangles of the models that are drawn rather than colliders, and returns the same `RaycastHit` (the triangle's normal, turned to face the ray).
-
 `content/Levels/PhysicsTest.flevel` tries out everything together. The ground is a 40 m x 1 m x 40 m platform (the 1 m cube model `content/Primitives/Cube.fmesh`, imported from `assets/Primitives/Cube.gltf`, scaled up, with a Box Collider). The Glock, with a fitted Box Collider and a simulated Rigid Body, starts 2 m above it. *Player* is the player character: an object with no model, just a simulated Rigid Body (80 kg), a Capsule Collider (180 cm tall, 35 cm radius), a Character Controller and a Camera mounted 160 cm above its feet, starting 8 m behind the Glock, facing it. Open the level in the editor and press `F5`: both drop onto the ground, and you walk around as the player (click in the game window to look around with the mouse, see [The game](#the-game)): walk up to the Glock and push it, jump, or walk off the edge.
 
 ### Play In Editor

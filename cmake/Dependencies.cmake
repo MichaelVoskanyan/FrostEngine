@@ -21,3 +21,25 @@ if(NOT Stb_INCLUDE_DIR)
     message(FATAL_ERROR "stb_image.h not found. Install the 'stb' vcpkg port (listed in vcpkg.json) or set "
                         "Stb_INCLUDE_DIR to the directory containing it.")
 endif()
+
+# miniaudio (audio playback, used by src/Audio/AudioEngine.cpp only). A miniaudio CMake package
+# with a compiled library is linked if there is one (recent vcpkg ports may install one); otherwise
+# only the single header is needed, and the engine compiles miniaudio's implementation into
+# AudioEngine.cpp itself (FROST_MINIAUDIO_IMPLEMENTATION). Either way no engine header includes it.
+# Threads first: miniaudio needs them either way, and a package's exported targets may name
+# Threads::Threads without finding it themselves.
+find_package(Threads REQUIRED)
+find_package(miniaudio CONFIG QUIET)
+if(TARGET miniaudio::miniaudio)
+    set(FROST_MINIAUDIO_TARGET miniaudio::miniaudio)
+elseif(TARGET miniaudio)
+    set(FROST_MINIAUDIO_TARGET miniaudio)
+else()
+    find_path(Miniaudio_INCLUDE_DIR NAMES miniaudio.h PATH_SUFFIXES miniaudio)
+    if(NOT Miniaudio_INCLUDE_DIR)
+        message(FATAL_ERROR "miniaudio.h not found. Install the 'miniaudio' vcpkg port (listed in vcpkg.json) or "
+                            "set Miniaudio_INCLUDE_DIR to the directory containing it.")
+    endif()
+    # Its implementation also needs, on Linux, dlopen (it loads the system's audio libraries at run
+    # time) and libm (see engine/CMakeLists.txt).
+endif()

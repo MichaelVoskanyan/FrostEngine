@@ -168,8 +168,7 @@ namespace Frost {
         return std::visit([&](const auto& value) { return IntersectRay(ray, value, maxDistance); }, shape);
     }
 
-    bool RaycastFilter::Accepts(const EntityId entity, const int layer) const noexcept {
-        if ((CollisionLayerBit(layer) & layers) == 0) { return false; }
+    bool RaycastFilter::Accepts(const EntityId entity) const noexcept {
         return std::find(ignoredEntities.begin(), ignoredEntities.end(), entity) == ignoredEntities.end();
     }
 

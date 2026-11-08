@@ -1,5 +1,6 @@
 #pragma once
 
+#include <Frost/Audio/AudioEngine.hpp>
 #include <Frost/Project/Project.hpp>
 
 #include <chrono>
@@ -29,6 +30,9 @@ namespace Frost {
         // id (see AssetRegistry), and is the only place assets are loaded from. By default the
         // working directory, which is how a game runs (its project's content staged beside it).
         Project project{"."};
+        // Where sound goes: the default device (or, without one, nowhere, silently), or explicitly
+        // nowhere (see AudioOutput).
+        AudioOutput audioOutput = AudioOutput::Default;
     };
 
     class Engine final {
@@ -68,6 +72,9 @@ namespace Frost {
         AssetManager& GetAssetManager() noexcept;
 
         [[nodiscard]]
+        AudioEngine& GetAudio() noexcept;
+
+        [[nodiscard]]
         const Project& GetProject() const noexcept;
 
         [[nodiscard]]
@@ -78,11 +85,13 @@ namespace Frost {
 
         // Declared in dependency order. Destruction occurs in reverse order: the ImGui layer
         // (which renders through the renderer and chains onto the window's callbacks) goes first,
-        // then the assets (GPU resources created through the renderer), then the renderer, then
-        // input, then the window they all reference.
+        // then the assets (GPU resources created through the renderer), then the audio device (the
+        // voices playing sound assets belong to the application's systems, gone by then), then the
+        // renderer, then input, then the window they all reference.
         std::unique_ptr<Window> m_Window;
         std::unique_ptr<Input> m_Input;
         std::unique_ptr<Renderer> m_Renderer;
+        std::unique_ptr<AudioEngine> m_Audio;
         std::unique_ptr<AssetManager> m_AssetManager;
         std::unique_ptr<ImGuiLayer> m_ImGuiLayer;  // Null unless EngineSpecification::enableImGui.
 

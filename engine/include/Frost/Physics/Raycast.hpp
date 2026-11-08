@@ -1,7 +1,6 @@
 #pragma once
 
 #include <Frost/Physics/Collision.hpp>
-#include <Frost/Physics/CollisionFilter.hpp>
 #include <Frost/Scene/Ray.hpp>
 #include <Frost/Scene/Registry.hpp>
 #include <Frost/Units.hpp>
@@ -13,11 +12,10 @@
 
 namespace Frost {
 
-    // How far a raycast (or shape cast, see ShapeCast.hpp) reaches unless told otherwise.
+    // How far a raycast reaches unless told otherwise.
     inline constexpr float kDefaultRaycastDistance = 10.0f * kKilometer;
 
-    // Where a ray meets the surface of an object. Shape casts (ShapeCast.hpp) give the same, with
-    // `distance` how far the shape travelled and `point` where it touches the surface.
+    // Where a ray meets the surface of an object's collider.
     struct RaycastHit {
         EntityId entity = 0;    // The object hit (in a level, its ObjectId).
         float distance = 0.0f;  // From the ray's origin to `point`, in world units (centimeters).
@@ -27,22 +25,17 @@ namespace Frost {
         glm::vec3 normal{0.0f, 1.0f, 0.0f};
     };
 
-    // Which colliders a physics query may hit (or, for an overlap query, find): raycasts, shape
-    // casts (ShapeCast.hpp) and overlaps (Overlap.hpp) all take one. The default accepts every one.
+    // Which colliders a raycast may hit. The default accepts every one. (Collision layers, to sort
+    // colliders into what may be hit and what not, are yet to come.)
     struct RaycastFilter {
-        // Only colliders on these layers are hit (see CollisionFilter; a collider's own mask does
-        // not matter to queries, only its layer). E.g. CollisionLayerBit(2) for layer 2 only, or
-        // kAllCollisionLayers & ~CollisionLayerBit(5) for every layer but 5.
-        CollisionLayerMask layers = kAllCollisionLayers;
-
         // These objects are never hit: e.g. the character firing a shot from its weapon's muzzle,
         // which can be outside the character's own capsule. (Objects attached to others, such as
         // the weapon itself, are never hit anyway.)
         std::vector<EntityId> ignoredEntities;
 
-        // Whether the filter lets a query hit the collider of `entity`, on `layer`.
+        // Whether the filter lets a query hit the collider of `entity`.
         [[nodiscard]]
-        bool Accepts(EntityId entity, int layer) const noexcept;
+        bool Accepts(EntityId entity) const noexcept;
     };
 
     // --- Against colliders (the physics world) ---------------------------------------------------

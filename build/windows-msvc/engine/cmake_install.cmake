@@ -1,4 +1,4 @@
-# Install script for directory: D:/Projects/Frost/engine
+# Install script for directory: D:/Projects/Frost_Audio/engine
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)

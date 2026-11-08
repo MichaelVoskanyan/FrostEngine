@@ -394,6 +394,32 @@ namespace Frost {
         return asset;
     }
 
+    std::shared_ptr<const SoundAsset> AssetManager::LoadSound(const AssetReference& reference) {
+        if (const auto cached = m_Sounds.find(CacheKey(reference.id, reference.path)); cached != m_Sounds.end()) {
+            return cached->second;
+        }
+
+        const std::filesystem::path path = ResolveOrThrow(reference, AssetType::Sound);
+        SoundFile file = AssetFile::ReadSound(path, m_Registry.GetProjectDirectory());
+
+        const std::string key = CacheKey(file.header.id, path);
+        if (const auto cached = m_Sounds.find(key); cached != m_Sounds.end()) { return cached->second; }
+
+        auto asset = std::make_shared<SoundAsset>();
+        asset->id = file.header.id;
+        asset->path = path;
+        asset->name = PathToUtf8(path.stem());
+        asset->sound = std::move(file.sound);
+
+        m_Sounds.emplace(key, asset);
+        return asset;
+    }
+
+    std::shared_ptr<const SoundAsset> AssetManager::LoadSound(const std::filesystem::path& path) {
+        const std::optional<AssetHeader> header = AssetFile::ReadHeader(path, m_Registry.GetProjectDirectory());
+        return LoadSound(AssetReference{.id = header.has_value() ? header->id : AssetId{}, .path = NormalizePath(path)});
+    }
+
     std::shared_ptr<Texture> AssetManager::LoadTexture(const AssetReference& reference, const bool srgb) {
         if (const auto cached = m_Textures.find({CacheKey(reference.id, reference.path), srgb}); cached != m_Textures.end()) {
             return cached->second;
@@ -427,6 +453,7 @@ namespace Frost {
             m_Skeletons.erase(key);
             m_SkeletalMeshes.erase(key);
             m_Animations.erase(key);
+            m_Sounds.erase(key);
         }
     }
 
@@ -438,6 +465,7 @@ namespace Frost {
         m_Skeletons.clear();
         m_SkeletalMeshes.clear();
         m_Animations.clear();
+        m_Sounds.clear();
     }
 
     const MaterialSystem& AssetManager::GetMaterialSystem() const noexcept { return m_Renderer.GetMaterialSystem(); }

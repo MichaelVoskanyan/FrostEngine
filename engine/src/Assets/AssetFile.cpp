@@ -34,6 +34,7 @@ namespace {
     constexpr std::array<char, 4> kSkeletonMagic = {'F', 'S', 'K', 'L'};
     constexpr std::array<char, 4> kSkeletalMeshMagic = {'F', 'S', 'K', 'M'};
     constexpr std::array<char, 4> kAnimationMagic = {'F', 'A', 'N', 'M'};
+    constexpr std::array<char, 4> kSoundMagic = {'F', 'S', 'N', 'D'};
 
     [[nodiscard]]
     constexpr const std::array<char, 4>& MagicOf(const Frost::AssetType type) noexcept {
@@ -43,6 +44,7 @@ namespace {
             case Frost::AssetType::Skeleton: return kSkeletonMagic;
             case Frost::AssetType::SkeletalMesh: return kSkeletalMeshMagic;
             case Frost::AssetType::Animation: return kAnimationMagic;
+            case Frost::AssetType::Sound: return kSoundMagic;
         }
         return kMeshMagic;
     }
@@ -62,6 +64,11 @@ namespace {
     constexpr std::size_t kMinBindEntryBytes = 4 + 16 * 4;      // Empty name, mat4.
     constexpr std::size_t kMinTrackBytes = 4 + 3 * (1 + 4);     // Empty name, three empty channels.
     constexpr std::size_t kReferenceBytes = 8 + 8 + 4;          // Id, empty path.
+
+    // At least the most a header can take (magic, version, id, two strings; as AssetFile::ReadHeader
+    // reads), and a sound's properties.
+    constexpr std::size_t kMaxHeaderBytes = 32 + 2 * (4 + kMaxStringBytes);
+    constexpr std::size_t kSoundInfoBytes = 1 + 4 + 2 + 2 + 8 + 4;
 
     // memcpy, except that copying nothing is fine even from/to a null pointer (which an empty
     // vector's data() may be; memcpy with a null pointer is undefined even for zero bytes).
@@ -587,6 +594,40 @@ namespace {
         }
     }
 
+    void WriteSoundInfo(BinaryWriter& writer, const Frost::SoundInfo& info) {
+        writer.Write(static_cast<std::uint8_t>(info.format));
+        writer.Write(info.sampleRate);
+        writer.Write(info.channels);
+        writer.Write(info.bitsPerSample);
+        writer.Write(info.frameCount);
+        writer.Write(info.bitRate);
+    }
+
+    [[nodiscard]]
+    Frost::SoundInfo ReadSoundInfo(BinaryReader& reader) {
+        const auto format = reader.Read<std::uint8_t>();
+        if (format > static_cast<std::uint8_t>(Frost::SoundFormat::Mp3)) { reader.Fail("has an unknown sound format"); }
+
+        Frost::SoundInfo info;
+        info.format = static_cast<Frost::SoundFormat>(format);
+        info.sampleRate = reader.Read<std::uint32_t>();
+        info.channels = reader.Read<std::uint16_t>();
+        info.bitsPerSample = reader.Read<std::uint16_t>();
+        info.frameCount = reader.Read<std::uint64_t>();
+        info.bitRate = reader.Read<std::uint32_t>();
+
+        const bool validBits = info.format == Frost::SoundFormat::WavPcm
+                                       ? info.bitsPerSample == 8 || info.bitsPerSample == 16 || info.bitsPerSample == 24 ||
+                                                 info.bitsPerSample == 32
+                               : info.format == Frost::SoundFormat::WavFloat ? info.bitsPerSample == 32 || info.bitsPerSample == 64
+                                                                              : info.bitsPerSample == 0;
+        if (info.channels == 0 || info.channels > Frost::kMaxSoundChannels || info.sampleRate < Frost::kMinSoundSampleRate ||
+            info.sampleRate > Frost::kMaxSoundSampleRate || !validBits || info.frameCount == 0) {
+            reader.Fail("has invalid sound properties");
+        }
+        return info;
+    }
+
 }  // namespace
 
 namespace Frost {
@@ -598,6 +639,7 @@ namespace Frost {
             case AssetType::Skeleton: return kSkeletonExtension;
             case AssetType::SkeletalMesh: return kSkeletalMeshExtension;
             case AssetType::Animation: return kAnimationExtension;
+            case AssetType::Sound: return kSoundExtension;
         }
         return "";
     }
@@ -609,6 +651,7 @@ namespace Frost {
             case AssetType::Skeleton: return kSkeletonVersion;
             case AssetType::SkeletalMesh: return kSkeletalMeshVersion;
             case AssetType::Animation: return kAnimationVersion;
+            case AssetType::Sound: return kSoundVersion;
         }
         return 0;
     }
@@ -729,6 +772,22 @@ namespace Frost {
             writer.WriteString(key.slot);
             writer.Write(static_cast<std::uint8_t>(key.visible ? 1 : 0));
         }
+        WriteFileAtomically(path, writer.GetBytes());
+    }
+
+    void AssetFile::WriteSound(const std::filesystem::path& path, const SoundFile& file,
+                               const std::filesystem::path& projectDirectory) {
+        // The embedded file must be the audio the properties describe (Probe throws ImportError if
+        // it is no sound at all).
+        if (SoundImporter::Probe(file.sound.encoded, PathToUtf8(path)) != file.sound.info) {
+            throw ImportError("Sound '" + PathToUtf8(path) + "' cannot be written: its properties do not match its audio.");
+        }
+
+        BinaryWriter writer;
+        WriteHeader(writer, AssetType::Sound, path, file.header, projectDirectory);
+        WriteSoundInfo(writer, file.sound.info);
+        writer.Write(static_cast<std::uint64_t>(file.sound.encoded.size()));
+        writer.WriteBytes(file.sound.encoded.data(), file.sound.encoded.size());
         WriteFileAtomically(path, writer.GetBytes());
     }
 
@@ -893,6 +952,46 @@ namespace Frost {
         if (reader.Remaining() != 0) { reader.Fail("has unexpected trailing data"); }
         if (const std::optional<std::string> problem = file.clip.Validate()) { reader.Fail("is invalid: " + *problem); }
         return file;
+    }
+
+    SoundFile AssetFile::ReadSound(const std::filesystem::path& path, const std::filesystem::path& projectDirectory) {
+        const std::vector<std::byte> bytes = ReadWholeFile(path);
+        BinaryReader reader(bytes, "Sound asset '" + PathToUtf8(path) + "'");
+
+        SoundFile file;
+        file.header = ::ReadHeader(reader, AssetType::Sound, path, projectDirectory);
+        file.sound.info = ::ReadSoundInfo(reader);
+
+        const auto size = reader.Read<std::uint64_t>();
+        if (size == 0 || size > kMaxSoundFileBytes) { reader.Fail("has an invalid audio size"); }
+        if (size > reader.Remaining()) { reader.Fail("ends unexpectedly"); }
+        const std::span<const std::byte> encoded = reader.ReadBytes(static_cast<std::size_t>(size));
+        file.sound.encoded.assign(encoded.begin(), encoded.end());
+
+        if (reader.Remaining() != 0) { reader.Fail("has unexpected trailing data"); }
+        return file;
+    }
+
+    std::optional<SoundInfo> AssetFile::ReadSoundInfo(const std::filesystem::path& path) {
+        // Only the header and the properties are read, however long the audio.
+        std::ifstream stream(path, std::ios::binary);
+        if (!stream.is_open()) { return std::nullopt; }
+
+        std::vector<char> chars(kMaxHeaderBytes + kSoundInfoBytes);
+        stream.read(chars.data(), static_cast<std::streamsize>(chars.size()));
+        chars.resize(static_cast<std::size_t>(stream.gcount()));
+
+        std::vector<std::byte> bytes(chars.size());
+        CopyBytes(bytes.data(), chars.data(), chars.size());
+
+        try {
+            BinaryReader reader(bytes, PathToUtf8(path));
+            (void)::ReadHeader(reader, AssetType::Sound, path, {});
+            return ::ReadSoundInfo(reader);
+        }
+        catch (const ImportError&) {
+            return std::nullopt;
+        }
     }
 
     std::optional<AssetHeader> AssetFile::ReadHeader(const std::filesystem::path& path,

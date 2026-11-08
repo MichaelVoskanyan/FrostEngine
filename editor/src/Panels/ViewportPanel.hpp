@@ -21,10 +21,12 @@ class EditorCamera;
 //   - left click selects the light/camera icon or object under the cursor (or clears the selection);
 //   - right button flies the camera (EditorCamera; hover state is exposed for that);
 //   - models dragged in from the Asset Library are placed where they are dropped, and so are
-//     lights dragged from its Lights tab;
+//     lights dragged from its Lights tab, and sounds (as an object with an Audio Source);
 //   - lights, which have no geometry, are drawn as icons (with their direction), and the selected
 //     light's reach is shown (range sphere, spot cone, sun rays); cameras likewise, as an icon and
-//     the shape of their view;
+//     the shape of their view; audio sources, as an icon (lit up while previewing) and, when
+//     selected, the spheres of their minimum and maximum distance; and audio listeners, as an icon
+//     (bright for the active one) and the way they face;
 //   - box colliders are drawn as wireframes (immovable ones green, simulated bodies' blue), so
 //     invisible ones such as a ground box can be seen;
 //   - the selected object's bounds are outlined, and its skeleton (if it has a skeletal mesh) is
@@ -77,8 +79,8 @@ private:
     [[nodiscard]]
     glm::vec3 FindDropPoint(EditorContext& context, const Frost::Ray& ray) const;
 
-    // The light or camera whose icon is under `screenPoint` (the nearest to the camera if several),
-    // if any.
+    // The light, camera, audio source or audio listener whose icon is under `screenPoint` (the
+    // nearest to the camera if several), if any.
     [[nodiscard]]
     Frost::GameObject* PickIcon(EditorContext& context, const Projection& projection, const ImVec2& screenPoint) const;
 
@@ -88,6 +90,8 @@ private:
     void DrawCapsule(const Projection& projection, const Frost::Capsule& capsule, ImU32 color, float thickness) const;
     void DrawLights(EditorContext& context, const Projection& projection) const;
     void DrawCameras(EditorContext& context, const Projection& projection) const;
+    void DrawAudioSources(EditorContext& context, const Projection& projection) const;
+    void DrawAudioListeners(EditorContext& context, const Projection& projection) const;
     // A selected light's reach, from where it is in the world (`placement`).
     void DrawLightReach(const Projection& projection, const Frost::GameObject& object, const Frost::WorldPlacement& placement) const;
     void DrawCameraInfo(EditorContext& context, const EditorCamera& camera) const;

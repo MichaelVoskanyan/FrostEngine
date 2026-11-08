@@ -18,18 +18,15 @@ target_sources(FrostEngine
         src/Assets/Image.cpp
         src/Assets/Json.cpp
         src/Assets/Json.hpp
-        src/Debug/DebugDraw.cpp
-        src/Debug/DebugDrawImGui.cpp
-        src/Debug/PhysicsDebugDraw.cpp
+        src/Assets/Sound.cpp
+        src/Audio/AudioEngine.cpp
+        src/Audio/AudioSystem.cpp
         src/Engine.cpp
         src/ImGui/ImGuiLayer.cpp
         src/Physics/Collision.cpp
         src/Physics/PhysicsSystem.cpp
         src/Physics/ColliderQuery.hpp
-        src/Physics/Overlap.cpp
-        src/Physics/PhysicsQuerySystem.cpp
         src/Physics/Raycast.cpp
-        src/Physics/ShapeCast.cpp
         src/Platform/Input.cpp
         src/Platform/KeyNames.cpp
         src/Platform/Window.cpp
@@ -54,13 +51,14 @@ target_sources(FrostEngine
         src/Renderer/Vulkan/VulkanPipeline.cpp
         src/Renderer/Vulkan/VulkanSwapchain.cpp
         src/Scene/Components/AnimationTriggerComponent.cpp
+        src/Scene/Components/AudioListenerComponent.cpp
+        src/Scene/Components/AudioSourceComponent.cpp
         src/Scene/Components/CameraComponent.cpp
         src/Scene/Components/CharacterControllerComponent.cpp
         src/Scene/Components/FlyControllerComponent.cpp
         src/Scene/Components/LightComponent.cpp
         src/Scene/Components/MaterialOverrides.cpp
         src/Scene/Components/MeshComponent.cpp
-        src/Scene/Components/PhysicsQueryComponent.cpp
         src/Scene/Components/SkeletalMeshComponent.cpp
         src/Scene/Components/TransformComponent.cpp
         src/Scene/GameObject.cpp
@@ -79,6 +77,8 @@ target_sources(FrostEngine
             include/Frost/Animation/Socket.hpp
             include/Frost/Animation/SkinnedMesh.hpp
             include/Frost/Application.hpp
+            include/Frost/Audio/AudioEngine.hpp
+            include/Frost/Audio/AudioSystem.hpp
             include/Frost/Assets/AssetFile.hpp
             include/Frost/Assets/AssetId.hpp
             include/Frost/Assets/AssetImporter.hpp
@@ -88,17 +88,12 @@ target_sources(FrostEngine
             include/Frost/Assets/GltfImporter.hpp
             include/Frost/Assets/Image.hpp
             include/Frost/Assets/ImportError.hpp
-            include/Frost/Debug/DebugDraw.hpp
-            include/Frost/Debug/PhysicsDebugDraw.hpp
+            include/Frost/Assets/Sound.hpp
             include/Frost/Engine.hpp
             include/Frost/ImGui/ImGuiLayer.hpp
             include/Frost/Physics/Collision.hpp
-            include/Frost/Physics/CollisionFilter.hpp
-            include/Frost/Physics/Overlap.hpp
-            include/Frost/Physics/PhysicsQuerySystem.hpp
             include/Frost/Physics/PhysicsSystem.hpp
             include/Frost/Physics/Raycast.hpp
-            include/Frost/Physics/ShapeCast.hpp
             include/Frost/Platform/Filesystem.hpp
             include/Frost/Platform/Input.hpp
             include/Frost/Platform/KeyNames.hpp
@@ -128,6 +123,8 @@ target_sources(FrostEngine
             include/Frost/Scene/Bounds.hpp
             include/Frost/Scene/Components/AnimationTriggerComponent.hpp
             include/Frost/Scene/Components/AttachmentComponent.hpp
+            include/Frost/Scene/Components/AudioListenerComponent.hpp
+            include/Frost/Scene/Components/AudioSourceComponent.hpp
             include/Frost/Scene/Components/BoxColliderComponent.hpp
             include/Frost/Scene/Components/CameraComponent.hpp
             include/Frost/Scene/Components/CapsuleColliderComponent.hpp
@@ -137,15 +134,14 @@ target_sources(FrostEngine
             include/Frost/Scene/Components/LightComponent.hpp
             include/Frost/Scene/Components/MaterialOverrides.hpp
             include/Frost/Scene/Components/MeshComponent.hpp
-            include/Frost/Scene/Components/PhysicsQueryComponent.hpp
             include/Frost/Scene/Components/RigidBodyComponent.hpp
             include/Frost/Scene/Components/SkeletalMeshComponent.hpp
             include/Frost/Scene/Components/TransformComponent.hpp
             include/Frost/Scene/GameObject.hpp
             include/Frost/Scene/Hierarchy.hpp
             include/Frost/Scene/Level.hpp
-            include/Frost/Scene/LevelSerializer.hpp
             include/Frost/Scene/Ray.hpp
+            include/Frost/Scene/LevelSerializer.hpp
             include/Frost/Scene/Registry.hpp
             include/Frost/Units.hpp
 )
@@ -180,6 +176,19 @@ target_link_libraries(FrostEngine
         GPUOpen::VulkanMemoryAllocator
         imgui::imgui
 )
+
+# miniaudio (see cmake/Dependencies.cmake): its library, or its header, whose implementation
+# AudioEngine.cpp then compiles (SYSTEM: its warnings are not the engine's).
+if(FROST_MINIAUDIO_TARGET)
+    target_link_libraries(FrostEngine PRIVATE ${FROST_MINIAUDIO_TARGET})
+else()
+    target_include_directories(FrostEngine SYSTEM PRIVATE ${Miniaudio_INCLUDE_DIR})
+    target_compile_definitions(FrostEngine PRIVATE FROST_MINIAUDIO_IMPLEMENTATION)
+    target_link_libraries(FrostEngine PRIVATE Threads::Threads ${CMAKE_DL_LIBS})
+    if(UNIX AND NOT APPLE)
+        target_link_libraries(FrostEngine PRIVATE m)
+    endif()
+endif()
 
 if(MSVC)
     target_compile_options(FrostEngine

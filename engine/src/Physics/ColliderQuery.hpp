@@ -1,7 +1,7 @@
 #pragma once
 
-// What the physics queries (raycasts, shape casts, overlaps) share: which colliders they see, and
-// how hits are collected and ordered. Private to the engine.
+// What the physics queries (raycasts) share: which colliders they see, and how hits are collected
+// and ordered. Private to the engine.
 
 #include <Frost/Physics/Collision.hpp>
 #include <Frost/Physics/Raycast.hpp>
@@ -45,43 +45,20 @@ namespace Frost::Detail {
         return Ray{.origin = ray.origin, .direction = *direction};
     }
 
-    // The collider of one object, as the PhysicsSystem sees it (its box if it has both; none for an
-    // attached object), in the world, with its layer.
-    struct WorldCollider {
-        CollisionShape shape;
-        CollisionFilter filter;
-    };
-
-    [[nodiscard]]
-    inline std::optional<WorldCollider> FindWorldCollider(const Registry& registry, const EntityId entity) {
-        const TransformComponent* const transform = registry.TryGet<TransformComponent>(entity);
-        if (transform == nullptr || IsAttached(registry, entity)) { return std::nullopt; }
-        if (const BoxColliderComponent* const box = registry.TryGet<BoxColliderComponent>(entity)) {
-            return WorldCollider{.shape = MakeWorldBox(*transform, *box), .filter = box->filter};
-        }
-        if (const CapsuleColliderComponent* const capsule = registry.TryGet<CapsuleColliderComponent>(entity)) {
-            return WorldCollider{.shape = MakeWorldCapsule(*transform, *capsule), .filter = capsule->filter};
-        }
-        return std::nullopt;
-    }
-
     // Calls `visit(entity, shape)` for the collider of every object that has one and that `filter`
     // accepts, as the PhysicsSystem sees them: one shape per object (its box if it has both),
     // attached objects left out.
     template <typename Visit>
     void ForEachCollider(const Registry& registry, const RaycastFilter& filter, Visit&& visit) {
-        if (filter.layers == kNoCollisionLayers) { return; }
-
         registry.Each<TransformComponent, BoxColliderComponent>(
                 [&](const EntityId entity, const TransformComponent& transform, const BoxColliderComponent& collider) {
-                    if (!filter.Accepts(entity, collider.filter.layer) || IsAttached(registry, entity)) { return; }
+                    if (!filter.Accepts(entity) || IsAttached(registry, entity)) { return; }
                     visit(entity, CollisionShape(MakeWorldBox(transform, collider)));
                 });
         registry.Each<TransformComponent, CapsuleColliderComponent>(
                 [&](const EntityId entity, const TransformComponent& transform, const CapsuleColliderComponent& collider) {
                     // One collider per object: a box, if it also has one, was taken above.
-                    if (registry.Has<BoxColliderComponent>(entity) || !filter.Accepts(entity, collider.filter.layer) ||
-                        IsAttached(registry, entity)) {
+                    if (registry.Has<BoxColliderComponent>(entity) || !filter.Accepts(entity) || IsAttached(registry, entity)) {
                         return;
                     }
                     visit(entity, CollisionShape(MakeWorldCapsule(transform, collider)));

@@ -51,6 +51,10 @@ void LevelPanel::Draw(EditorContext& context) {
         for (const Frost::LightType type : {Frost::LightType::Directional, Frost::LightType::Point, Frost::LightType::Spot}) {
             if (ImGui::MenuItem(EditorUI::LightDisplayName(type))) { context.SpawnLight(type, context.GetSpawnPoint()); }
         }
+        ImGui::Separator();
+        if (ImGui::MenuItem("Audio Source")) { context.SpawnAudioSource({}, context.GetSpawnPoint()); }
+        ImGui::SetItemTooltip("An object that plays a sound (pick it in the Inspector). Or drag a sound from the Asset\n"
+                              "Library into the viewport or this list.");
         ImGui::EndPopup();
     }
 
@@ -210,13 +214,16 @@ void LevelPanel::Draw(EditorContext& context) {
     }
     ImGui::EndChild();
 
-    // The whole list area accepts models (static and skeletal), and objects dragged out of others
-    // (detaching them).
+    // The whole list area accepts models (static and skeletal), sounds (as audio sources), and
+    // objects dragged out of others (detaching them).
     if (ImGui::BeginDragDropTarget()) {
         for (const Frost::AssetType type : {Frost::AssetType::Mesh, Frost::AssetType::SkeletalMesh}) {
             if (const std::optional<std::filesystem::path> dropped = EditorUI::AcceptAssetPayload(type)) {
                 context.SpawnModel(*dropped, context.GetSpawnPoint());
             }
+        }
+        if (const std::optional<std::filesystem::path> dropped = EditorUI::AcceptAssetPayload(Frost::AssetType::Sound)) {
+            context.SpawnAudioSource(*dropped, context.GetSpawnPoint());
         }
         if (const std::optional<Frost::EntityId> dropped = EditorUI::AcceptObjectPayload()) { toDetach = *dropped; }
         ImGui::EndDragDropTarget();

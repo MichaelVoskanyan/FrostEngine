@@ -214,9 +214,9 @@ namespace Frost {
 
                     nearestDistance = *t;
                     nearest = MeshRaycastHit{.object = &object,
-                                             .subMeshIndex = s,
-                                             .distance = *t,
-                                             .point = ray.origin + ray.direction * *t};
+                                         .subMeshIndex = s,
+                                         .distance = *t,
+                                         .point = ray.origin + ray.direction * *t};
                 }
             }
         };

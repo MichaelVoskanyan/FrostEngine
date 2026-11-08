@@ -5,6 +5,9 @@
 
 #include <Frost/Assets/AssetFile.hpp>
 #include <Frost/Assets/AssetManager.hpp>
+#include <Frost/Audio/AudioEngine.hpp>
+#include <Frost/Audio/AudioSystem.hpp>
+#include <Frost/Engine.hpp>
 #include <Frost/Platform/Filesystem.hpp>
 #include <Frost/Platform/KeyNames.hpp>
 #include <Frost/Renderer/MaterialSystem.hpp>
@@ -185,72 +188,6 @@ namespace {
         return changed;
     }
 
-    // How a collision layer is shown. Layers are numbered until projects can name them.
-    [[nodiscard]]
-    std::string CollisionLayerLabel(const int layer) {
-        return layer == Frost::kDefaultCollisionLayer ? std::string("Default") : "Layer " + std::to_string(layer);
-    }
-
-    // A set of collision layers, as a list of checkboxes in a combo whose preview sums it up.
-    // Returns whether it changed.
-    bool DrawLayerMask(const char* const label, Frost::CollisionLayerMask& mask, const char* const tooltip) {
-        bool changed = false;
-
-        std::string summary;
-        if (mask == Frost::kAllCollisionLayers) { summary = "Everything"; }
-        else if (mask == Frost::kNoCollisionLayers) { summary = "Nothing"; }
-        else {
-            for (int layer = 0; layer < Frost::kCollisionLayerCount; ++layer) {
-                if ((mask & Frost::CollisionLayerBit(layer)) == 0) { continue; }
-                summary += (summary.empty() ? "" : ", ") + CollisionLayerLabel(layer);
-            }
-        }
-        if (ImGui::BeginCombo(label, summary.c_str(), ImGuiComboFlags_HeightLarge)) {
-            if (ImGui::SmallButton("Everything")) {
-                mask = Frost::kAllCollisionLayers;
-                changed = true;
-            }
-            ImGui::SameLine();
-            if (ImGui::SmallButton("Nothing")) {
-                mask = Frost::kNoCollisionLayers;
-                changed = true;
-            }
-            ImGui::Separator();
-            // Checkboxes keep the list open, so several layers can be toggled in one go.
-            for (int layer = 0; layer < Frost::kCollisionLayerCount; ++layer) {
-                changed |= ImGui::CheckboxFlags(CollisionLayerLabel(layer).c_str(), &mask, Frost::CollisionLayerBit(layer));
-            }
-            ImGui::EndCombo();
-        }
-        ImGui::SetItemTooltip("%s", tooltip);
-
-        return changed;
-    }
-
-    // A collider's layer and the layers it collides with (the part of the collider sections both
-    // kinds share). Returns whether either changed.
-    bool DrawCollisionFilter(Frost::CollisionFilter& filter) {
-        bool changed = false;
-
-        if (ImGui::BeginCombo("Layer", CollisionLayerLabel(filter.layer).c_str(), ImGuiComboFlags_HeightLarge)) {
-            for (int layer = 0; layer < Frost::kCollisionLayerCount; ++layer) {
-                if (ImGui::Selectable(CollisionLayerLabel(layer).c_str(), layer == filter.layer)) {
-                    filter.layer = layer;
-                    changed = true;
-                }
-            }
-            ImGui::EndCombo();
-        }
-        ImGui::SetItemTooltip("The collision layer the collider is on: what other colliders' masks and raycasts\n"
-                              "choose to collide with or hit.");
-
-        changed |= DrawLayerMask("Collides with", filter.mask,
-                                 "The layers it collides with. Two colliders collide only if each one's mask has the\n"
-                                 "other's layer. (Raycasts choose the layers they hit themselves.)");
-
-        return changed;
-    }
-
 }  // namespace
 
 template <typename T>
@@ -301,6 +238,11 @@ void InspectorPanel::Draw(EditorContext& context) {
             }
         }
         m_OneShotObject = 0;
+    }
+
+    // Likewise a sound preview.
+    if (m_SoundObject != 0 && (object == nullptr || object->GetId() != m_SoundObject)) {
+        context.GetAudio().Stop(std::exchange(m_SoundObject, 0));
     }
 
     if (object == nullptr) {
@@ -358,7 +300,7 @@ void InspectorPanel::Draw(EditorContext& context) {
     }
 
     ImGui::Spacing();
-    changed |= DrawAddComponentMenu(*object);
+    changed |= DrawAddComponentMenu(context, *object);
 
     ImGui::Spacing();
     ImGui::Separator();
@@ -380,7 +322,7 @@ void InspectorPanel::Draw(EditorContext& context) {
     ImGui::End();
 }
 
-bool InspectorPanel::DrawAddComponentMenu(Frost::GameObject& object) {
+bool InspectorPanel::DrawAddComponentMenu(EditorContext& context, Frost::GameObject& object) {
     bool added = false;
 
     const float width = ImGui::GetContentRegionAvail().x;
@@ -403,6 +345,15 @@ bool InspectorPanel::DrawAddComponentMenu(Frost::GameObject& object) {
                         }
                     }
                     ImGui::EndMenu();
+                }
+            }
+            else if constexpr (std::is_same_v<T, Frost::AudioListenerComponent>) {
+                // The level's listener, unless it has one already (which stays the one the game
+                // hears through; this one can be made active instead).
+                if (ImGui::MenuItem(T::kDisplayName)) {
+                    const bool another = Frost::FindActiveListener(context.GetLevel().GetRegistry()).has_value();
+                    object.AddComponent<T>(Frost::AudioListenerComponent{.active = !another});
+                    added = true;
                 }
             }
             else if (ImGui::MenuItem(T::kDisplayName)) {
@@ -1457,6 +1408,281 @@ bool InspectorPanel::DrawComponent(EditorContext& context, Frost::GameObject& ob
     return changed;
 }
 
+bool InspectorPanel::DrawComponent(EditorContext& context, Frost::GameObject& object, Frost::AudioSourceComponent& source) {
+    bool changed = DrawSoundSlot(context, source);
+    DrawSoundPreview(context, object, source);
+
+    ImGui::SeparatorText("Playback");
+    changed |= ImGui::SliderFloat("Volume", &source.volume, 0.0f, 2.0f, "%.2f", ImGuiSliderFlags_AlwaysClamp);
+    ImGui::SetItemTooltip("Linear gain: 1 plays it as recorded, 0.5 is about 6 dB quieter, 0 is silent.");
+    ImGui::SameLine();
+    if (source.volume > 0.0f) { ImGui::TextDisabled("%+.1f dB", 20.0 * std::log10(static_cast<double>(source.volume))); }
+    else { ImGui::TextDisabled("silent"); }
+
+    changed |= ImGui::DragFloat("Pitch", &source.pitch, 0.01f, 0.1f, 4.0f, "x%.2f", ImGuiSliderFlags_AlwaysClamp | ImGuiSliderFlags_Logarithmic);
+    ImGui::SetItemTooltip("Playback speed, which also shifts the pitch: x2 plays it twice as fast, an octave up.");
+
+    changed |= ImGui::Checkbox("Loop", &source.loop);
+    ImGui::SetItemTooltip("Start over at the end; otherwise it stops there.");
+    ImGui::SameLine();
+    changed |= ImGui::Checkbox("Play on start", &source.playOnStart);
+    ImGui::SetItemTooltip("Start playing when the game starts.");
+
+    ImGui::SeparatorText("3D");
+    changed |= ImGui::Checkbox("Spatial", &source.spatial);
+    ImGui::SetItemTooltip("Heard from the object's position: panned by where it is relative to the listener (the camera),\n"
+                          "fading with distance. Otherwise it sounds the same everywhere (music, ambience).");
+
+    ImGui::BeginDisabled(!source.spatial);
+    if (ImGui::DragFloat("Min distance", &source.minDistance, 5.0f * Frost::kCentimeter, 1.0f * Frost::kCentimeter,
+                         10.0f * Frost::kKilometer, "%.0f cm", ImGuiSliderFlags_AlwaysClamp | ImGuiSliderFlags_Logarithmic)) {
+        source.maxDistance = std::max(source.maxDistance, source.minDistance);
+        changed = true;
+    }
+    ImGui::SetItemTooltip("Within this distance of the listener it plays at full volume.");
+    if (ImGui::DragFloat("Max distance", &source.maxDistance, 10.0f * Frost::kCentimeter, source.minDistance,
+                         10.0f * Frost::kKilometer, "%.0f cm", ImGuiSliderFlags_AlwaysClamp | ImGuiSliderFlags_Logarithmic)) {
+        changed = true;
+    }
+    ImGui::SetItemTooltip("Beyond this distance it gets no quieter (with Linear fading and a rolloff of 1, it is silent there).");
+
+    constexpr Frost::AudioAttenuation kAttenuations[] = {Frost::AudioAttenuation::Inverse, Frost::AudioAttenuation::Linear,
+                                                         Frost::AudioAttenuation::Exponential, Frost::AudioAttenuation::None};
+    const auto attenuationLabel = [](const Frost::AudioAttenuation attenuation) {
+        switch (attenuation) {
+            case Frost::AudioAttenuation::Inverse: return "Inverse (natural)";
+            case Frost::AudioAttenuation::Linear: return "Linear";
+            case Frost::AudioAttenuation::Exponential: return "Exponential";
+            case Frost::AudioAttenuation::None: return "None (no fading)";
+        }
+        return "?";
+    };
+    if (ImGui::BeginCombo("Fading", attenuationLabel(source.attenuation))) {
+        for (const Frost::AudioAttenuation attenuation : kAttenuations) {
+            if (ImGui::Selectable(attenuationLabel(attenuation), attenuation == source.attenuation)) {
+                source.attenuation = attenuation;
+                changed = true;
+            }
+        }
+        ImGui::EndCombo();
+    }
+    ImGui::SetItemTooltip("How it gets quieter between the minimum and maximum distance. Inverse is how sound fades in\n"
+                          "the real world; Linear reaches silence at the maximum distance.");
+    ImGui::BeginDisabled(source.attenuation == Frost::AudioAttenuation::None);
+    changed |= ImGui::DragFloat("Rolloff", &source.rolloff, 0.01f, 0.0f, 10.0f, "%.2f", ImGuiSliderFlags_AlwaysClamp);
+    ImGui::SetItemTooltip("How fast it fades: 1 is the fading's natural rate, more fades faster, 0 not at all.");
+    ImGui::EndDisabled();
+
+    changed |= ImGui::SliderFloat("Doppler", &source.doppler, 0.0f, 5.0f, "%.2f", ImGuiSliderFlags_AlwaysClamp);
+    ImGui::SetItemTooltip("The Doppler effect: how much moving towards or away from the listener raises or lowers its\n"
+                          "pitch, as a passing car's or jet's. 1 is as in the real world, 0 none, more exaggerates it.");
+    changed |= ImGui::SliderFloat("Occlusion", &source.occlusion, 0.0f, 1.0f, "%.2f", ImGuiSliderFlags_AlwaysClamp);
+    ImGui::SetItemTooltip("How much walls (colliders) between it and the listener make it quieter and duller: 1 fully,\n"
+                          "0 not at all. Each wall lets through about -10 dB, muffled above 1.2 kHz (each further\n"
+                          "wall an octave lower). Moving objects (simulated rigid bodies) are not walls.");
+
+    // What the preview sounds like now, from the viewport camera.
+    if (const std::optional<Frost::AudioVoiceInfo> info = context.GetAudio().GetVoiceInfo(object.GetId())) {
+        ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled));
+        if (info->rays == 0 || info->blockedRays == 0) {
+            ImGui::TextWrapped("Heard directly (no walls between).");
+        }
+        else {
+            ImGui::TextWrapped("Behind %d wall%s (%d of %d directions blocked): %+.1f dB, muffled above %.0f Hz.", info->walls,
+                               info->walls == 1 ? "" : "s", info->blockedRays, info->rays,
+                               20.0 * std::log10(std::max(static_cast<double>(info->muffleGain), 1.0e-5)),
+                               static_cast<double>(info->lowPassCutoff));
+        }
+        if (std::abs(info->dopplerPitch - 1.0f) > 0.001f) {
+            ImGui::TextWrapped("Doppler: pitch x%.3f.", static_cast<double>(info->dopplerPitch));
+        }
+        ImGui::PopStyleColor();
+    }
+    ImGui::EndDisabled();
+
+    return changed;
+}
+
+bool InspectorPanel::DrawSoundSlot(EditorContext& context, Frost::AudioSourceComponent& source) {
+    bool changed = false;
+
+    const Frost::AssetReference& reference = source.soundReference;
+    const std::optional<std::filesystem::path> current = reference.IsSet() ? CurrentPath(context, reference) : std::nullopt;
+    const bool missing = reference.IsSet() && (source.sound == nullptr || !current.has_value());
+
+    std::string label = "(no sound)";
+    if (current.has_value()) { label = Frost::PathToUtf8(current->stem()); }
+    else if (reference.IsSet()) { label = Frost::PathToUtf8(reference.path.stem()); }
+    if (missing) { label = "(missing) " + label; }
+    if (source.sound != nullptr) { label += "  (" + EditorUI::FormatDuration(source.sound->sound.info.GetDuration()) + ")"; }
+
+    ImGui::AlignTextToFramePadding();
+    ImGui::TextUnformatted("Sound");
+    ImGui::SameLine();
+
+    // A button-shaped drop target (click for the library's sounds).
+    if (missing) { ImGui::PushStyleColor(ImGuiCol_Text, kErrorColor); }
+    const bool openMenu = ImGui::Button(label.c_str(), ImVec2(-FLT_MIN - 60.0f, 0.0f));
+    if (missing) { ImGui::PopStyleColor(); }
+
+    if (current.has_value()) { ImGui::SetItemTooltip("%s", Frost::PathToUtf8(*current).c_str()); }
+    else if (reference.IsSet()) {
+        ImGui::SetItemTooltip("Not found: %s\nIt may have been deleted. Moving or restoring the file brings it back.",
+                              Frost::PathToUtf8(reference.path).c_str());
+    }
+    else { ImGui::SetItemTooltip("Drop a sound from the Asset Library here, or click to pick one."); }
+
+    const auto assign = [&](const std::filesystem::path& path) {
+        try {
+            source.SetSound(context.GetAssets().LoadSound(path));
+            changed = true;
+        }
+        catch (const Frost::ImportError& e) {
+            context.ReportError(std::string("Could not load the sound: ") + e.what());
+        }
+    };
+
+    if (const std::optional<std::filesystem::path> dropped = EditorUI::AcceptAssetDrop(Frost::AssetType::Sound)) {
+        if (!context.GetLibrary().IsInside(*dropped)) {
+            context.ReportError("'" + Frost::PathToUtf8(dropped->filename()) + "' is not part of this project. A project "
+                                "only uses its own assets: copy the file into the project's content folder first.");
+        }
+        else {
+            assign(*dropped);
+        }
+    }
+
+    if (openMenu) { ImGui::OpenPopup("SoundMenu"); }
+    if (ImGui::BeginPopup("SoundMenu")) {
+        if (ImGui::MenuItem("(no sound)", nullptr, !reference.IsSet())) {
+            source.SetSound(nullptr);
+            changed = true;
+        }
+
+        ImGui::SeparatorText("Library");
+        bool any = false;
+        for (const AssetLibrary::Entry& entry : context.GetLibrary().GetEntries()) {
+            if (entry.type != Frost::AssetType::Sound || entry.duplicate) { continue; }
+            any = true;
+
+            const std::string name = Frost::PathToUtf8(entry.path.stem());
+            if (ImGui::MenuItem(name.c_str(), nullptr, reference.id == entry.id)) { assign(entry.path); }
+            ImGui::SetItemTooltip("%s", Frost::GenericPathToUtf8(entry.path.lexically_relative(context.GetLibrary().GetContentDirectory())).c_str());
+        }
+        if (!any) { ImGui::TextDisabled("No sounds imported yet (Asset Library > Import..., .wav or .mp3)."); }
+        ImGui::EndPopup();
+    }
+
+    ImGui::SameLine();
+    ImGui::BeginDisabled(!reference.IsSet());
+    if (ImGui::Button("Clear##Sound", ImVec2(-FLT_MIN, 0.0f))) {
+        source.SetSound(nullptr);
+        changed = true;
+    }
+    ImGui::EndDisabled();
+
+    if (source.sound != nullptr) { ImGui::TextDisabled("%s", EditorUI::FormatSoundInfo(source.sound->sound.info).c_str()); }
+    return changed;
+}
+
+void InspectorPanel::DrawSoundPreview(EditorContext& context, const Frost::GameObject& object, const Frost::AudioSourceComponent& source) {
+    Frost::AudioSystem& audio = context.GetAudio();
+    Frost::Registry& registry = context.GetLevel().GetRegistry();
+    const Frost::EntityId id = object.GetId();
+    const Frost::AudioPlayback playback = audio.GetPlayback(id);
+    const bool playing = playback == Frost::AudioPlayback::Playing;
+    const double length = source.sound != nullptr ? source.sound->sound.info.GetDuration() : 0.0;
+
+    const auto report = [&](const std::string& error) { context.ReportError("Could not play '" + object.GetName() + "': " + error); };
+
+    ImGui::BeginDisabled(source.sound == nullptr);
+    if (ImGui::Button(playing ? "Pause" : "Play", ImVec2(ImGui::GetFontSize() * 4.0f, 0.0f))) {
+        std::string error;
+        if (playing) { audio.Pause(id); }
+        else if (!audio.Play(registry, id, &error)) { report(error); }
+        m_SoundObject = id;
+    }
+    ImGui::SetItemTooltip("Preview it here, heard from the viewport camera as the game would play it. Changes to the\n"
+                          "settings below are heard as they are made.");
+    ImGui::SameLine();
+    ImGui::BeginDisabled(playback == Frost::AudioPlayback::Stopped);
+    if (ImGui::Button("Stop", ImVec2(ImGui::GetFontSize() * 4.0f, 0.0f))) { audio.Stop(id); }
+    ImGui::EndDisabled();
+    ImGui::SetItemTooltip("Stop, back to the start.");
+
+    ImGui::SameLine();
+    ImGui::SetNextItemWidth(-FLT_MIN);
+    float time = static_cast<float>(audio.GetTime(id));
+    const std::string timeText = EditorUI::FormatDuration(time) + " / " + EditorUI::FormatDuration(length);
+    if (ImGui::SliderFloat("##Time", &time, 0.0f, static_cast<float>(length), timeText.c_str(), ImGuiSliderFlags_AlwaysClamp)) {
+        std::string error;
+        if (!audio.Seek(registry, id, time, &error)) { report(error); }
+        m_SoundObject = id;
+    }
+    ImGui::SetItemTooltip("Where it is in the sound; drag to jump there.");
+    ImGui::EndDisabled();
+
+    // Where it is heard from: a spatial sound far from the viewport may be faint (or silent).
+    if (source.sound != nullptr && source.spatial) {
+        const float distance = glm::distance(context.GetView().position, Frost::ComputeWorldPlacement(registry, id).position);
+        const bool beyond = distance > source.maxDistance;
+        ImGui::TextDisabled("%.1f m from the viewport camera%s", static_cast<double>(distance / Frost::kMeter),
+                            beyond ? " (beyond its maximum distance)" : distance <= source.minDistance ? " (full volume)" : "");
+    }
+    if (!context.GetEngine().GetAudio().IsAudible()) {
+        ImGui::PushStyleColor(ImGuiCol_Text, kWarningColor);
+        ImGui::TextWrapped("No audio device: sounds play silently.");
+        ImGui::PopStyleColor();
+    }
+}
+
+bool InspectorPanel::DrawComponent(EditorContext& context, Frost::GameObject& object, Frost::AudioListenerComponent& listener) {
+    Frost::Level& level = context.GetLevel();
+    Frost::Registry& registry = level.GetRegistry();
+    bool changed = false;
+
+    // One listener at a time: making this one active makes every other inactive.
+    bool active = listener.active;
+    if (ImGui::Checkbox("Active", &active)) {
+        if (active) { Frost::SetActiveListener(registry, object.GetId()); }
+        else { listener.active = false; }
+        changed = true;
+    }
+    ImGui::SetItemTooltip("Whether the game hears through this listener. The game hears through one at a time: making\n"
+                          "this one active makes the level's other listeners inactive.");
+
+    // Where the ears are on the object: e.g. a character's head height, as its camera.
+    changed |= ImGui::DragFloat3("Offset", &listener.offset.x, 1.0f * Frost::kCentimeter, 0.0f, 0.0f, "%.1f cm");
+    ImGui::SetItemTooltip("Where the listener sits on its object, in the object's space (it turns with the object): e.g.\n"
+                          "a character's head height.");
+    const Frost::CameraComponent* const camera = object.TryGetComponent<Frost::CameraComponent>();
+    ImGui::BeginDisabled(camera == nullptr || camera->offset == listener.offset);
+    if (ImGui::SmallButton("Match Camera")) {
+        listener.offset = camera->offset;
+        changed = true;
+    }
+    ImGui::EndDisabled();
+    ImGui::SetItemTooltip(camera != nullptr ? "Put the listener where the object's camera is mounted (its offset)."
+                                            : "The object has no Camera to match.");
+
+    // What the game hears from, then.
+    ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled));
+    const std::optional<Frost::EntityId> heard = Frost::FindActiveListener(registry);
+    if (listener.active) {
+        ImGui::TextWrapped("The game hears the level from here: where this object is, facing the way it faces (moving and "
+                           "turning with it).");
+    }
+    else if (heard.has_value() && level.FindObject(*heard) != nullptr) {
+        ImGui::TextWrapped("Inactive: the game hears from '%s', the active listener.", level.FindObject(*heard)->GetName().c_str());
+    }
+    else {
+        ImGui::TextWrapped("Inactive: no listener is active, so the game hears from its camera.");
+    }
+    ImGui::TextWrapped("In the editor, sounds are previewed from the viewport camera.");
+    ImGui::PopStyleColor();
+    return changed;
+}
+
 bool InspectorPanel::DrawComponent(EditorContext& /*context*/, Frost::GameObject& object,
                                    Frost::FlyControllerComponent& controller) {
     bool changed = false;
@@ -1529,15 +1755,11 @@ bool InspectorPanel::DrawComponent(EditorContext& /*context*/, Frost::GameObject
     changed |= ImGui::DragFloat("Height", &collider.height, 1.0f * Frost::kCentimeter, 0.0f, 100.0f * Frost::kMeter, "%.1f cm",
                                 ImGuiSliderFlags_AlwaysClamp);
     ImGui::SetItemTooltip("Total, tip to tip, along the object's up axis (at most 2 x radius: a sphere).");
-    changed |= DrawCollisionFilter(collider.filter);
 
     const std::optional<Frost::Bounds> bounds = ModelBounds(object);
     ImGui::BeginDisabled(!bounds.has_value());
     if (ImGui::SmallButton("Fit to Model")) {
-        // Only the shape is refitted: the collider stays on its layer.
-        const Frost::CollisionFilter filter = collider.filter;
         collider = Frost::CapsuleColliderComponent::FromBounds(*bounds);
-        collider.filter = filter;
         changed = true;
     }
     ImGui::EndDisabled();
@@ -1562,15 +1784,11 @@ bool InspectorPanel::DrawComponent(EditorContext& /*context*/, Frost::GameObject
     changed |= ImGui::DragFloat3("Size", &collider.size.x, 1.0f * Frost::kCentimeter, 0.0f, 1.0f * Frost::kKilometer, "%.1f cm",
                                  ImGuiSliderFlags_AlwaysClamp);
     ImGui::SetItemTooltip("Edge lengths, in the object's own space (the object's scale applies on top).");
-    changed |= DrawCollisionFilter(collider.filter);
 
     const std::optional<Frost::Bounds> bounds = ModelBounds(object);
     ImGui::BeginDisabled(!bounds.has_value());
     if (ImGui::SmallButton("Fit to Model")) {
-        // Only the shape is refitted: the collider stays on its layer.
-        const Frost::CollisionFilter filter = collider.filter;
         collider = Frost::BoxColliderComponent::FromBounds(*bounds);
-        collider.filter = filter;
         changed = true;
     }
     ImGui::EndDisabled();
@@ -1613,92 +1831,6 @@ bool InspectorPanel::DrawComponent(EditorContext& context, Frost::GameObject& ob
         const glm::vec3& velocity = body.linearVelocity;
         ImGui::TextDisabled("Velocity %.1f, %.1f, %.1f cm/s", velocity.x, velocity.y, velocity.z);
     }
-
-    return changed;
-}
-
-bool InspectorPanel::DrawComponent(EditorContext& /*context*/, Frost::GameObject& /*object*/,
-                                   Frost::PhysicsQueryComponent& query) {
-    using Frost::PhysicsQueryType;
-    bool changed = false;
-
-    changed |= ImGui::Checkbox("Enabled", &query.enabled);
-    ImGui::SetItemTooltip("Whether it runs in the game (every frame, from where the object is).");
-    ImGui::SameLine();
-    changed |= ImGui::Checkbox("Debug", &query.debug);
-    ImGui::SetItemTooltip("Prints what it starts and stops hitting (or overlapping) to the game's log.");
-
-    constexpr std::pair<PhysicsQueryType, const char*> kTypes[] = {
-            {PhysicsQueryType::Raycast, "Raycast"},
-            {PhysicsQueryType::SphereCast, "Sphere Cast"},
-            {PhysicsQueryType::CapsuleCast, "Capsule Cast"},
-            {PhysicsQueryType::SphereOverlap, "Sphere Overlap"},
-            {PhysicsQueryType::BoxOverlap, "Box Overlap"},
-    };
-    const char* typeLabel = kTypes[0].second;
-    for (const auto& [type, label] : kTypes) {
-        if (type == query.type) { typeLabel = label; }
-    }
-    if (ImGui::BeginCombo("Type", typeLabel)) {
-        for (const auto& [type, label] : kTypes) {
-            if (ImGui::Selectable(label, type == query.type)) {
-                query.type = type;
-                changed = true;
-            }
-        }
-        ImGui::EndCombo();
-    }
-
-    if (query.IsCast()) {
-        int mode = query.mode == Frost::PhysicsQueryMode::All ? 1 : 0;
-        if (ImGui::Combo("Hits", &mode, "Closest only\0All along the way\0")) {
-            query.mode = mode == 1 ? Frost::PhysicsQueryMode::All : Frost::PhysicsQueryMode::Closest;
-            changed = true;
-        }
-    }
-
-    changed |= ImGui::DragFloat3("Offset", &query.offset.x, 1.0f * Frost::kCentimeter, 0.0f, 0.0f, "%.1f cm");
-    ImGui::SetItemTooltip(query.IsCast() ? "Where the cast starts, from the object, along its own axes (its scale does not apply)."
-                                         : "The volume's center, from the object, along its own axes (its scale does not apply).");
-
-    if (query.IsCast()) {
-        changed |= ImGui::DragFloat3("Direction", &query.direction.x, 0.01f, -1.0f, 1.0f, "%.2f");
-        ImGui::SetItemTooltip("Which way it goes, along the object's own axes: (0, 0, -1) is forward, (0, -1, 0) down.");
-        if (!(glm::length(query.direction) > 1.0e-6f)) {
-            ImGui::PushStyleColor(ImGuiCol_Text, kWarningColor);
-            ImGui::TextWrapped("No direction: it goes forward.");
-            ImGui::PopStyleColor();
-        }
-        changed |= ImGui::DragFloat("Max distance", &query.maxDistance, 5.0f * Frost::kCentimeter, 0.0f, 10.0f * Frost::kKilometer,
-                                    "%.0f cm", ImGuiSliderFlags_AlwaysClamp | ImGuiSliderFlags_Logarithmic);
-    }
-
-    if (query.type == PhysicsQueryType::SphereCast || query.type == PhysicsQueryType::CapsuleCast ||
-        query.type == PhysicsQueryType::SphereOverlap) {
-        changed |= ImGui::DragFloat("Radius", &query.radius, 0.5f * Frost::kCentimeter, 0.0f, 100.0f * Frost::kMeter, "%.1f cm",
-                                    ImGuiSliderFlags_AlwaysClamp);
-    }
-    if (query.type == PhysicsQueryType::CapsuleCast) {
-        changed |= ImGui::DragFloat("Height", &query.height, 1.0f * Frost::kCentimeter, 0.0f, 100.0f * Frost::kMeter, "%.1f cm",
-                                    ImGuiSliderFlags_AlwaysClamp);
-        ImGui::SetItemTooltip("Tip to tip, along the object's up axis (at most 2 x radius: a sphere).");
-    }
-    if (query.type == PhysicsQueryType::BoxOverlap) {
-        changed |= ImGui::DragFloat3("Size", &query.boxSize.x, 1.0f * Frost::kCentimeter, 0.0f, 1.0f * Frost::kKilometer, "%.1f cm",
-                                     ImGuiSliderFlags_AlwaysClamp);
-        ImGui::SetItemTooltip("Edge lengths, along the object's own axes.");
-    }
-
-    changed |= DrawLayerMask("Hits layers", query.layers,
-                             "The collision layers of the colliders it hits (their own masks do not matter to it).");
-    changed |= ImGui::Checkbox("Ignore self", &query.ignoreSelf);
-    ImGui::SetItemTooltip("Never hits this object, nor what it is attached to: a query on a character (or on a weapon\n"
-                          "it holds) does not hit the character.");
-
-    ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled));
-    ImGui::TextWrapped("Runs in the game, where F3 shows it: the way it goes, what it hits (point, normal, distance) "
-                       "and the colliders it touches.");
-    ImGui::PopStyleColor();
 
     return changed;
 }

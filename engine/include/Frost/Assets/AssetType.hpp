@@ -10,13 +10,14 @@ namespace Frost {
         Skeleton,      // A bone hierarchy (.fskel, imported from glTF).
         SkeletalMesh,  // A model bound to a skeleton, which deforms it (.fskmesh, imported from glTF).
         Animation,     // How a skeleton's bones move over time (.fanim, one per glTF animation).
+        Sound,         // A sound (.fsound, imported from WAV/MP3).
     };
 
     // Every asset type, in the order tools list them.
     inline constexpr AssetType kAssetTypes[] = {AssetType::Mesh, AssetType::SkeletalMesh, AssetType::Skeleton,
-                                                AssetType::Animation, AssetType::Texture};
+                                                AssetType::Animation, AssetType::Texture, AssetType::Sound};
 
-    // "mesh", "texture", "skeleton", "skeletal mesh", "animation" (for messages).
+    // "mesh", "texture", "skeleton", "skeletal mesh", "animation", "sound" (for messages).
     [[nodiscard]]
     constexpr const char* GetAssetTypeName(const AssetType type) noexcept {
         switch (type) {
@@ -25,6 +26,7 @@ namespace Frost {
             case AssetType::Skeleton: return "skeleton";
             case AssetType::SkeletalMesh: return "skeletal mesh";
             case AssetType::Animation: return "animation";
+            case AssetType::Sound: return "sound";
         }
         return "asset";
     }

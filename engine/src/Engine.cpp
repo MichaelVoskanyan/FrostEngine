@@ -20,6 +20,7 @@ namespace Frost {
         m_Window = std::make_unique<Window>(windowSpec);
         m_Input = std::make_unique<Input>(*m_Window);
         m_Renderer = std::make_unique<Renderer>(*m_Window);
+        m_Audio = std::make_unique<AudioEngine>(AudioEngineSettings{.output = spec.audioOutput});
         m_AssetManager = std::make_unique<AssetManager>(*m_Renderer, m_Project.GetContentDirectory());
 
         // After the window: the ImGui GLFW backend chains onto the callbacks the window installed.
@@ -58,6 +59,8 @@ namespace Frost {
     Renderer& Engine::GetRenderer() noexcept { return *m_Renderer; }
 
     AssetManager& Engine::GetAssetManager() noexcept { return *m_AssetManager; }
+
+    AudioEngine& Engine::GetAudio() noexcept { return *m_Audio; }
 
     const Project& Engine::GetProject() const noexcept { return m_Project; }
 

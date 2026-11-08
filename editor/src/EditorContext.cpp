@@ -41,6 +41,18 @@ namespace {
         mesh.InvalidateMaterials();
     }
 
+    // (Re)loads an audio source's sound from its reference (kept, unresolved, if it cannot be).
+    void LoadAudioSourceSound(Frost::AudioSourceComponent& source, Frost::AssetManager& assets) {
+        const Frost::AssetReference reference = source.soundReference;
+        if (!reference.IsSet()) { return; }
+        try {
+            source.SetSound(assets.LoadSound(reference));
+        }
+        catch (const Frost::ImportError&) {
+            source.SetUnresolvedSound(reference);
+        }
+    }
+
     // (Re)loads the animations of an object's animation triggers; with `onlyMissing`, just those
     // that could not be loaded before.
     void LoadTriggerAnimations(Frost::AnimationTriggerComponent& component, Frost::AssetManager& assets, const bool onlyMissing) {
@@ -58,7 +70,7 @@ namespace {
 }  // namespace
 
 EditorContext::EditorContext(Frost::Engine& engine, AssetLibrary& library)
-    : m_Engine(engine), m_Library(library), m_Level(std::make_unique<Frost::Level>()) {}
+    : m_Engine(engine), m_Library(library), m_Level(std::make_unique<Frost::Level>()), m_Audio(engine.GetAudio()) {}
 
 Frost::Engine& EditorContext::GetEngine() noexcept { return m_Engine; }
 
@@ -71,6 +83,9 @@ Frost::Level& EditorContext::GetLevel() noexcept { return *m_Level; }
 void EditorContext::SetLevel(std::unique_ptr<Frost::Level> level, std::optional<std::filesystem::path> path) {
     m_Simulating = false;
     m_SimulationSnapshot.clear();
+
+    // The previews were of the old level's objects (whose ids the new level may reuse).
+    m_Audio.StopAll();
 
     m_Level = std::move(level);
     m_LevelPath = std::move(path);
@@ -193,6 +208,15 @@ std::string EditorContext::ImportAsset(const std::filesystem::path& source, cons
         ReportError("Imported '" + Frost::PathToUtf8(destination.filename()) + "', but: " + warning);
     }
 
+    // A sound is used only by audio sources: they (and nothing else) switch to the new version.
+    if (Frost::AssetManager::GetAssetType(destination) == Frost::AssetType::Sound) {
+        GetAssets().Unload(result.asset);
+        m_Level->GetRegistry().Each<Frost::AudioSourceComponent>([&](Frost::EntityId, Frost::AudioSourceComponent& audioSource) {
+            if (audioSource.soundReference.id == result.asset.id) { LoadAudioSourceSound(audioSource, GetAssets()); }
+        });
+        return {};
+    }
+
     // Reimporting replaces assets that may be loaded (a model, its textures, a texture other
     // models use): reload everything the level uses so it shows the new versions.
     ReloadAllAssets();
@@ -280,6 +304,13 @@ std::string EditorContext::DeleteAsset(const std::filesystem::path& assetPath) {
 
         case Frost::AssetType::Skeleton:
         case Frost::AssetType::Texture: ReloadAllAssets(); break;
+
+        case Frost::AssetType::Sound:
+            GetAssets().Unload(reference);
+            m_Level->GetRegistry().Each<Frost::AudioSourceComponent>([&](Frost::EntityId, Frost::AudioSourceComponent& source) {
+                if (isDeleted(source.sound)) { source.SetUnresolvedSound(source.soundReference); }
+            });
+            break;
     }
     return {};
 }
@@ -308,6 +339,8 @@ void EditorContext::ReloadAllAssets() {
     m_Level->GetRegistry().Each<Frost::AnimationTriggerComponent>([&](Frost::EntityId, Frost::AnimationTriggerComponent& component) {
         LoadTriggerAnimations(component, assets, false);
     });
+    m_Level->GetRegistry().Each<Frost::AudioSourceComponent>(
+            [&](Frost::EntityId, Frost::AudioSourceComponent& source) { LoadAudioSourceSound(source, assets); });
 }
 
 void EditorContext::OnAssetsChanged() {
@@ -349,6 +382,11 @@ void EditorContext::OnAssetsChanged() {
     m_Level->GetRegistry().Each<Frost::AnimationTriggerComponent>([&](Frost::EntityId, Frost::AnimationTriggerComponent& component) {
         LoadTriggerAnimations(component, assets, true);
     });
+
+    // And a sound that could not be found.
+    m_Level->GetRegistry().Each<Frost::AudioSourceComponent>([&](Frost::EntityId, Frost::AudioSourceComponent& source) {
+        if (source.IsSoundMissing()) { LoadAudioSourceSound(source, assets); }
+    });
 }
 
 Frost::GameObject& EditorContext::SpawnLight(const Frost::LightType type, const glm::vec3& surfacePoint) {
@@ -378,6 +416,34 @@ Frost::GameObject& EditorContext::SpawnLight(const Frost::LightType type, const 
     m_Selection = object.GetId();
     MarkLevelDirty();
     return object;
+}
+
+Frost::GameObject* EditorContext::SpawnAudioSource(const std::filesystem::path& path, const glm::vec3& surfacePoint) {
+    std::shared_ptr<const Frost::SoundAsset> sound;
+    if (!path.empty()) {
+        if (!m_Library.IsInside(path)) {
+            ReportError("'" + Frost::PathToUtf8(path.filename()) + "' is not part of this project. A project only uses its "
+                        "own assets: copy the file into the project's content folder first.");
+            return nullptr;
+        }
+        try {
+            sound = GetAssets().LoadSound(path);
+        }
+        catch (const Frost::ImportError& e) {
+            ReportError(std::string("Could not load the sound: ") + e.what());
+            return nullptr;
+        }
+    }
+
+    Frost::GameObject& object = m_Level->CreateObject(sound != nullptr ? sound->name : std::string("Audio Source"));
+    object.AddComponent<Frost::AudioSourceComponent>().SetSound(std::move(sound));
+
+    // A little off the surface, like a point light (an emitter in the air, not in the floor).
+    object.GetTransform().position = surfacePoint + glm::vec3(0.0f, 1.0f * Frost::kMeter, 0.0f);
+
+    m_Selection = object.GetId();
+    MarkLevelDirty();
+    return &object;
 }
 
 void EditorContext::DeleteObject(const Frost::ObjectId id) {
@@ -418,6 +484,11 @@ void EditorContext::DuplicateSelected() {
         if (Frost::AttachmentComponent* const attachment = copy.TryGetComponent<Frost::AttachmentComponent>()) {
             if (const auto parent = copies.find(attachment->parent); parent != copies.end()) { attachment->parent = parent->second; }
         }
+    }
+
+    // The level keeps one active listener: copies of listeners are inactive.
+    for (const auto& [original, copyId] : copies) {
+        if (auto* const listener = m_Level->FindObject(copyId)->TryGetComponent<Frost::AudioListenerComponent>()) { listener->active = false; }
     }
 
     // The copies' animation triggers show and hide the copies of the objects they named.
@@ -686,8 +757,10 @@ bool EditorContext::IsPlaying() const noexcept { return m_PlaySession.IsRunning(
 void EditorContext::StartPlaying() {
     if (m_PlaySession.IsRunning()) { return; }
 
-    // The game plays the level as edited, not as the simulation left it.
+    // The game plays the level as edited, not as the simulation left it, and plays its sounds
+    // itself.
     StopSimulation();
+    m_Audio.StopAll();
 
     const std::string error = m_PlaySession.Start(*m_Level, m_Engine.GetProject(), m_Library.GetRegistry(), m_View);
     if (!error.empty()) { ReportError("Could not play the level: " + error); }
@@ -697,6 +770,12 @@ void EditorContext::StopPlaying() { m_PlaySession.Stop(); }
 
 void EditorContext::UpdatePlaying() {
     if (const std::optional<std::string> error = m_PlaySession.Update()) { ReportError(*error); }
+}
+
+Frost::AudioSystem& EditorContext::GetAudio() noexcept { return m_Audio; }
+
+void EditorContext::UpdateAudio(const Frost::AudioListener& listener, const float deltaTime) {
+    m_Audio.Update(m_Level->GetRegistry(), listener, deltaTime);
 }
 
 void EditorContext::ReportError(std::string message) {

@@ -1,5 +1,4 @@
 #include "GameApplication.hpp"
-#include "PhysicsBenchmark.hpp"
 
 #include <Frost/Platform/Filesystem.hpp>
 #include <Frost/Project/GameLaunchOptions.hpp>
@@ -57,18 +56,6 @@ int main(const int argc, char** const argv) {
 
     if (options.showHelp) {
         std::cout << Frost::GameLaunchOptions::kUsage;
-        return EXIT_SUCCESS;
-    }
-
-    // The benchmark needs no window or renderer: it runs on its own and exits.
-    if (options.benchmark.has_value()) {
-        try {
-            (void)RunPhysicsBenchmark(*options.benchmark, std::cout);
-        }
-        catch (const std::exception& e) {
-            std::cerr << "Benchmark failed: " << e.what() << '\n';
-            return EXIT_FAILURE;
-        }
         return EXIT_SUCCESS;
     }
 

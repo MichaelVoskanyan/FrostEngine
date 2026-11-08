@@ -92,6 +92,14 @@ Multi-Arch: same
 Description: Make available Vulkan binding
 Status: install ok installed
 
+Package: miniaudio
+Version: 0.11.25
+Architecture: x64-windows
+Multi-Arch: same
+Abi: dc9f41304202c1213e59d9f14a335f89261f1e87704ab1838ec76d2bd983551a
+Description: Audio playback and capture library written in C, in a single source file
+Status: install ok installed
+
 Package: stb
 Version: 2024-07-29
 Port-Version: 1

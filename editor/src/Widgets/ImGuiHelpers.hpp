@@ -79,8 +79,16 @@ namespace EditorUI {
     const char* AssetTypeTag(Frost::AssetType type);
 
     // What the Asset Library calls a type: "Model", "Texture", "Skeleton", "Skeletal Mesh",
-    // "Animation".
+    // "Animation", "Sound".
     [[nodiscard]]
     const char* AssetTypeDisplayName(Frost::AssetType type);
+
+    // A length of time: "1.50 s" under a minute, "1:02.35" from then on.
+    [[nodiscard]]
+    std::string FormatDuration(double seconds);
+
+    // "WAV (16-bit PCM), 44100 Hz, stereo, 1.50 s" / "MP3 (128 kbps), 48000 Hz, mono, 1:02.35".
+    [[nodiscard]]
+    std::string FormatSoundInfo(const Frost::SoundInfo& info);
 
 }  // namespace EditorUI

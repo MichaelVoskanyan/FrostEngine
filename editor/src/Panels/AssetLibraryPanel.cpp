@@ -64,18 +64,19 @@ namespace {
         return text;
     }
 
-    // Where assets of a type go when imported while browsing `current`: a "Meshes"/"Textures"
-    // folder there (Weapons/Glock19 -> Weapons/Glock19/Meshes), or `current` itself (or its
-    // sibling) if it already is one.
+    // Where assets of a type go when imported while browsing `current`: a "Meshes"/"Textures"/
+    // "Sounds" folder there (Weapons/Glock19 -> Weapons/Glock19/Meshes), or `current` itself (or
+    // its sibling) if it already is one.
     [[nodiscard]]
     std::filesystem::path DefaultImportFolder(const std::filesystem::path& current, const Frost::AssetType type) {
         const std::string name = Lowercase(Frost::PathToUtf8(current.filename()));
-        const bool isTexture = type == Frost::AssetType::Texture;
-        const std::string wanted = isTexture ? "Textures" : "Meshes";
+        const std::string wanted = type == Frost::AssetType::Texture ? "Textures"
+                                   : type == Frost::AssetType::Sound ? "Sounds"
+                                                                     : "Meshes";
 
         if (name == Lowercase(wanted)) { return current; }
         // A sibling kind of folder (Weapons/Glock19/Textures -> Weapons/Glock19/Meshes).
-        for (const char* const sibling : {"meshes", "textures", "animations"}) {
+        for (const char* const sibling : {"meshes", "textures", "animations", "sounds"}) {
             if (name == sibling) { return current.parent_path() / wanted; }
         }
         return current / wanted;
@@ -125,7 +126,7 @@ void AssetLibraryPanel::Draw(EditorContext& context) {
 
     if (ImGui::Begin(kWindowName)) {
         if (ImGui::Button("Import...")) { OpenImportDialog(context, {}); }
-        ImGui::SetItemTooltip("Import a model or image into the current folder.");
+        ImGui::SetItemTooltip("Import a model, image or sound into the current folder.");
         ImGui::SameLine();
         if (ImGui::Button("New Folder")) { RequestNewFolder(m_CurrentFolder); }
         ImGui::SameLine();
@@ -363,8 +364,19 @@ void AssetLibraryPanel::DrawAssetRow(EditorContext& context, const AssetLibrary:
             case Frost::AssetType::Skeleton:
                 hint = "The bones its skeletal meshes and animations are bound to. Double-click to edit it; drag onto a folder to move it.";
                 break;
+            case Frost::AssetType::Sound:
+                hint = "Drag into the viewport to place an audio source playing it, onto an Audio Source's sound slot\n"
+                       "in the Inspector, or onto a folder to move it.";
+                break;
         }
-        ImGui::SetItemTooltip("%s\n%s", Frost::PathToUtf8(entry.path).c_str(), hint);
+
+        // A sound's properties (read from its file only while the tooltip shows).
+        std::string details;
+        if (entry.type == Frost::AssetType::Sound && ImGui::IsItemHovered(ImGuiHoveredFlags_ForTooltip)) {
+            const std::optional<Frost::SoundInfo>& info = GetSoundInfo(entry);
+            details = (info.has_value() ? EditorUI::FormatSoundInfo(*info) : std::string("(its properties could not be read)")) + "\n";
+        }
+        ImGui::SetItemTooltip("%s\n%s%s", Frost::PathToUtf8(entry.path).c_str(), details.c_str(), hint);
     }
 
     // Double-clicking a skeletal mesh or skeleton opens its editor; a (static) model is placed in
@@ -542,7 +554,7 @@ void AssetLibraryPanel::RequestDelete(EditorContext& context, const std::filesys
             prompt.referencers = library.FindReferencers(entry->id);
 
             // The open level may have unsaved uses the files do not show: objects whose model,
-            // animation, skeleton or a texture override is the asset.
+            // animation, skeleton, sound or a texture override is the asset.
             const Frost::AssetId id = entry->id;
             const auto overridesUse = [id](const auto& mesh) {
                 for (std::size_t i = 0; i < mesh.GetMaterialSlotCount(); ++i) {
@@ -567,6 +579,9 @@ void AssetLibraryPanel::RequestDelete(EditorContext& context, const std::filesys
                 }
                 if (const Frost::AnimationTriggerComponent* const triggers = object->TryGetComponent<Frost::AnimationTriggerComponent>()) {
                     for (const Frost::AnimationTrigger& trigger : triggers->triggers) { uses = uses || trigger.animationReference.id == id; }
+                }
+                if (const Frost::AudioSourceComponent* const source = object->TryGetComponent<Frost::AudioSourceComponent>()) {
+                    uses = uses || source->soundReference.id == id;
                 }
                 prompt.usesInOpenLevel += uses ? 1 : 0;
             }
@@ -978,7 +993,8 @@ void AssetLibraryPanel::DrawImportDialog(EditorContext& context) {
         ImGui::TextColored(kWarningColor, "Reimport '%s' from a different source file:",
                            Frost::PathToUtf8(m_FixedDestination->filename()).c_str());
     }
-    ImGui::TextUnformatted("Source file: a model (.gltf, .glb) or image (.png, .jpg). Type or paste its full path, or browse:");
+    ImGui::TextUnformatted("Source file: a model (.gltf, .glb), image (.png, .jpg) or sound (.wav, .mp3). Type or paste its full\n"
+                           "path, or browse:");
     bool submit = false;
     ImGui::SetNextItemWidth(-FLT_MIN);
     if (ImGui::IsWindowAppearing()) { ImGui::SetKeyboardFocusHere(); }
@@ -1483,7 +1499,9 @@ AssetLibraryPanel::ImportPlan AssetLibraryPanel::DrawSingleImportOptions(EditorC
     ImportPlan plan;
     std::filesystem::path destination;
     if (m_ImportSource.empty()) { plan.problem = "Choose a file to import."; }
-    else if (!sourceType.has_value()) { plan.problem = "Not a file that can be imported (expected .gltf, .glb, .png, .jpg or .jpeg)."; }
+    else if (!sourceType.has_value()) {
+        plan.problem = std::string("Not a file that can be imported (expected ") + Frost::AssetImporter::kImportableExtensions + ").";
+    }
     else if (!FileExists(source)) { plan.problem = "File not found."; }
     else if (fixed) {
         destination = *m_FixedDestination;
@@ -1525,6 +1543,16 @@ AssetLibraryPanel::ImportPlan AssetLibraryPanel::DrawSingleImportOptions(EditorC
         };
     }
     return plan;
+}
+
+const std::optional<Frost::SoundInfo>& AssetLibraryPanel::GetSoundInfo(const AssetLibrary::Entry& entry) {
+    // Reread only when the file changed (the registry's size and time for it).
+    CachedSoundInfo& cached = m_SoundInfo[entry.path];
+    if (!cached.read || cached.size != entry.size || cached.modified != entry.modified) {
+        cached = CachedSoundInfo{.read = true, .size = entry.size, .modified = entry.modified,
+                                 .info = Frost::AssetFile::ReadSoundInfo(entry.path)};
+    }
+    return cached.info;
 }
 
 std::string AssetLibraryPanel::DisplayFolder(EditorContext& context, const std::filesystem::path& folder) const {

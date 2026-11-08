@@ -4,6 +4,7 @@
 #include "PlaySession.hpp"
 
 #include <Frost/Animation/AnimationClip.hpp>
+#include <Frost/Audio/AudioSystem.hpp>
 #include <Frost/Physics/PhysicsSystem.hpp>
 #include <Frost/Project/GameLaunchOptions.hpp>
 #include <Frost/Scene/Level.hpp>
@@ -23,9 +24,9 @@ namespace Frost {
 }  // namespace Frost
 
 // State shared by the editor's panels: the level being edited (and where it lives on disk), the
-// selection, the asset library, the viewport's point of view, the physics simulation and Play In
-// Editor, and the actions several panels trigger (spawning, deleting, duplicating objects). Errors
-// are queued here and shown by EditorApplication.
+// selection, the asset library, the viewport's point of view, the physics simulation, sound
+// previews and Play In Editor, and the actions several panels trigger (spawning, deleting,
+// duplicating objects). Errors are queued here and shown by EditorApplication.
 class EditorContext final {
 public:
     EditorContext(Frost::Engine& engine, AssetLibrary& library);
@@ -87,8 +88,9 @@ public:
     // Imports `source` into the asset at `destination` (replacing it, keeping its id; a mesh's
     // textures go to `textureFolder`, empty = the default; `options` supplies a skeletal mesh's or
     // animation's skeleton and which animation, see AssetImporter::Options), then reloads the
-    // assets the level uses so it shows the result. Warnings are reported. Returns an error
-    // message, empty on success.
+    // assets the level uses so it shows the result (for a sound, which nothing in a level uses
+    // yet, only drops its loaded copy). Warnings are reported. Returns an error message, empty on
+    // success.
     [[nodiscard]]
     std::string ImportAsset(const std::filesystem::path& source, const std::filesystem::path& destination,
                             const std::filesystem::path& textureFolder, const Frost::AssetImporter::Options& options = {});
@@ -119,6 +121,12 @@ public:
     // spots aimed down at it); the object is selected.
     Frost::GameObject& SpawnLight(Frost::LightType type, const glm::vec3& surfacePoint);
 
+    // Places a new object with an Audio Source playing the sound asset at `path` (.fsound, in the
+    // project's content; empty = an audio source with no sound yet), lifted off `surfacePoint`
+    // like a point light; the object is selected. On failure the error is reported and null
+    // returned.
+    Frost::GameObject* SpawnAudioSource(const std::filesystem::path& path, const glm::vec3& surfacePoint);
+
     // Deletes the object and everything attached to it (see AttachmentComponent), and the animation
     // triggers' visibility keys naming them.
     void DeleteObject(Frost::ObjectId id);
@@ -126,7 +134,8 @@ public:
     // Duplicates the selected object with everything attached to it, and selects the copy. A copy
     // of an object that is not attached is offset sideways, so it does not sit inside the original;
     // a copy of an attached one stays on the same mount (e.g. a second magazine, for another bone).
-    // The copies' animation triggers show and hide the copies of the objects the originals' did.
+    // The copies' animation triggers show and hide the copies of the objects the originals' did, and
+    // their audio listeners are inactive (the level keeps one active listener).
     void DuplicateSelected();
 
     // --- Attachments (see AttachmentComponent) ------------------------------------------------------
@@ -236,6 +245,20 @@ public:
     // Call once per frame: notices the game having closed, and reports it if it failed.
     void UpdatePlaying();
 
+    // --- Sound previews -----------------------------------------------------------------------------
+    //
+    // The Inspector plays the level's audio sources here to preview them, heard from the viewport
+    // camera (always: the level's audio listeners are only where the game hears from), as they
+    // would play in the game. (The game plays them itself, in its own window.)
+    // Switching levels or starting Play In Editor stops the previews.
+
+    [[nodiscard]]
+    Frost::AudioSystem& GetAudio() noexcept;
+
+    // Brings the previews up to date, heard from `listener` (the viewport camera; `deltaTime` is the
+    // frame's time, for the Doppler effect and easing occlusion). Call once per frame.
+    void UpdateAudio(const Frost::AudioListener& listener, float deltaTime);
+
     // --- Errors -------------------------------------------------------------------------------------
 
     void ReportError(std::string message);
@@ -266,6 +289,8 @@ private:
     std::vector<std::pair<Frost::ObjectId, Frost::TransformComponent>> m_SimulationSnapshot;
 
     PlaySession m_PlaySession;
+
+    Frost::AudioSystem m_Audio;  // On the engine's audio device (which outlives the editor).
 
     std::vector<std::string> m_Errors;
 };

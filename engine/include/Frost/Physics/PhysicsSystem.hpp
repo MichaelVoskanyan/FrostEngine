@@ -1,7 +1,6 @@
 #pragma once
 
 #include <Frost/Physics/Collision.hpp>
-#include <Frost/Physics/CollisionFilter.hpp>
 #include <Frost/Scene/Registry.hpp>
 #include <Frost/Units.hpp>
 
@@ -38,8 +37,6 @@ namespace Frost {
     //     of the colliders of other objects and stops moving into them (no bounce, some friction).
     //     Colliders of objects without a simulated rigid body (e.g. the ground) never move.
     //     Two simulated bodies push each other apart according to their masses.
-    //   - Two colliders only collide if their collision layers and masks say so (see
-    //     CollisionFilter::CollidesWith); otherwise they pass through each other.
     //   - Whether each body is standing on something is recorded (RigidBodyComponent::onGround).
     //   - Rotation is not simulated; bodies keep their orientation.
     //   - Objects attached to other objects (AttachmentComponent) move with them and are left out
@@ -77,10 +74,6 @@ namespace Frost {
             const CapsuleColliderComponent* capsule = nullptr;
             float inverseMass = 1.0f;
 
-            // Its collider's layer and mask (only if Collides()).
-            [[nodiscard]]
-            const CollisionFilter& GetFilter() const noexcept;
-
             [[nodiscard]]
             bool Collides() const noexcept;
 
@@ -106,15 +99,9 @@ namespace Frost {
         PhysicsSettings m_Settings;
         float m_Accumulator = 0.0f;
 
-        // A collider that does not move, where it is this step.
-        struct Obstacle {
-            CollisionShape shape;
-            CollisionFilter filter;
-        };
-
         // Rebuilt every step; kept to reuse their storage.
         std::vector<Body> m_Bodies;
-        std::vector<Obstacle> m_Obstacles;
+        std::vector<CollisionShape> m_Obstacles;  // Colliders that do not move.
     };
 
 }  // namespace Frost

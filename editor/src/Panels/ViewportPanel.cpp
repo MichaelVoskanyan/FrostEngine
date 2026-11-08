@@ -67,6 +67,34 @@ namespace {
     // Segments used to draw circles (range spheres, cone rims).
     constexpr int kCircleSegments = 48;
 
+    // Audio source icons (the size of light icons): dim without a sound, bright while it plays (in a
+    // preview); and the selected one's maximum distance sphere (fainter than its minimum's).
+    constexpr ImU32 kAudioIconColor = IM_COL32(70, 190, 180, 230);
+    constexpr ImU32 kAudioPlayingColor = IM_COL32(130, 255, 235, 255);
+    constexpr ImU32 kAudioNoSoundColor = IM_COL32(60, 60, 60, 200);
+    constexpr ImU32 kAudioMaxDistanceColor = IM_COL32(255, 160, 40, 90);
+
+    // An object can have an audio source as well as a light or camera (a lamp that hums): its
+    // audio icon then sits beside the other, up and to the right, so both can be seen and clicked.
+    [[nodiscard]]
+    ImVec2 AudioIconOffset(const Frost::GameObject& object) {
+        const bool shared = object.HasComponent<Frost::LightComponent>() || object.HasComponent<Frost::CameraComponent>();
+        return shared ? ImVec2(kLightIconRadius * 1.8f, -kLightIconRadius * 1.8f) : ImVec2(0.0f, 0.0f);
+    }
+
+    // Audio listener icons: the active one (the game's ears) bright, others grey; and its facing.
+    constexpr ImU32 kListenerActiveColor = IM_COL32(190, 130, 255, 240);
+    constexpr ImU32 kListenerInactiveColor = IM_COL32(70, 60, 80, 200);
+
+    // Likewise a listener (often on the player, with its camera): down and to the right of the
+    // object's other icon, if it has one.
+    [[nodiscard]]
+    ImVec2 ListenerIconOffset(const Frost::GameObject& object) {
+        const bool shared = object.HasComponent<Frost::LightComponent>() || object.HasComponent<Frost::CameraComponent>() ||
+                            object.HasComponent<Frost::AudioSourceComponent>();
+        return shared ? ImVec2(kLightIconRadius * 1.8f, kLightIconRadius * 1.8f) : ImVec2(0.0f, 0.0f);
+    }
+
     [[nodiscard]]
     char LightTypeLetter(const Frost::LightType type) {
         switch (type) {
@@ -171,6 +199,9 @@ void ViewportPanel::Draw(EditorContext& context, const EditorCamera& camera) {
         if (const std::optional<Frost::LightType> light = EditorUI::AcceptLightPayload()) {
             context.SpawnLight(*light, FindDropPoint(context, ray));
         }
+        if (const std::optional<std::filesystem::path> sound = EditorUI::AcceptAssetPayload(Frost::AssetType::Sound)) {
+            context.SpawnAudioSource(*sound, FindDropPoint(context, ray));
+        }
 
         ImGui::EndDragDropTarget();
     }
@@ -182,6 +213,8 @@ void ViewportPanel::Draw(EditorContext& context, const EditorCamera& camera) {
     DrawSelectedSkeleton(context, projection);
     DrawLights(context, projection);
     DrawCameras(context, projection);
+    DrawAudioSources(context, projection);
+    DrawAudioListeners(context, projection);
     drawList->PopClipRect();
 
     DrawCameraInfo(context, camera);
@@ -277,9 +310,32 @@ Frost::GameObject* ViewportPanel::PickIcon(EditorContext& context, const Project
     Frost::GameObject* nearest = nullptr;
     float nearestDepth = std::numeric_limits<float>::max();
 
+    // Whether the icon at `position` (offset on screen by `offset`) is under the point, and the
+    // nearest so far.
+    const auto consider = [&](Frost::GameObject& object, const glm::vec3& position, const ImVec2 offset) {
+        const std::optional<ImVec2> icon = WorldToScreen(projection, position);
+        if (!icon.has_value()) { return; }
+
+        const float dx = icon->x + offset.x - screenPoint.x;
+        const float dy = icon->y + offset.y - screenPoint.y;
+        if (dx * dx + dy * dy > kLightIconRadius * kLightIconRadius) { return; }
+
+        const float depth = -(projection.view * glm::vec4(position, 1.0f)).z;
+        if (depth < nearestDepth) {
+            nearestDepth = depth;
+            nearest = &object;
+        }
+    };
+
     for (const std::unique_ptr<Frost::GameObject>& object : context.GetLevel().GetObjects()) {
-        // A camera's icon is where the camera is (mounted on its object, e.g. at a character's head).
         const Frost::WorldPlacement placement = Frost::ComputeWorldPlacement(context.GetLevel().GetRegistry(), object->GetId());
+
+        // An audio source's and an audio listener's icons (beside a light's or camera's, if the object
+        // has one of those too).
+        if (object->HasComponent<Frost::AudioSourceComponent>()) { consider(*object, placement.position, AudioIconOffset(*object)); }
+        if (object->HasComponent<Frost::AudioListenerComponent>()) { consider(*object, placement.position, ListenerIconOffset(*object)); }
+
+        // A camera's icon is where the camera is (mounted on its object, e.g. at a character's head).
         glm::vec3 position = placement.position;
         if (const Frost::CameraComponent* const camera = object->TryGetComponent<Frost::CameraComponent>()) {
             if (!object->HasComponent<Frost::LightComponent>()) {
@@ -289,18 +345,7 @@ Frost::GameObject* ViewportPanel::PickIcon(EditorContext& context, const Project
         else if (!object->HasComponent<Frost::LightComponent>()) {
             continue;
         }
-        const std::optional<ImVec2> icon = WorldToScreen(projection, position);
-        if (!icon.has_value()) { continue; }
-
-        const float dx = icon->x - screenPoint.x;
-        const float dy = icon->y - screenPoint.y;
-        if (dx * dx + dy * dy > kLightIconRadius * kLightIconRadius) { continue; }
-
-        const float depth = -(projection.view * glm::vec4(position, 1.0f)).z;
-        if (depth < nearestDepth) {
-            nearestDepth = depth;
-            nearest = object.get();
-        }
+        consider(*object, position, ImVec2(0.0f, 0.0f));
     }
 
     return nearest;
@@ -504,6 +549,76 @@ void ViewportPanel::DrawCameras(EditorContext& context, const Projection& projec
         const ImVec2 textSize = ImGui::CalcTextSize("C");
         drawList->AddText(ImVec2(icon->x - textSize.x * 0.5f, icon->y - textSize.y * 0.5f), IM_COL32(240, 240, 240, 255),
                           "C");
+    }
+}
+
+void ViewportPanel::DrawAudioSources(EditorContext& context, const Projection& projection) const {
+    const Frost::GameObject* const selected = context.GetSelectedObject();
+    ImDrawList* const drawList = ImGui::GetWindowDrawList();
+
+    for (const std::unique_ptr<Frost::GameObject>& object : context.GetLevel().GetObjects()) {
+        const Frost::AudioSourceComponent* const source = object->TryGetComponent<Frost::AudioSourceComponent>();
+        if (source == nullptr) { continue; }
+
+        const bool isSelected = object.get() == selected;
+        const Frost::WorldPlacement placement = Frost::ComputeWorldPlacement(context.GetLevel().GetRegistry(), object->GetId());
+
+        // How far it is heard: full volume inside the first sphere, no quieter beyond the second.
+        if (isSelected && source->spatial) {
+            const Frost::AudioVoiceSettings reach = source->ToVoiceSettings(placement.position);
+            for (const auto& [radius, color] : {std::pair(reach.minDistance, kSelectionColor), std::pair(reach.maxDistance, kAudioMaxDistanceColor)}) {
+                DrawWorldCircle(projection, placement.position, glm::vec3(1, 0, 0), glm::vec3(0, 1, 0), radius, color);
+                DrawWorldCircle(projection, placement.position, glm::vec3(1, 0, 0), glm::vec3(0, 0, 1), radius, color);
+                DrawWorldCircle(projection, placement.position, glm::vec3(0, 1, 0), glm::vec3(0, 0, 1), radius, color);
+            }
+        }
+
+        std::optional<ImVec2> icon = WorldToScreen(projection, placement.position);
+        if (!icon.has_value()) { continue; }
+        const ImVec2 offset = AudioIconOffset(*object);
+        icon = ImVec2(icon->x + offset.x, icon->y + offset.y);
+
+        // A disc with an "A"; lit up (with a ring around it) while previewing.
+        const bool playing = context.GetAudio().GetPlayback(object->GetId()) == Frost::AudioPlayback::Playing;
+        const ImU32 fill = source->sound == nullptr ? kAudioNoSoundColor : playing ? kAudioPlayingColor : kAudioIconColor;
+        drawList->AddCircleFilled(*icon, kLightIconRadius, fill);
+        drawList->AddCircle(*icon, kLightIconRadius, isSelected ? kSelectionColor : IM_COL32(20, 20, 20, 255), 0,
+                            isSelected ? 2.5f : 1.5f);
+        if (playing) { drawList->AddCircle(*icon, kLightIconRadius + 4.0f, kAudioPlayingColor, 0, 1.5f); }
+
+        const ImVec2 textSize = ImGui::CalcTextSize("A");
+        drawList->AddText(ImVec2(icon->x - textSize.x * 0.5f, icon->y - textSize.y * 0.5f),
+                          source->sound != nullptr ? IM_COL32(0, 0, 0, 255) : IM_COL32(170, 170, 170, 255), "A");
+    }
+}
+
+void ViewportPanel::DrawAudioListeners(EditorContext& context, const Projection& projection) const {
+    const Frost::GameObject* const selected = context.GetSelectedObject();
+    ImDrawList* const drawList = ImGui::GetWindowDrawList();
+    const Frost::Registry& registry = context.GetLevel().GetRegistry();
+
+    for (const std::unique_ptr<Frost::GameObject>& object : context.GetLevel().GetObjects()) {
+        const Frost::AudioListenerComponent* const listener = object->TryGetComponent<Frost::AudioListenerComponent>();
+        if (listener == nullptr) { continue; }
+
+        const bool isSelected = object.get() == selected;
+        const Frost::AudioListener ears = Frost::MakeAudioListener(registry, object->GetId());
+
+        // Which way it faces (what is on its left and right depends on it).
+        DrawWorldLine(projection, ears.position, ears.position + glm::normalize(ears.forward) * kLightArrowLength,
+                      isSelected ? kSelectionColor : listener->active ? kListenerActiveColor : kListenerInactiveColor, 2.0f);
+
+        std::optional<ImVec2> icon = WorldToScreen(projection, ears.position);
+        if (!icon.has_value()) { continue; }
+        const ImVec2 offset = ListenerIconOffset(*object);
+        icon = ImVec2(icon->x + offset.x, icon->y + offset.y);
+
+        drawList->AddCircleFilled(*icon, kLightIconRadius, listener->active ? kListenerActiveColor : kListenerInactiveColor);
+        drawList->AddCircle(*icon, kLightIconRadius, isSelected ? kSelectionColor : IM_COL32(20, 20, 20, 255), 0,
+                            isSelected ? 2.5f : 1.5f);
+        const ImVec2 textSize = ImGui::CalcTextSize("L");
+        drawList->AddText(ImVec2(icon->x - textSize.x * 0.5f, icon->y - textSize.y * 0.5f),
+                          listener->active ? IM_COL32(0, 0, 0, 255) : IM_COL32(170, 170, 170, 255), "L");
     }
 }
 

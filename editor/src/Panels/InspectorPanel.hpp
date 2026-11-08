@@ -37,6 +37,16 @@ class EditorContext;
 //   - Camera: field of view and clip distances, and how it is mounted on its object (offset and
 //     rotation); "Align with View" moves it (with its object) to where the viewport is looking
 //     from. The game looks through the level's camera.
+//   - Audio Source: its sound (drop a sound from the Asset Library onto it, or pick one), a preview
+//     (play/pause, stop, and a time slider to jump around in it; heard from the viewport camera, as
+//     the game would play it, with every setting taking effect as it is changed; it stops when
+//     another object is selected), volume, pitch,
+//     looping, whether it plays when the game starts, and how it is heard in space (or not):
+//     minimum and maximum distance, the fade between them, the Doppler effect and occlusion (with
+//     what the preview hears of them now: walls in the way, the pitch shift).
+//   - Audio Listener: whether it is the level's active listener (the one the game hears through;
+//     making one active makes the others inactive), where it sits on its object (its offset, or
+//     the camera's), and what the game hears from otherwise.
 //   - Fly Controller: the speeds and mouse sensitivity of flying the object around in the game.
 //   - Character Controller: walking and jumping speeds and mouse sensitivity, and what the
 //     character still needs (a simulated rigid body, a collider, a camera).
@@ -59,7 +69,7 @@ private:
     bool DrawComponentSection(EditorContext& context, Frost::GameObject& object, bool& removeRequested);
 
     // The "Add Component" button and its menu. Returns whether a component was added.
-    bool DrawAddComponentMenu(Frost::GameObject& object);
+    bool DrawAddComponentMenu(EditorContext& context, Frost::GameObject& object);
 
     // The properties of one component type; each returns whether it changed the object. Every type
     // in Frost::BuiltinComponents needs one (the build fails otherwise).
@@ -70,18 +80,24 @@ private:
     bool DrawComponent(EditorContext& context, Frost::GameObject& object, Frost::SkeletalMeshComponent& mesh);
     bool DrawComponent(EditorContext& context, Frost::GameObject& object, Frost::LightComponent& light);
     bool DrawComponent(EditorContext& context, Frost::GameObject& object, Frost::CameraComponent& camera);
+    bool DrawComponent(EditorContext& context, Frost::GameObject& object, Frost::AudioSourceComponent& source);
+    bool DrawComponent(EditorContext& context, Frost::GameObject& object, Frost::AudioListenerComponent& listener);
     bool DrawComponent(EditorContext& context, Frost::GameObject& object, Frost::FlyControllerComponent& controller);
     bool DrawComponent(EditorContext& context, Frost::GameObject& object,
                        Frost::CharacterControllerComponent& controller);
     bool DrawComponent(EditorContext& context, Frost::GameObject& object, Frost::CapsuleColliderComponent& collider);
     bool DrawComponent(EditorContext& context, Frost::GameObject& object, Frost::BoxColliderComponent& collider);
     bool DrawComponent(EditorContext& context, Frost::GameObject& object, Frost::RigidBodyComponent& body);
-    bool DrawComponent(EditorContext& context, Frost::GameObject& object, Frost::PhysicsQueryComponent& query);
 
     // The per-sub-mesh material overrides of a component that draws a model (MeshComponent or
     // SkeletalMeshComponent); `model` is what it draws, if loaded.
     template <typename Component>
     bool DrawMaterials(EditorContext& context, Component& mesh, const Frost::MeshAsset* model);
+
+    // The audio source section's sound slot (a drop target that opens the library's sounds), and its
+    // preview controls.
+    bool DrawSoundSlot(EditorContext& context, Frost::AudioSourceComponent& source);
+    void DrawSoundPreview(EditorContext& context, const Frost::GameObject& object, const Frost::AudioSourceComponent& source);
 
     // The skeletal mesh section's animation slot, time and preview controls.
     bool DrawAnimation(EditorContext& context, const Frost::GameObject& object, Frost::SkeletalMeshComponent& mesh);
@@ -111,6 +127,10 @@ private:
 
     // The object a one-shot animation was previewed on (stopped when it is no longer shown), or 0.
     Frost::ObjectId m_OneShotObject = 0;
+
+    // The object whose sound was previewed (stopped when it is no longer shown, so no preview plays
+    // on unnoticed), or 0.
+    Frost::ObjectId m_SoundObject = 0;
 
     // Requests from the sections, carried out once every section is drawn (they add or remove
     // components): detach this object, add the default attachments of this one.

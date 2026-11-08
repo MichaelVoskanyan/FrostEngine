@@ -34,8 +34,9 @@ namespace {
     using Frost::Json::Value;
 
     constexpr const char* kFormatName = "FrostLevel";
-    // 14: physics query components.
-    // 13: colliders' collision layers and masks.
+    // 15: audio listeners' offset; audio sources' Doppler and occlusion.
+    // 14: audio listener components.
+    // 13: audio source components.
     // 12: attachments to sockets.
     // 11: animation triggers' visibility keys.
     // 10: attachments (objects attached to objects), animation triggers, mesh visibility.
@@ -47,7 +48,7 @@ namespace {
     // 5: fly controller components. 4: camera components. 3: box collider and rigid body
     // components; an object can have a mesh component with no model yet ("mesh": {}). 2: asset
     // references are {"id", "path"} objects. 1: plain path strings. Older versions are still read.
-    constexpr int kFormatVersion = 14;
+    constexpr int kFormatVersion = 15;
 
     // The last version that stored lengths in meters.
     constexpr int kMetersFormatVersion = 6;
@@ -164,13 +165,6 @@ namespace {
                             {"outerConeAngle", ToJson(light.outerConeAngle)}});
     }
 
-    // A collider's "layer" (0 to 31) and "mask" (the layers it collides with, as a 32-bit number:
-    // bit n for layer n), added to its JSON.
-    void AppendCollisionFilter(const Frost::CollisionFilter& filter, Object& json) {
-        json.emplace_back("layer", Value(static_cast<double>(filter.layer)));
-        json.emplace_back("mask", Value(static_cast<double>(filter.mask)));
-    }
-
     // --- Reading -----------------------------------------------------------------------------------
 
     [[nodiscard]]
@@ -257,33 +251,6 @@ namespace {
         light.innerConeAngle = ReadFloat(json, "innerConeAngle", light.innerConeAngle);
         light.outerConeAngle = ReadFloat(json, "outerConeAngle", light.outerConeAngle);
         return light;
-    }
-
-    // A collider's layer and mask (see AppendCollisionFilter). Missing (levels before version 13):
-    // the defaults, the Default layer colliding with everything. Out of range: the default, with a
-    // warning.
-    [[nodiscard]]
-    Frost::CollisionFilter ReadCollisionFilter(const Value& json, const std::string& objectName,
-                                               std::vector<std::string>& warnings) {
-        Frost::CollisionFilter filter;
-        const auto readWhole = [&](const char* const key, const double max) -> std::optional<double> {
-            const Value* const value = json.Find(key);
-            if (value == nullptr) { return std::nullopt; }
-            const std::optional<double> number = ReadNumber(value);
-            if (!number.has_value() || *number < 0.0 || *number > max || std::floor(*number) != *number) {
-                warnings.push_back("'" + objectName + "': a collider's " + key + " is not valid; using the default.");
-                return std::nullopt;
-            }
-            return number;
-        };
-
-        if (const std::optional<double> layer = readWhole("layer", Frost::kCollisionLayerCount - 1)) {
-            filter.layer = static_cast<int>(*layer);
-        }
-        if (const std::optional<double> mask = readWhole("mask", static_cast<double>(Frost::kAllCollisionLayers))) {
-            filter.mask = static_cast<Frost::CollisionLayerMask>(*mask);
-        }
-        return filter;
     }
 
     [[nodiscard]]
@@ -731,6 +698,97 @@ namespace {
         }
     };
 
+    // "audioSource": {"sound": {"id", "path"} (or {} for no sound yet), "volume": gain, "pitch": p,
+    //                 "loop": b, "playOnStart": b, "spatial": b, "minDistance": cm, "maxDistance": cm,
+    //                 "rolloff": r, "attenuation": "none" / "inverse" / "linear" / "exponential",
+    //                 "doppler": factor, "occlusion": amount}
+    template <>
+    struct ComponentSerializer<Frost::AudioSourceComponent> {
+        static void Write(const Frost::AudioSourceComponent& source, const Frost::GameObject& /*object*/, Object& json,
+                          const WriteContext& context) {
+            json.emplace_back("audioSource",
+                              Value(Object{{"sound", source.soundReference.IsSet()
+                                                             ? ReferenceToJson(source.soundReference, context.levelDirectory,
+                                                                               context.registry)
+                                                             : Value(Object{})},
+                                           {"volume", ToJson(source.volume)},
+                                           {"pitch", ToJson(source.pitch)},
+                                           {"loop", Value(source.loop)},
+                                           {"playOnStart", Value(source.playOnStart)},
+                                           {"spatial", Value(source.spatial)},
+                                           {"minDistance", ToJson(source.minDistance)},
+                                           {"maxDistance", ToJson(source.maxDistance)},
+                                           {"rolloff", ToJson(source.rolloff)},
+                                           {"attenuation", Value(std::string(Frost::GetAudioAttenuationName(source.attenuation)))},
+                                           {"doppler", ToJson(source.doppler)},
+                                           {"occlusion", ToJson(source.occlusion)}}));
+        }
+
+        static void Read(const Value& json, Frost::GameObject& object, const ReadContext& context) {
+            const Value* const audio = json.Find("audioSource");
+            if (audio == nullptr || !audio->IsObject()) { return; }
+
+            Frost::AudioSourceComponent component;
+            if (const Value* const soundJson = audio->Find("sound")) {
+                if (const std::optional<Frost::AssetReference> reference = ReadReference(*soundJson, context.levelDirectory)) {
+                    try {
+                        component.SetSound(context.assets.LoadSound(*reference));
+                    }
+                    catch (const Frost::ImportError& e) {
+                        component.SetUnresolvedSound(*reference);
+                        context.warnings.push_back("'" + object.GetName() + "': " + e.what());
+                    }
+                }
+            }
+            component.volume = ReadFloat(*audio, "volume", component.volume);
+            component.pitch = ReadFloat(*audio, "pitch", component.pitch);
+            component.loop = ReadBool(*audio, "loop", component.loop);
+            component.playOnStart = ReadBool(*audio, "playOnStart", component.playOnStart);
+            component.spatial = ReadBool(*audio, "spatial", component.spatial);
+            component.minDistance = ReadLength(*audio, "minDistance", component.minDistance, context.lengthScale);
+            component.maxDistance = ReadLength(*audio, "maxDistance", component.maxDistance, context.lengthScale);
+            component.rolloff = ReadFloat(*audio, "rolloff", component.rolloff);
+            component.doppler = ReadFloat(*audio, "doppler", component.doppler);
+            component.occlusion = ReadFloat(*audio, "occlusion", component.occlusion);
+
+            if (const Value* const attenuation = audio->Find("attenuation"); attenuation != nullptr) {
+                bool known = false;
+                for (const Frost::AudioAttenuation candidate : {Frost::AudioAttenuation::None, Frost::AudioAttenuation::Inverse,
+                                                                Frost::AudioAttenuation::Linear, Frost::AudioAttenuation::Exponential}) {
+                    if (attenuation->IsString() && attenuation->AsString() == Frost::GetAudioAttenuationName(candidate)) {
+                        component.attenuation = candidate;
+                        known = true;
+                    }
+                }
+                if (!known) {
+                    context.warnings.push_back("'" + object.GetName() + "': unknown audio attenuation; using \"" +
+                                               Frost::GetAudioAttenuationName(component.attenuation) + "\".");
+                }
+            }
+            object.AddComponent<Frost::AudioSourceComponent>(std::move(component));
+        }
+    };
+
+    // "audioListener": {"active": b, "offset": [x, y, z]}. Only one listener of a level is active
+    // (see Load).
+    template <>
+    struct ComponentSerializer<Frost::AudioListenerComponent> {
+        static void Write(const Frost::AudioListenerComponent& listener, const Frost::GameObject& /*object*/, Object& json,
+                          const WriteContext& /*context*/) {
+            json.emplace_back("audioListener", Value(Object{{"active", Value(listener.active)}, {"offset", ToJson(listener.offset)}}));
+        }
+
+        static void Read(const Value& json, Frost::GameObject& object, const ReadContext& context) {
+            const Value* const listener = json.Find("audioListener");
+            if (listener == nullptr || !listener->IsObject()) { return; }
+
+            Frost::AudioListenerComponent component;
+            component.active = ReadBool(*listener, "active", component.active);
+            component.offset = ReadLengthVector(listener->Find("offset"), component.offset, context.lengthScale);
+            object.AddComponent<Frost::AudioListenerComponent>(component);
+        }
+    };
+
     // "flyController": {"moveSpeed": units/s, "fastMultiplier": f, "lookSensitivity": degrees/unit}
     template <>
     struct ComponentSerializer<Frost::FlyControllerComponent> {
@@ -776,16 +834,14 @@ namespace {
         }
     };
 
-    // "capsuleCollider": {"center": [x, y, z], "radius": r, "height": h, "layer": n, "mask": m}
+    // "capsuleCollider": {"center": [x, y, z], "radius": r, "height": h}
     template <>
     struct ComponentSerializer<Frost::CapsuleColliderComponent> {
         static void Write(const Frost::CapsuleColliderComponent& collider, const Frost::GameObject& /*object*/,
                           Object& json, const WriteContext& /*context*/) {
-            Object capsule{{"center", ToJson(collider.center)},
-                           {"radius", ToJson(collider.radius)},
-                           {"height", ToJson(collider.height)}};
-            AppendCollisionFilter(collider.filter, capsule);
-            json.emplace_back("capsuleCollider", Value(std::move(capsule)));
+            json.emplace_back("capsuleCollider", Value(Object{{"center", ToJson(collider.center)},
+                                                              {"radius", ToJson(collider.radius)},
+                                                              {"height", ToJson(collider.height)}}));
         }
 
         static void Read(const Value& json, Frost::GameObject& object, const ReadContext& context) {
@@ -796,19 +852,17 @@ namespace {
             component.center = ReadLengthVector(collider->Find("center"), component.center, context.lengthScale);
             component.radius = ReadLength(*collider, "radius", component.radius, context.lengthScale);
             component.height = ReadLength(*collider, "height", component.height, context.lengthScale);
-            component.filter = ReadCollisionFilter(*collider, object.GetName(), context.warnings);
             object.AddComponent<Frost::CapsuleColliderComponent>(component);
         }
     };
 
-    // "boxCollider": {"center": [x, y, z], "size": [x, y, z], "layer": n, "mask": m}
+    // "boxCollider": {"center": [x, y, z], "size": [x, y, z]}
     template <>
     struct ComponentSerializer<Frost::BoxColliderComponent> {
         static void Write(const Frost::BoxColliderComponent& collider, const Frost::GameObject& /*object*/, Object& json,
                           const WriteContext& /*context*/) {
-            Object box{{"center", ToJson(collider.center)}, {"size", ToJson(collider.size)}};
-            AppendCollisionFilter(collider.filter, box);
-            json.emplace_back("boxCollider", Value(std::move(box)));
+            json.emplace_back("boxCollider",
+                              Value(Object{{"center", ToJson(collider.center)}, {"size", ToJson(collider.size)}}));
         }
 
         static void Read(const Value& json, Frost::GameObject& object, const ReadContext& context) {
@@ -818,7 +872,6 @@ namespace {
             Frost::BoxColliderComponent component;
             component.center = ReadLengthVector(collider->Find("center"), component.center, context.lengthScale);
             component.size = ReadLengthVector(collider->Find("size"), component.size, context.lengthScale);
-            component.filter = ReadCollisionFilter(*collider, object.GetName(), context.warnings);
             object.AddComponent<Frost::BoxColliderComponent>(component);
         }
     };
@@ -839,70 +892,6 @@ namespace {
             component.simulated = ReadBool(*body, "simulated", component.simulated);
             component.mass = ReadFloat(*body, "mass", component.mass);
             object.AddComponent<Frost::RigidBodyComponent>(component);
-        }
-    };
-
-    // "physicsQuery": {"type": "raycast" | "sphereCast" | "capsuleCast" | "sphereOverlap" | "boxOverlap",
-    //                  "mode": "closest" | "all", "enabled": b, "debug": b, "offset": [x, y, z],
-    //                  "direction": [x, y, z], "maxDistance": d, "radius": r, "height": h,
-    //                  "boxSize": [x, y, z], "layers": mask, "ignoreSelf": b}
-    // The results are not saved. An unknown type or mode is read as the default, with a warning.
-    template <>
-    struct ComponentSerializer<Frost::PhysicsQueryComponent> {
-        static void Write(const Frost::PhysicsQueryComponent& query, const Frost::GameObject& /*object*/, Object& json,
-                          const WriteContext& /*context*/) {
-            json.emplace_back("physicsQuery",
-                              Value(Object{{"type", Value(std::string(Frost::GetPhysicsQueryTypeName(query.type)))},
-                                           {"mode", Value(std::string(Frost::GetPhysicsQueryModeName(query.mode)))},
-                                           {"enabled", Value(query.enabled)},
-                                           {"debug", Value(query.debug)},
-                                           {"offset", ToJson(query.offset)},
-                                           {"direction", ToJson(query.direction)},
-                                           {"maxDistance", ToJson(query.maxDistance)},
-                                           {"radius", ToJson(query.radius)},
-                                           {"height", ToJson(query.height)},
-                                           {"boxSize", ToJson(query.boxSize)},
-                                           {"layers", Value(static_cast<double>(query.layers))},
-                                           {"ignoreSelf", Value(query.ignoreSelf)}}));
-        }
-
-        static void Read(const Value& json, Frost::GameObject& object, const ReadContext& context) {
-            const Value* const query = json.Find("physicsQuery");
-            if (query == nullptr || !query->IsObject()) { return; }
-
-            Frost::PhysicsQueryComponent component;
-            const auto readName = [&](const char* const key, auto parse, auto& target) {
-                const Value* const value = query->Find(key);
-                if (value == nullptr) { return; }
-                if (value->IsString()) {
-                    if (const auto parsed = parse(value->AsString())) {
-                        target = *parsed;
-                        return;
-                    }
-                }
-                context.warnings.push_back("'" + object.GetName() + "': a physics query's " + key +
-                                           " is not known; using the default.");
-            };
-            readName("type", Frost::ParsePhysicsQueryType, component.type);
-            readName("mode", Frost::ParsePhysicsQueryMode, component.mode);
-            component.enabled = ReadBool(*query, "enabled", component.enabled);
-            component.debug = ReadBool(*query, "debug", component.debug);
-            component.offset = ReadLengthVector(query->Find("offset"), component.offset, context.lengthScale);
-            component.direction = ReadVector<glm::vec3, 3>(query->Find("direction"), component.direction);
-            component.maxDistance = ReadLength(*query, "maxDistance", component.maxDistance, context.lengthScale);
-            component.radius = ReadLength(*query, "radius", component.radius, context.lengthScale);
-            component.height = ReadLength(*query, "height", component.height, context.lengthScale);
-            component.boxSize = ReadLengthVector(query->Find("boxSize"), component.boxSize, context.lengthScale);
-            if (const std::optional<double> layers = ReadNumber(query->Find("layers"));
-                layers.has_value() && *layers >= 0.0 && *layers <= static_cast<double>(Frost::kAllCollisionLayers) &&
-                std::floor(*layers) == *layers) {
-                component.layers = static_cast<Frost::CollisionLayerMask>(*layers);
-            }
-            else if (query->Find("layers") != nullptr) {
-                context.warnings.push_back("'" + object.GetName() + "': a physics query's layers are not valid; using all.");
-            }
-            component.ignoreSelf = ReadBool(*query, "ignoreSelf", component.ignoreSelf);
-            object.AddComponent<Frost::PhysicsQueryComponent>(component);
         }
     };
 
@@ -1063,6 +1052,24 @@ namespace Frost {
                     id, objectName != nullptr && objectName->IsString() ? objectName->AsString() : "Object");
 
             ReadComponents(json, object, readContext);
+        }
+
+        // The game hears through one listener: of several active ones, the first (in the level's
+        // order) stays active.
+        const GameObject* activeListener = nullptr;
+        std::size_t deactivated = 0;
+        for (const std::unique_ptr<GameObject>& object : result.level->GetObjects()) {
+            AudioListenerComponent* const listener = object->TryGetComponent<AudioListenerComponent>();
+            if (listener == nullptr || !listener->active) { continue; }
+            if (activeListener == nullptr) { activeListener = object.get(); }
+            else {
+                listener->active = false;
+                ++deactivated;
+            }
+        }
+        if (deactivated > 0) {
+            result.warnings.push_back(std::to_string(deactivated + 1) + " objects had an active audio listener; the game hears "
+                                      "through one at a time, so only the one on '" + activeListener->GetName() + "' is active now.");
         }
 
         // Attachments to objects that are not in the level, or that would loop, are dropped, and so

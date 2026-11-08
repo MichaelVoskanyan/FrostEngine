@@ -18,8 +18,8 @@ namespace Frost {
 }
 
 // The project's assets, as the editor organizes them: every Frost asset file (.fmesh, .ftex,
-// .fskel, .fskmesh, .fanim) under the project's content directory, in whatever folder structure
-// the user likes (e.g. Weapons/Glock19/Meshes, Weapons/Glock19/Textures), plus its levels
+// .fskel, .fskmesh, .fanim, .fsound) under the project's content directory, in whatever folder
+// structure the user likes (e.g. Weapons/Glock19/Meshes, Weapons/Glock19/Textures), plus its levels
 // (.flevel, in Levels/ by default). The content directory is the library; the engine's AssetRegistry (owned by the
 // AssetManager) knows where each asset is. Nothing outside the content directory is part of it.
 //
@@ -71,7 +71,7 @@ public:
     const std::vector<std::filesystem::path>& GetSubfolders(const std::filesystem::path& folder) const;
 
     // Assets directly in `folder`, by type (models, skeletal meshes, skeletons, animations,
-    // textures), then by name.
+    // textures, sounds), then by name.
     [[nodiscard]]
     std::vector<const Entry*> GetAssetsIn(const std::filesystem::path& folder) const;
 

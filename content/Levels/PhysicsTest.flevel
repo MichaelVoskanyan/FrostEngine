@@ -1,6 +1,6 @@
 {
   "format": "FrostLevel",
-  "version": 12,
+  "version": 15,
   "name": "Physics Test",
   "environment": {
     "ambientColor": [1, 1, 1],
@@ -170,6 +170,10 @@
         "offset": [0, 70, 0],
         "rotation": [-10, 0, 0]
       },
+      "audioListener": {
+        "active": true,
+        "offset": [0, 0, 0]
+      },
       "characterController": {
         "walkSpeed": 500,
         "jumpSpeed": 500,
@@ -306,6 +310,49 @@
       "mesh": {
         "id": "9d99d9939ff64972a8c652d8c3666166",
         "path": "../Weapons/AK12/Meshes/AK12_AK12Mag.fmesh"
+      }
+    },
+    {
+      "id": 14,
+      "name": "Y2Mate.is - Give Him To Me Auhhh HQ",
+      "transform": {
+        "position": [-356.58383, 105, 120.87561],
+        "rotation": [0, 0, 0],
+        "scale": [1, 1, 1]
+      },
+      "audioSource": {
+        "sound": {
+          "id": "ecb9597ed2ef410b8158a6e76a9a045c",
+          "path": "../Sounds/Y2Mate.is - Give Him To Me Auhhh HQ.fsound"
+        },
+        "volume": 2,
+        "pitch": 1,
+        "loop": true,
+        "playOnStart": true,
+        "spatial": true,
+        "minDistance": 100,
+        "maxDistance": 5000,
+        "rolloff": 0.38,
+        "attenuation": "inverse",
+        "doppler": 1,
+        "occlusion": 1
+      }
+    },
+    {
+      "id": 16,
+      "name": "Cube",
+      "transform": {
+        "position": [-635.7, 124.0722, 81.40881],
+        "rotation": [0, 0, 0],
+        "scale": [1, 2.6, 8.15]
+      },
+      "mesh": {
+        "id": "eb1655bbeab04909a37d5d6cc01caf19",
+        "path": "../Primitives/Cube.fmesh"
+      },
+      "boxCollider": {
+        "center": [0, 0, 0],
+        "size": [103, 100, 100]
       }
     }
   ]

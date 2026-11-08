@@ -75,7 +75,10 @@ FileBrowser::Result FileBrowser::Draw(const char* const id, const ImVec2& size, 
                 std::string label = entry.label;
                 if (type.has_value()) { label = std::string(EditorUI::AssetTypeTag(*type)) + " " + entry.label; }
                 else if (sourceType.has_value()) {
-                    label = std::string(sourceType == Frost::AssetType::Mesh ? "[glTF] " : "[Image] ") + entry.label;
+                    const char* const tag = sourceType == Frost::AssetType::Mesh    ? "[glTF] "
+                                            : sourceType == Frost::AssetType::Sound ? "[Audio] "
+                                                                                    : "[Image] ";
+                    label = tag + entry.label;
                 }
 
                 const bool selected = m_SelectedFile == entry.path;

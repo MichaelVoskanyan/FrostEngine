@@ -3,8 +3,11 @@
 #include <Frost/ImGui/ImGuiLayer.hpp>
 #include <Frost/Platform/Filesystem.hpp>
 
+#include <algorithm>
 #include <cmath>
+#include <cstdio>
 #include <cstring>
+#include <string>
 
 namespace {
 
@@ -21,6 +24,7 @@ namespace {
             case Frost::AssetType::Skeleton: return "FROST_SKELETON_ASSET";
             case Frost::AssetType::SkeletalMesh: return "FROST_SKELETAL_MESH_ASSET";
             case Frost::AssetType::Animation: return "FROST_ANIMATION_ASSET";
+            case Frost::AssetType::Sound: return "FROST_SOUND_ASSET";
         }
         return "FROST_ASSET";
     }
@@ -175,8 +179,30 @@ namespace EditorUI {
             case Frost::AssetType::Skeleton: return "[Skeleton]";
             case Frost::AssetType::SkeletalMesh: return "[Skeletal Mesh]";
             case Frost::AssetType::Animation: return "[Animation]";
+            case Frost::AssetType::Sound: return "[Sound]";
         }
         return "[Asset]";
+    }
+
+    std::string FormatDuration(const double seconds) {
+        // Rounded first, so 59.999 s shows as 1:00.00 rather than 60.00 s.
+        char text[32];
+        const double rounded = std::round((std::isfinite(seconds) ? std::max(seconds, 0.0) : 0.0) * 100.0) / 100.0;
+        if (rounded < 60.0) { std::snprintf(text, sizeof(text), "%.2f s", rounded); }
+        else {
+            const auto minutes = static_cast<long long>(rounded / 60.0);
+            std::snprintf(text, sizeof(text), "%lld:%05.2f", minutes, rounded - static_cast<double>(minutes) * 60.0);
+        }
+        return text;
+    }
+
+    std::string FormatSoundInfo(const Frost::SoundInfo& info) {
+        std::string text = Frost::DescribeSoundFormat(info);
+        if (info.format == Frost::SoundFormat::Mp3) { text = "MP3 (" + std::to_string((info.bitRate + 500) / 1000) + " kbps)"; }
+
+        text += ", " + std::to_string(info.sampleRate) + " Hz, ";
+        text += info.channels == 1 ? "mono" : info.channels == 2 ? "stereo" : std::to_string(info.channels) + " channels";
+        return text + ", " + FormatDuration(info.GetDuration());
     }
 
     const char* AssetTypeDisplayName(const Frost::AssetType type) {
@@ -186,6 +212,7 @@ namespace EditorUI {
             case Frost::AssetType::Skeleton: return "Skeleton";
             case Frost::AssetType::SkeletalMesh: return "Skeletal Mesh";
             case Frost::AssetType::Animation: return "Animation";
+            case Frost::AssetType::Sound: return "Sound";
         }
         return "Asset";
     }

@@ -42,15 +42,17 @@ namespace Frost {
     // centimeters, the world unit (Frost/Units.hpp). Levels before version 7 stored them in meters;
     // they are converted to centimeters as they are read (and saved in centimeters from then on).
     //
-    // Format (version 12; versions 1 to 11 are still read: version 1 stored references as plain path
+    // Format (version 15; versions 1 to 14 are still read: version 1 stored references as plain path
     // strings, versions before 3 had no colliders or rigid bodies, before 4 no cameras, before 5 no
     // fly controllers, before 6 no capsule colliders or character controllers and cameras had no
     // offset or rotation, before 7 lengths were in meters, before 8 there were no skeletal meshes,
     // before 9 skeletal meshes had no playback settings or attachments toggle, before 10 there were
     // no attachments, animation triggers or hidden models, before 11 animation triggers had no
-    // visibility keys, and before 12 attachments had no socket):
+    // visibility keys, before 12 attachments had no socket, before 13 there were no audio sources,
+    // before 14 no audio listeners, and before 15 listeners had no offset nor sources Doppler and
+    // occlusion settings):
     //   {
-    //     "format": "FrostLevel", "version": 12, "name": "...",
+    //     "format": "FrostLevel", "version": 15, "name": "...",
     //     "environment": {"ambientColor": [r, g, b], "ambientIntensity": i},   (optional)
     //     "objects": [{
     //       "id": 1, "name": "...",
@@ -76,6 +78,12 @@ namespace Frost {
     //                 "intensity": i, "range": r, "innerConeAngle": deg, "outerConeAngle": deg},
     //       "camera": {"verticalFov": deg, "nearClip": n, "farClip": f,    (optional)
     //                  "offset": [x, y, z], "rotation": [pitch, yaw, roll] (degrees)},
+    //       "audioSource": {"sound": {"id", "path"} ({} = no sound yet), "volume": gain, "pitch": p,  (optional)
+    //                       "loop": b, "playOnStart": b, "spatial": b, "minDistance": d, "maxDistance": d,
+    //                       "rolloff": r, "attenuation": "none"|"inverse"|"linear"|"exponential",
+    //                       "doppler": factor, "occlusion": amount},
+    //       "audioListener": {"active": b, "offset": [x, y, z]},    (optional; of several active, the
+    //                                                               first stays so, with a warning)
     //       "flyController": {"moveSpeed": s, "fastMultiplier": f, "lookSensitivity": deg},  (optional)
     //       "characterController": {"walkSpeed": s, "jumpSpeed": s, "lookSensitivity": deg},  (optional)
     //       "boxCollider": {"center": [x, y, z], "size": [x, y, z]},  (optional; object space, before scale)

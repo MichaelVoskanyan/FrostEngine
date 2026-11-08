@@ -5,6 +5,7 @@
 #include <Frost/Assets/AssetRegistry.hpp>
 #include <Frost/Assets/GltfImporter.hpp>
 #include <Frost/Assets/Image.hpp>
+#include <Frost/Assets/Sound.hpp>
 #include <Frost/Platform/Filesystem.hpp>
 
 #include <algorithm>
@@ -651,6 +652,7 @@ namespace Frost {
 
         if (extension == ".gltf" || extension == ".glb") { return AssetType::Mesh; }
         if (extension == ".png" || extension == ".jpg" || extension == ".jpeg") { return AssetType::Texture; }
+        if (extension == ".wav" || extension == ".mp3") { return AssetType::Sound; }
         return std::nullopt;
     }
 
@@ -659,8 +661,9 @@ namespace Frost {
     bool AssetImporter::CanImportAs(const std::filesystem::path& source, const AssetType type) {
         const std::optional<AssetType> sourceType = GetSourceType(source);
         if (!sourceType.has_value()) { return false; }
-        if (*sourceType == AssetType::Texture) { return type == AssetType::Texture; }
-        return type != AssetType::Texture;
+        // An image or a sound becomes an asset of its own type only; a model, any model type.
+        if (*sourceType != AssetType::Mesh) { return type == *sourceType; }
+        return type != AssetType::Texture && type != AssetType::Sound;
     }
 
     const char* AssetImporter::GetAssetExtension(const AssetType type) noexcept { return AssetFile::GetExtension(type); }
@@ -751,13 +754,32 @@ namespace Frost {
         const std::filesystem::path projectDirectory = ProjectDirectoryOf(options.projectDirectory, options.registry);
 
         if (!sourceType.has_value()) {
-            throw ImportError("'" + PathToUtf8(normalizedSource) +
-                              "' is not a file that can be imported (expected .gltf, .glb, .png, .jpg or .jpeg).");
+            throw ImportError("'" + PathToUtf8(normalizedSource) + "' is not a file that can be imported (expected " +
+                              kImportableExtensions + ").");
         }
         if (!type.has_value() || !CanImportAs(normalizedSource, *type)) {
-            throw ImportError(*sourceType == AssetType::Texture
-                                      ? "'" + PathToUtf8(destination) + "' is not a .ftex file name."
-                                      : "'" + PathToUtf8(destination) + "' is not a .fmesh, .fskel, .fskmesh or .fanim file name.");
+            throw ImportError(*sourceType == AssetType::Mesh
+                                      ? "'" + PathToUtf8(destination) + "' is not a .fmesh, .fskel, .fskmesh or .fanim file name."
+                                      : "'" + PathToUtf8(destination) + "' is not a " + GetAssetExtension(*sourceType) +
+                                                " file name.");
+        }
+
+        if (*type == AssetType::Sound) {
+            // The source file itself goes into the asset, byte for byte, with its properties. Read
+            // (and validated) before anything else: an unsupported file leaves the destination as
+            // it was. (Not inside SoundFile's initializer: GCC destroys members twice when an
+            // aggregate initializer throws.)
+            SoundData sound = SoundImporter::Import(normalizedSource);
+            const AssetId id = IdFor(destination, AssetType::Sound);
+            AssetFile::WriteSound(destination,
+                                  SoundFile{.header = {.type = AssetType::Sound,
+                                                       .version = AssetFile::kSoundVersion,
+                                                       .id = id,
+                                                       .sourcePath = normalizedSource,
+                                                       .sourceItem = {}},
+                                            .sound = std::move(sound)},
+                                  projectDirectory);
+            return Result{.asset = {.id = id, .path = destination}, .textures = {}, .warnings = {}, .parts = {}};
         }
 
         if (*type == AssetType::Texture) {
@@ -833,7 +855,8 @@ namespace Frost {
                 modelOptions.existingSkeleton = skeletonFor();
                 break;
             }
-            case AssetType::Texture: break;  // Handled above.
+            case AssetType::Texture:
+            case AssetType::Sound: break;  // Handled above.
         }
 
         ModelResult imported = ImportModelFrom(model, normalizedSource, modelOptions);
@@ -844,7 +867,8 @@ namespace Frost {
             case AssetType::Skeleton: asset = imported.skeleton; break;
             case AssetType::SkeletalMesh: asset = imported.skeletalMesh; break;
             case AssetType::Animation: asset = imported.animations.front(); break;
-            case AssetType::Texture: break;
+            case AssetType::Texture:
+            case AssetType::Sound: break;
         }
         return Result{.asset = std::move(asset),
                       .textures = std::move(imported.textures),

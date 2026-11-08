@@ -8,6 +8,7 @@
 #include <Frost/Assets/AssetType.hpp>
 #include <Frost/Assets/Image.hpp>
 #include <Frost/Assets/ImportError.hpp>
+#include <Frost/Assets/Sound.hpp>
 #include <Frost/Renderer/Material.hpp>
 #include <Frost/Renderer/Mesh.hpp>
 
@@ -99,8 +100,14 @@ namespace Frost {
         AnimationClipData clip;
     };
 
+    // The contents of a .fsound.
+    struct SoundFile {
+        AssetHeader header;
+        SoundData sound;
+    };
+
     // Frost's own asset files: what the editor's importers produce from source files (glTF, PNG,
-    // ...) and what levels and the runtime load. They hold the engine's data structures directly,
+    // WAV, ...) and what levels and the runtime load. They hold the engine's data structures directly,
     // so loading one is a straight read with no parsing of third-party formats, and every source
     // format the importers learn later (FBX, ...) ends up in the same files.
     //
@@ -114,10 +121,13 @@ namespace Frost {
     //              materials as in a .fmesh.
     //   .fanim   - an animation: a reference to the skeleton it was made for, its duration, and per
     //              animated bone (by name) translation, rotation and scale keyframe channels.
+    //   .fsound  - a sound: the source audio file (.wav/.mp3) embedded byte for byte, after its
+    //              properties (format, sample rate, channels, length; see SoundInfo), so they can
+    //              be read without reading the audio (ReadSoundInfo).
     //
     // Layout: little-endian throughout. A common header (version 2 and later for meshes and
     // textures; every version of the others), then the type's payload:
-    //   char[4] magic ("FMSH" / "FTEX" / "FSKL" / "FSKM" / "FANM"), u32 version, u64 idHigh,
+    //   char[4] magic ("FMSH" / "FTEX" / "FSKL" / "FSKM" / "FANM" / "FSND"), u32 version, u64 idHigh,
     //   u64 idLow, string sourcePath, string sourceItem
     // where a string is a u32 byte length followed by UTF-8 bytes. The paths a file carries (its
     // source, a material's texture paths) are stored relative to the project directory when inside
@@ -141,6 +151,8 @@ namespace Frost {
     //             the translation, rotation and scale channels, each u8 interpolation, u32
     //             keyCount, f32[keyCount] times, and keyCount (x3 for cubic splines) vec3/quat values;
     //             (version 2:) u32 visibilityKeyCount, per key: f32 time, string slot, u8 visible.
+    //   .fsound:  u8 format (SoundFormat), u32 sampleRate, u16 channels, u16 bitsPerSample,
+    //             u64 frameCount, u32 bitRate, u64 byteCount, then byteCount bytes: the source file.
     //
     // Mesh positions are in world units (centimeters, see Frost/Units.hpp) from mesh version 3;
     // versions 1 and 2 stored them in meters (glTF's unit), and are converted as they are read, so
@@ -160,6 +172,7 @@ namespace Frost {
         static constexpr const char* kSkeletonExtension = ".fskel";
         static constexpr const char* kSkeletalMeshExtension = ".fskmesh";
         static constexpr const char* kAnimationExtension = ".fanim";
+        static constexpr const char* kSoundExtension = ".fsound";
 
         // 3: positions in centimeters (before: meters).
         static constexpr std::uint32_t kMeshVersion = 3;
@@ -170,6 +183,7 @@ namespace Frost {
         static constexpr std::uint32_t kSkeletalMeshVersion = 4;
         // 2: visibility keys.
         static constexpr std::uint32_t kAnimationVersion = 2;
+        static constexpr std::uint32_t kSoundVersion = 1;
 
         // The file extension of an asset type (".fmesh", ".ftex", ...).
         [[nodiscard]]
@@ -200,6 +214,10 @@ namespace Frost {
                                       const std::filesystem::path& projectDirectory);
         static void WriteAnimation(const std::filesystem::path& path, const AnimationFile& animation,
                                    const std::filesystem::path& projectDirectory);
+        // Checks that the embedded audio is what the info says (see SoundImporter::Probe) and
+        // throws ImportError rather than write a sound that would not play as described.
+        static void WriteSound(const std::filesystem::path& path, const SoundFile& sound,
+                               const std::filesystem::path& projectDirectory);
 
         // Throw ImportError if the file is missing, not of this type, from a newer version, or
         // malformed.
@@ -218,6 +236,14 @@ namespace Frost {
 
         [[nodiscard]]
         static AnimationFile ReadAnimation(const std::filesystem::path& path, const std::filesystem::path& projectDirectory);
+
+        [[nodiscard]]
+        static SoundFile ReadSound(const std::filesystem::path& path, const std::filesystem::path& projectDirectory);
+
+        // Reads only a sound's properties (not its audio), e.g. to show them in a tool. Nullopt if
+        // the file cannot be read or is not a sound asset.
+        [[nodiscard]]
+        static std::optional<SoundInfo> ReadSoundInfo(const std::filesystem::path& path);
 
         // Reads only the header. Nullopt if the file cannot be read or is not a Frost asset.
         [[nodiscard]]

@@ -24,9 +24,9 @@ events:
       The output was:
       0
       MSBuild version 17.14.10+8b8e13593 for .NET Framework
-      Build started 11/7/2026 7:51:41 PM.
+      Build started 11/7/2026 8:37:39 PM.
       
-      Project "D:\\Projects\\Frost\\build\\windows-msvc\\CMakeFiles\\3.29.5\\CompilerIdCXX\\CompilerIdCXX.vcxproj" on node 1 (default targets).
+      Project "D:\\Projects\\Frost_Audio\\build\\windows-msvc\\CMakeFiles\\3.29.5\\CompilerIdCXX\\CompilerIdCXX.vcxproj" on node 1 (default targets).
       PrepareForBuild:
         Creating directory "Debug\\".
         Structured output is enabled. The formatting of compiler diagnostics will reflect the error hierarchy. See https://aka.ms/cpp/structured-output for more details.
@@ -39,7 +39,7 @@ events:
         CMakeCXXCompilerId.cpp
       Link:
         C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.38.33130\\bin\\HostX64\\x64\\link.exe /ERRORREPORT:QUEUE /OUT:".\\CompilerIdCXX.exe" /INCREMENTAL:NO /NOLOGO kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /MANIFEST /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /manifest:embed /PDB:".\\CompilerIdCXX.pdb" /SUBSYSTEM:CONSOLE /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:".\\CompilerIdCXX.lib" /MACHINE:X64 Debug\\CMakeCXXCompilerId.obj
-        CompilerIdCXX.vcxproj -> D:\\Projects\\Frost\\build\\windows-msvc\\CMakeFiles\\3.29.5\\CompilerIdCXX\\CompilerIdCXX.exe
+        CompilerIdCXX.vcxproj -> D:\\Projects\\Frost_Audio\\build\\windows-msvc\\CMakeFiles\\3.29.5\\CompilerIdCXX\\CompilerIdCXX.exe
       PostBuildEvent:
         for %%i in (cl.exe) do @echo CMAKE_CXX_COMPILER=%%~$PATH:i
         :VCEnd
@@ -47,13 +47,13 @@ events:
       FinalizeBuildStatus:
         Deleting file "Debug\\CompilerIdCXX.tlog\\unsuccessfulbuild".
         Touching "Debug\\CompilerIdCXX.tlog\\CompilerIdCXX.lastbuildstate".
-      Done Building Project "D:\\Projects\\Frost\\build\\windows-msvc\\CMakeFiles\\3.29.5\\CompilerIdCXX\\CompilerIdCXX.vcxproj" (default targets).
+      Done Building Project "D:\\Projects\\Frost_Audio\\build\\windows-msvc\\CMakeFiles\\3.29.5\\CompilerIdCXX\\CompilerIdCXX.vcxproj" (default targets).
       
       Build succeeded.
           0 Warning(s)
           0 Error(s)
       
-      Time Elapsed 00:00:00.66
+      Time Elapsed 00:00:00.38
       
       
       Compilation of the CXX compiler identification source "CMakeCXXCompilerId.cpp" produced "CompilerIdCXX.exe"
@@ -61,7 +61,7 @@ events:
       Compilation of the CXX compiler identification source "CMakeCXXCompilerId.cpp" produced "CompilerIdCXX.vcxproj"
       
       The CXX compiler identification is MSVC, found in:
-        D:/Projects/Frost/build/windows-msvc/CMakeFiles/3.29.5/CompilerIdCXX/CompilerIdCXX.exe
+        D:/Projects/Frost_Audio/build/windows-msvc/CMakeFiles/3.29.5/CompilerIdCXX/CompilerIdCXX.exe
       
   -
     kind: "try_compile-v1"
@@ -72,14 +72,14 @@ events:
     checks:
       - "Detecting CXX compiler ABI info"
     directories:
-      source: "D:/Projects/Frost/build/windows-msvc/CMakeFiles/CMakeScratch/TryCompile-4bnxq0"
-      binary: "D:/Projects/Frost/build/windows-msvc/CMakeFiles/CMakeScratch/TryCompile-4bnxq0"
+      source: "D:/Projects/Frost_Audio/build/windows-msvc/CMakeFiles/CMakeScratch/TryCompile-49t584"
+      binary: "D:/Projects/Frost_Audio/build/windows-msvc/CMakeFiles/CMakeScratch/TryCompile-49t584"
     cmakeVariables:
       CMAKE_CXX_FLAGS: "/DWIN32 /D_WINDOWS /EHsc"
       CMAKE_CXX_FLAGS_DEBUG: "/Ob0 /Od /RTC1"
       CMAKE_CXX_SCAN_FOR_MODULES: "OFF"
       CMAKE_EXE_LINKER_FLAGS: "/machine:x64"
-      VCPKG_INSTALLED_DIR: "D:/Projects/Frost/build/windows-msvc/vcpkg_installed"
+      VCPKG_INSTALLED_DIR: "D:/Projects/Frost_Audio/build/windows-msvc/vcpkg_installed"
       VCPKG_PREFER_SYSTEM_LIBS: "OFF"
       VCPKG_TARGET_TRIPLET: "x64-windows"
       Z_VCPKG_ROOT_DIR: "C:/Users/micha/vcpkg"
@@ -87,40 +87,40 @@ events:
       variable: "CMAKE_CXX_ABI_COMPILED"
       cached: true
       stdout: |
-        Change Dir: 'D:/Projects/Frost/build/windows-msvc/CMakeFiles/CMakeScratch/TryCompile-4bnxq0'
+        Change Dir: 'D:/Projects/Frost_Audio/build/windows-msvc/CMakeFiles/CMakeScratch/TryCompile-49t584'
         
-        Run Build Command(s): "C:/Program Files/Microsoft Visual Studio/2022/Community/MSBuild/Current/Bin/amd64/MSBuild.exe" cmTC_15d77.vcxproj /p:Configuration=Debug /p:Platform=x64 /p:VisualStudioVersion=17.0 /v:n
+        Run Build Command(s): "C:/Program Files/Microsoft Visual Studio/2022/Community/MSBuild/Current/Bin/amd64/MSBuild.exe" cmTC_6e854.vcxproj /p:Configuration=Debug /p:Platform=x64 /p:VisualStudioVersion=17.0 /v:n
         MSBuild version 17.14.10+8b8e13593 for .NET Framework
-        Build started 11/7/2026 7:51:42 PM.
+        Build started 11/7/2026 8:37:40 PM.
         
-        Project "D:\\Projects\\Frost\\build\\windows-msvc\\CMakeFiles\\CMakeScratch\\TryCompile-4bnxq0\\cmTC_15d77.vcxproj" on node 1 (default targets).
+        Project "D:\\Projects\\Frost_Audio\\build\\windows-msvc\\CMakeFiles\\CMakeScratch\\TryCompile-49t584\\cmTC_6e854.vcxproj" on node 1 (default targets).
         PrepareForBuild:
-          Creating directory "cmTC_15d77.dir\\Debug\\".
+          Creating directory "cmTC_6e854.dir\\Debug\\".
           Structured output is enabled. The formatting of compiler diagnostics will reflect the error hierarchy. See https://aka.ms/cpp/structured-output for more details.
-          Creating directory "D:\\Projects\\Frost\\build\\windows-msvc\\CMakeFiles\\CMakeScratch\\TryCompile-4bnxq0\\Debug\\".
-          Creating directory "cmTC_15d77.dir\\Debug\\cmTC_15d77.tlog\\".
+          Creating directory "D:\\Projects\\Frost_Audio\\build\\windows-msvc\\CMakeFiles\\CMakeScratch\\TryCompile-49t584\\Debug\\".
+          Creating directory "cmTC_6e854.dir\\Debug\\cmTC_6e854.tlog\\".
         InitializeBuildStatus:
-          Creating "cmTC_15d77.dir\\Debug\\cmTC_15d77.tlog\\unsuccessfulbuild" because "AlwaysCreate" was specified.
-          Touching "cmTC_15d77.dir\\Debug\\cmTC_15d77.tlog\\unsuccessfulbuild".
+          Creating "cmTC_6e854.dir\\Debug\\cmTC_6e854.tlog\\unsuccessfulbuild" because "AlwaysCreate" was specified.
+          Touching "cmTC_6e854.dir\\Debug\\cmTC_6e854.tlog\\unsuccessfulbuild".
         ClCompile:
-          C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.38.33130\\bin\\HostX64\\x64\\CL.exe /c /Zi /W1 /WX- /diagnostics:column /Od /Ob0 /D _MBCS /D WIN32 /D _WINDOWS /D "CMAKE_INTDIR=\\"Debug\\"" /Gm- /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /Fo"cmTC_15d77.dir\\Debug\\\\" /Fd"cmTC_15d77.dir\\Debug\\vc143.pdb" /external:W1 /Gd /TP /errorReport:queue "C:\\Program Files\\CMake\\share\\cmake-3.29\\Modules\\CMakeCXXCompilerABI.cpp"
+          C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.38.33130\\bin\\HostX64\\x64\\CL.exe /c /Zi /W1 /WX- /diagnostics:column /Od /Ob0 /D _MBCS /D WIN32 /D _WINDOWS /D "CMAKE_INTDIR=\\"Debug\\"" /Gm- /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /Fo"cmTC_6e854.dir\\Debug\\\\" /Fd"cmTC_6e854.dir\\Debug\\vc143.pdb" /external:W1 /Gd /TP /errorReport:queue "C:\\Program Files\\CMake\\share\\cmake-3.29\\Modules\\CMakeCXXCompilerABI.cpp"
           Microsoft (R) C/C++ Optimizing Compiler Version 19.38.33145 for x64
           Copyright (C) Microsoft Corporation.  All rights reserved.
-          cl /c /Zi /W1 /WX- /diagnostics:column /Od /Ob0 /D _MBCS /D WIN32 /D _WINDOWS /D "CMAKE_INTDIR=\\"Debug\\"" /Gm- /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /Fo"cmTC_15d77.dir\\Debug\\\\" /Fd"cmTC_15d77.dir\\Debug\\vc143.pdb" /external:W1 /Gd /TP /errorReport:queue "C:\\Program Files\\CMake\\share\\cmake-3.29\\Modules\\CMakeCXXCompilerABI.cpp"
+          cl /c /Zi /W1 /WX- /diagnostics:column /Od /Ob0 /D _MBCS /D WIN32 /D _WINDOWS /D "CMAKE_INTDIR=\\"Debug\\"" /Gm- /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /Fo"cmTC_6e854.dir\\Debug\\\\" /Fd"cmTC_6e854.dir\\Debug\\vc143.pdb" /external:W1 /Gd /TP /errorReport:queue "C:\\Program Files\\CMake\\share\\cmake-3.29\\Modules\\CMakeCXXCompilerABI.cpp"
           CMakeCXXCompilerABI.cpp
         Link:
-          C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.38.33130\\bin\\HostX64\\x64\\link.exe /ERRORREPORT:QUEUE /OUT:"D:\\Projects\\Frost\\build\\windows-msvc\\CMakeFiles\\CMakeScratch\\TryCompile-4bnxq0\\Debug\\cmTC_15d77.exe" /INCREMENTAL /ILK:"cmTC_15d77.dir\\Debug\\cmTC_15d77.ilk" /NOLOGO kernel32.lib user32.lib gdi32.lib winspool.lib shell32.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib /MANIFEST /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /manifest:embed /DEBUG /PDB:"D:/Projects/Frost/build/windows-msvc/CMakeFiles/CMakeScratch/TryCompile-4bnxq0/Debug/cmTC_15d77.pdb" /SUBSYSTEM:CONSOLE /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:"D:/Projects/Frost/build/windows-msvc/CMakeFiles/CMakeScratch/TryCompile-4bnxq0/Debug/cmTC_15d77.lib" /MACHINE:X64  /machine:x64 cmTC_15d77.dir\\Debug\\CMakeCXXCompilerABI.obj
-          cmTC_15d77.vcxproj -> D:\\Projects\\Frost\\build\\windows-msvc\\CMakeFiles\\CMakeScratch\\TryCompile-4bnxq0\\Debug\\cmTC_15d77.exe
+          C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.38.33130\\bin\\HostX64\\x64\\link.exe /ERRORREPORT:QUEUE /OUT:"D:\\Projects\\Frost_Audio\\build\\windows-msvc\\CMakeFiles\\CMakeScratch\\TryCompile-49t584\\Debug\\cmTC_6e854.exe" /INCREMENTAL /ILK:"cmTC_6e854.dir\\Debug\\cmTC_6e854.ilk" /NOLOGO kernel32.lib user32.lib gdi32.lib winspool.lib shell32.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib /MANIFEST /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /manifest:embed /DEBUG /PDB:"D:/Projects/Frost_Audio/build/windows-msvc/CMakeFiles/CMakeScratch/TryCompile-49t584/Debug/cmTC_6e854.pdb" /SUBSYSTEM:CONSOLE /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:"D:/Projects/Frost_Audio/build/windows-msvc/CMakeFiles/CMakeScratch/TryCompile-49t584/Debug/cmTC_6e854.lib" /MACHINE:X64  /machine:x64 cmTC_6e854.dir\\Debug\\CMakeCXXCompilerABI.obj
+          cmTC_6e854.vcxproj -> D:\\Projects\\Frost_Audio\\build\\windows-msvc\\CMakeFiles\\CMakeScratch\\TryCompile-49t584\\Debug\\cmTC_6e854.exe
         FinalizeBuildStatus:
-          Deleting file "cmTC_15d77.dir\\Debug\\cmTC_15d77.tlog\\unsuccessfulbuild".
-          Touching "cmTC_15d77.dir\\Debug\\cmTC_15d77.tlog\\cmTC_15d77.lastbuildstate".
-        Done Building Project "D:\\Projects\\Frost\\build\\windows-msvc\\CMakeFiles\\CMakeScratch\\TryCompile-4bnxq0\\cmTC_15d77.vcxproj" (default targets).
+          Deleting file "cmTC_6e854.dir\\Debug\\cmTC_6e854.tlog\\unsuccessfulbuild".
+          Touching "cmTC_6e854.dir\\Debug\\cmTC_6e854.tlog\\cmTC_6e854.lastbuildstate".
+        Done Building Project "D:\\Projects\\Frost_Audio\\build\\windows-msvc\\CMakeFiles\\CMakeScratch\\TryCompile-49t584\\cmTC_6e854.vcxproj" (default targets).
         
         Build succeeded.
             0 Warning(s)
             0 Error(s)
         
-        Time Elapsed 00:00:00.38
+        Time Elapsed 00:00:00.36
         
       exitCode: 0
   -
@@ -167,13 +167,13 @@ events:
     checks:
       - "Performing Test CMAKE_HAVE_LIBC_PTHREAD"
     directories:
-      source: "D:/Projects/Frost/build/windows-msvc/CMakeFiles/CMakeScratch/TryCompile-dzswtx"
-      binary: "D:/Projects/Frost/build/windows-msvc/CMakeFiles/CMakeScratch/TryCompile-dzswtx"
+      source: "D:/Projects/Frost_Audio/build/windows-msvc/CMakeFiles/CMakeScratch/TryCompile-rkqj3s"
+      binary: "D:/Projects/Frost_Audio/build/windows-msvc/CMakeFiles/CMakeScratch/TryCompile-rkqj3s"
     cmakeVariables:
       CMAKE_CXX_FLAGS: "/DWIN32 /D_WINDOWS /EHsc"
       CMAKE_CXX_FLAGS_DEBUG: "/Ob0 /Od /RTC1"
       CMAKE_EXE_LINKER_FLAGS: "/machine:x64"
-      VCPKG_INSTALLED_DIR: "D:/Projects/Frost/build/windows-msvc/vcpkg_installed"
+      VCPKG_INSTALLED_DIR: "D:/Projects/Frost_Audio/build/windows-msvc/vcpkg_installed"
       VCPKG_PREFER_SYSTEM_LIBS: "OFF"
       VCPKG_TARGET_TRIPLET: "x64-windows"
       Z_VCPKG_ROOT_DIR: "C:/Users/micha/vcpkg"
@@ -181,40 +181,40 @@ events:
       variable: "CMAKE_HAVE_LIBC_PTHREAD"
       cached: true
       stdout: |
-        Change Dir: 'D:/Projects/Frost/build/windows-msvc/CMakeFiles/CMakeScratch/TryCompile-dzswtx'
+        Change Dir: 'D:/Projects/Frost_Audio/build/windows-msvc/CMakeFiles/CMakeScratch/TryCompile-rkqj3s'
         
-        Run Build Command(s): "C:/Program Files/Microsoft Visual Studio/2022/Community/MSBuild/Current/Bin/amd64/MSBuild.exe" cmTC_1e8e9.vcxproj /p:Configuration=Debug /p:Platform=x64 /p:VisualStudioVersion=17.0 /v:n
+        Run Build Command(s): "C:/Program Files/Microsoft Visual Studio/2022/Community/MSBuild/Current/Bin/amd64/MSBuild.exe" cmTC_9c5a6.vcxproj /p:Configuration=Debug /p:Platform=x64 /p:VisualStudioVersion=17.0 /v:n
         MSBuild version 17.14.10+8b8e13593 for .NET Framework
-        Build started 11/7/2026 7:51:43 PM.
+        Build started 11/7/2026 8:37:40 PM.
         
-        Project "D:\\Projects\\Frost\\build\\windows-msvc\\CMakeFiles\\CMakeScratch\\TryCompile-dzswtx\\cmTC_1e8e9.vcxproj" on node 1 (default targets).
+        Project "D:\\Projects\\Frost_Audio\\build\\windows-msvc\\CMakeFiles\\CMakeScratch\\TryCompile-rkqj3s\\cmTC_9c5a6.vcxproj" on node 1 (default targets).
         PrepareForBuild:
-          Creating directory "cmTC_1e8e9.dir\\Debug\\".
+          Creating directory "cmTC_9c5a6.dir\\Debug\\".
           Structured output is enabled. The formatting of compiler diagnostics will reflect the error hierarchy. See https://aka.ms/cpp/structured-output for more details.
-          Creating directory "D:\\Projects\\Frost\\build\\windows-msvc\\CMakeFiles\\CMakeScratch\\TryCompile-dzswtx\\Debug\\".
-          Creating directory "cmTC_1e8e9.dir\\Debug\\cmTC_1e8e9.tlog\\".
+          Creating directory "D:\\Projects\\Frost_Audio\\build\\windows-msvc\\CMakeFiles\\CMakeScratch\\TryCompile-rkqj3s\\Debug\\".
+          Creating directory "cmTC_9c5a6.dir\\Debug\\cmTC_9c5a6.tlog\\".
         InitializeBuildStatus:
-          Creating "cmTC_1e8e9.dir\\Debug\\cmTC_1e8e9.tlog\\unsuccessfulbuild" because "AlwaysCreate" was specified.
-          Touching "cmTC_1e8e9.dir\\Debug\\cmTC_1e8e9.tlog\\unsuccessfulbuild".
+          Creating "cmTC_9c5a6.dir\\Debug\\cmTC_9c5a6.tlog\\unsuccessfulbuild" because "AlwaysCreate" was specified.
+          Touching "cmTC_9c5a6.dir\\Debug\\cmTC_9c5a6.tlog\\unsuccessfulbuild".
         ClCompile:
-          C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.38.33130\\bin\\HostX64\\x64\\CL.exe /c /Zi /W1 /WX- /diagnostics:column /Od /Ob0 /D _MBCS /D WIN32 /D _WINDOWS /D CMAKE_HAVE_LIBC_PTHREAD /D "CMAKE_INTDIR=\\"Debug\\"" /Gm- /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /Fo"cmTC_1e8e9.dir\\Debug\\\\" /Fd"cmTC_1e8e9.dir\\Debug\\vc143.pdb" /external:W1 /Gd /TP /errorReport:queue "D:\\Projects\\Frost\\build\\windows-msvc\\CMakeFiles\\CMakeScratch\\TryCompile-dzswtx\\src.cxx"
+          C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.38.33130\\bin\\HostX64\\x64\\CL.exe /c /Zi /W1 /WX- /diagnostics:column /Od /Ob0 /D _MBCS /D WIN32 /D _WINDOWS /D CMAKE_HAVE_LIBC_PTHREAD /D "CMAKE_INTDIR=\\"Debug\\"" /Gm- /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /Fo"cmTC_9c5a6.dir\\Debug\\\\" /Fd"cmTC_9c5a6.dir\\Debug\\vc143.pdb" /external:W1 /Gd /TP /errorReport:queue "D:\\Projects\\Frost_Audio\\build\\windows-msvc\\CMakeFiles\\CMakeScratch\\TryCompile-rkqj3s\\src.cxx"
           Microsoft (R) C/C++ Optimizing Compiler Version 19.38.33145 for x64
           Copyright (C) Microsoft Corporation.  All rights reserved.
-          cl /c /Zi /W1 /WX- /diagnostics:column /Od /Ob0 /D _MBCS /D WIN32 /D _WINDOWS /D CMAKE_HAVE_LIBC_PTHREAD /D "CMAKE_INTDIR=\\"Debug\\"" /Gm- /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /Fo"cmTC_1e8e9.dir\\Debug\\\\" /Fd"cmTC_1e8e9.dir\\Debug\\vc143.pdb" /external:W1 /Gd /TP /errorReport:queue "D:\\Projects\\Frost\\build\\windows-msvc\\CMakeFiles\\CMakeScratch\\TryCompile-dzswtx\\src.cxx"
+          cl /c /Zi /W1 /WX- /diagnostics:column /Od /Ob0 /D _MBCS /D WIN32 /D _WINDOWS /D CMAKE_HAVE_LIBC_PTHREAD /D "CMAKE_INTDIR=\\"Debug\\"" /Gm- /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /Fo"cmTC_9c5a6.dir\\Debug\\\\" /Fd"cmTC_9c5a6.dir\\Debug\\vc143.pdb" /external:W1 /Gd /TP /errorReport:queue "D:\\Projects\\Frost_Audio\\build\\windows-msvc\\CMakeFiles\\CMakeScratch\\TryCompile-rkqj3s\\src.cxx"
           src.cxx
-        D:\\Projects\\Frost\\build\\windows-msvc\\CMakeFiles\\CMakeScratch\\TryCompile-dzswtx\\src.cxx(1,10): error C1083: Cannot open include file: 'pthread.h': No such file or directory [D:\\Projects\\Frost\\build\\windows-msvc\\CMakeFiles\\CMakeScratch\\TryCompile-dzswtx\\cmTC_1e8e9.vcxproj]
-        Done Building Project "D:\\Projects\\Frost\\build\\windows-msvc\\CMakeFiles\\CMakeScratch\\TryCompile-dzswtx\\cmTC_1e8e9.vcxproj" (default targets) -- FAILED.
+        D:\\Projects\\Frost_Audio\\build\\windows-msvc\\CMakeFiles\\CMakeScratch\\TryCompile-rkqj3s\\src.cxx(1,10): error C1083: Cannot open include file: 'pthread.h': No such file or directory [D:\\Projects\\Frost_Audio\\build\\windows-msvc\\CMakeFiles\\CMakeScratch\\TryCompile-rkqj3s\\cmTC_9c5a6.vcxproj]
+        Done Building Project "D:\\Projects\\Frost_Audio\\build\\windows-msvc\\CMakeFiles\\CMakeScratch\\TryCompile-rkqj3s\\cmTC_9c5a6.vcxproj" (default targets) -- FAILED.
         
         Build FAILED.
         
-        "D:\\Projects\\Frost\\build\\windows-msvc\\CMakeFiles\\CMakeScratch\\TryCompile-dzswtx\\cmTC_1e8e9.vcxproj" (default target) (1) ->
+        "D:\\Projects\\Frost_Audio\\build\\windows-msvc\\CMakeFiles\\CMakeScratch\\TryCompile-rkqj3s\\cmTC_9c5a6.vcxproj" (default target) (1) ->
         (ClCompile target) -> 
-          D:\\Projects\\Frost\\build\\windows-msvc\\CMakeFiles\\CMakeScratch\\TryCompile-dzswtx\\src.cxx(1,10): error C1083: Cannot open include file: 'pthread.h': No such file or directory [D:\\Projects\\Frost\\build\\windows-msvc\\CMakeFiles\\CMakeScratch\\TryCompile-dzswtx\\cmTC_1e8e9.vcxproj]
+          D:\\Projects\\Frost_Audio\\build\\windows-msvc\\CMakeFiles\\CMakeScratch\\TryCompile-rkqj3s\\src.cxx(1,10): error C1083: Cannot open include file: 'pthread.h': No such file or directory [D:\\Projects\\Frost_Audio\\build\\windows-msvc\\CMakeFiles\\CMakeScratch\\TryCompile-rkqj3s\\cmTC_9c5a6.vcxproj]
         
             0 Warning(s)
             1 Error(s)
         
-        Time Elapsed 00:00:00.23
+        Time Elapsed 00:00:00.22
         
       exitCode: 1
   -
@@ -232,13 +232,13 @@ events:
     checks:
       - "Looking for pthread_create in pthreads"
     directories:
-      source: "D:/Projects/Frost/build/windows-msvc/CMakeFiles/CMakeScratch/TryCompile-vznh7z"
-      binary: "D:/Projects/Frost/build/windows-msvc/CMakeFiles/CMakeScratch/TryCompile-vznh7z"
+      source: "D:/Projects/Frost_Audio/build/windows-msvc/CMakeFiles/CMakeScratch/TryCompile-tb8qtx"
+      binary: "D:/Projects/Frost_Audio/build/windows-msvc/CMakeFiles/CMakeScratch/TryCompile-tb8qtx"
     cmakeVariables:
       CMAKE_CXX_FLAGS: "/DWIN32 /D_WINDOWS /EHsc"
       CMAKE_CXX_FLAGS_DEBUG: "/Ob0 /Od /RTC1"
       CMAKE_EXE_LINKER_FLAGS: "/machine:x64"
-      VCPKG_INSTALLED_DIR: "D:/Projects/Frost/build/windows-msvc/vcpkg_installed"
+      VCPKG_INSTALLED_DIR: "D:/Projects/Frost_Audio/build/windows-msvc/vcpkg_installed"
       VCPKG_PREFER_SYSTEM_LIBS: "OFF"
       VCPKG_TARGET_TRIPLET: "x64-windows"
       Z_VCPKG_ROOT_DIR: "C:/Users/micha/vcpkg"
@@ -246,37 +246,37 @@ events:
       variable: "CMAKE_HAVE_PTHREADS_CREATE"
       cached: true
       stdout: |
-        Change Dir: 'D:/Projects/Frost/build/windows-msvc/CMakeFiles/CMakeScratch/TryCompile-vznh7z'
+        Change Dir: 'D:/Projects/Frost_Audio/build/windows-msvc/CMakeFiles/CMakeScratch/TryCompile-tb8qtx'
         
-        Run Build Command(s): "C:/Program Files/Microsoft Visual Studio/2022/Community/MSBuild/Current/Bin/amd64/MSBuild.exe" cmTC_435e4.vcxproj /p:Configuration=Debug /p:Platform=x64 /p:VisualStudioVersion=17.0 /v:n
+        Run Build Command(s): "C:/Program Files/Microsoft Visual Studio/2022/Community/MSBuild/Current/Bin/amd64/MSBuild.exe" cmTC_8524a.vcxproj /p:Configuration=Debug /p:Platform=x64 /p:VisualStudioVersion=17.0 /v:n
         MSBuild version 17.14.10+8b8e13593 for .NET Framework
-        Build started 11/7/2026 7:51:44 PM.
+        Build started 11/7/2026 8:37:41 PM.
         
-        Project "D:\\Projects\\Frost\\build\\windows-msvc\\CMakeFiles\\CMakeScratch\\TryCompile-vznh7z\\cmTC_435e4.vcxproj" on node 1 (default targets).
+        Project "D:\\Projects\\Frost_Audio\\build\\windows-msvc\\CMakeFiles\\CMakeScratch\\TryCompile-tb8qtx\\cmTC_8524a.vcxproj" on node 1 (default targets).
         PrepareForBuild:
-          Creating directory "cmTC_435e4.dir\\Debug\\".
+          Creating directory "cmTC_8524a.dir\\Debug\\".
           Structured output is enabled. The formatting of compiler diagnostics will reflect the error hierarchy. See https://aka.ms/cpp/structured-output for more details.
-          Creating directory "D:\\Projects\\Frost\\build\\windows-msvc\\CMakeFiles\\CMakeScratch\\TryCompile-vznh7z\\Debug\\".
-          Creating directory "cmTC_435e4.dir\\Debug\\cmTC_435e4.tlog\\".
+          Creating directory "D:\\Projects\\Frost_Audio\\build\\windows-msvc\\CMakeFiles\\CMakeScratch\\TryCompile-tb8qtx\\Debug\\".
+          Creating directory "cmTC_8524a.dir\\Debug\\cmTC_8524a.tlog\\".
         InitializeBuildStatus:
-          Creating "cmTC_435e4.dir\\Debug\\cmTC_435e4.tlog\\unsuccessfulbuild" because "AlwaysCreate" was specified.
-          Touching "cmTC_435e4.dir\\Debug\\cmTC_435e4.tlog\\unsuccessfulbuild".
+          Creating "cmTC_8524a.dir\\Debug\\cmTC_8524a.tlog\\unsuccessfulbuild" because "AlwaysCreate" was specified.
+          Touching "cmTC_8524a.dir\\Debug\\cmTC_8524a.tlog\\unsuccessfulbuild".
         ClCompile:
-          C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.38.33130\\bin\\HostX64\\x64\\CL.exe /c /Zi /W1 /WX- /diagnostics:column /Od /Ob0 /D _MBCS /D WIN32 /D _WINDOWS /D CHECK_FUNCTION_EXISTS=pthread_create /D "CMAKE_INTDIR=\\"Debug\\"" /Gm- /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /Fo"cmTC_435e4.dir\\Debug\\\\" /Fd"cmTC_435e4.dir\\Debug\\vc143.pdb" /external:W1 /Gd /TP /errorReport:queue "D:\\Projects\\Frost\\build\\windows-msvc\\CMakeFiles\\CMakeScratch\\TryCompile-vznh7z\\CheckFunctionExists.cxx"
+          C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.38.33130\\bin\\HostX64\\x64\\CL.exe /c /Zi /W1 /WX- /diagnostics:column /Od /Ob0 /D _MBCS /D WIN32 /D _WINDOWS /D CHECK_FUNCTION_EXISTS=pthread_create /D "CMAKE_INTDIR=\\"Debug\\"" /Gm- /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /Fo"cmTC_8524a.dir\\Debug\\\\" /Fd"cmTC_8524a.dir\\Debug\\vc143.pdb" /external:W1 /Gd /TP /errorReport:queue "D:\\Projects\\Frost_Audio\\build\\windows-msvc\\CMakeFiles\\CMakeScratch\\TryCompile-tb8qtx\\CheckFunctionExists.cxx"
           Microsoft (R) C/C++ Optimizing Compiler Version 19.38.33145 for x64
           Copyright (C) Microsoft Corporation.  All rights reserved.
-          cl /c /Zi /W1 /WX- /diagnostics:column /Od /Ob0 /D _MBCS /D WIN32 /D _WINDOWS /D CHECK_FUNCTION_EXISTS=pthread_create /D "CMAKE_INTDIR=\\"Debug\\"" /Gm- /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /Fo"cmTC_435e4.dir\\Debug\\\\" /Fd"cmTC_435e4.dir\\Debug\\vc143.pdb" /external:W1 /Gd /TP /errorReport:queue "D:\\Projects\\Frost\\build\\windows-msvc\\CMakeFiles\\CMakeScratch\\TryCompile-vznh7z\\CheckFunctionExists.cxx"
+          cl /c /Zi /W1 /WX- /diagnostics:column /Od /Ob0 /D _MBCS /D WIN32 /D _WINDOWS /D CHECK_FUNCTION_EXISTS=pthread_create /D "CMAKE_INTDIR=\\"Debug\\"" /Gm- /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /Fo"cmTC_8524a.dir\\Debug\\\\" /Fd"cmTC_8524a.dir\\Debug\\vc143.pdb" /external:W1 /Gd /TP /errorReport:queue "D:\\Projects\\Frost_Audio\\build\\windows-msvc\\CMakeFiles\\CMakeScratch\\TryCompile-tb8qtx\\CheckFunctionExists.cxx"
           CheckFunctionExists.cxx
         Link:
-          C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.38.33130\\bin\\HostX64\\x64\\link.exe /ERRORREPORT:QUEUE /OUT:"D:\\Projects\\Frost\\build\\windows-msvc\\CMakeFiles\\CMakeScratch\\TryCompile-vznh7z\\Debug\\cmTC_435e4.exe" /INCREMENTAL /ILK:"cmTC_435e4.dir\\Debug\\cmTC_435e4.ilk" /NOLOGO pthreads.lib kernel32.lib user32.lib gdi32.lib winspool.lib shell32.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib /MANIFEST /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /manifest:embed /DEBUG /PDB:"D:/Projects/Frost/build/windows-msvc/CMakeFiles/CMakeScratch/TryCompile-vznh7z/Debug/cmTC_435e4.pdb" /SUBSYSTEM:CONSOLE /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:"D:/Projects/Frost/build/windows-msvc/CMakeFiles/CMakeScratch/TryCompile-vznh7z/Debug/cmTC_435e4.lib" /MACHINE:X64  /machine:x64 cmTC_435e4.dir\\Debug\\CheckFunctionExists.obj
-        LINK : fatal error LNK1104: cannot open file 'pthreads.lib' [D:\\Projects\\Frost\\build\\windows-msvc\\CMakeFiles\\CMakeScratch\\TryCompile-vznh7z\\cmTC_435e4.vcxproj]
-        Done Building Project "D:\\Projects\\Frost\\build\\windows-msvc\\CMakeFiles\\CMakeScratch\\TryCompile-vznh7z\\cmTC_435e4.vcxproj" (default targets) -- FAILED.
+          C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.38.33130\\bin\\HostX64\\x64\\link.exe /ERRORREPORT:QUEUE /OUT:"D:\\Projects\\Frost_Audio\\build\\windows-msvc\\CMakeFiles\\CMakeScratch\\TryCompile-tb8qtx\\Debug\\cmTC_8524a.exe" /INCREMENTAL /ILK:"cmTC_8524a.dir\\Debug\\cmTC_8524a.ilk" /NOLOGO pthreads.lib kernel32.lib user32.lib gdi32.lib winspool.lib shell32.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib /MANIFEST /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /manifest:embed /DEBUG /PDB:"D:/Projects/Frost_Audio/build/windows-msvc/CMakeFiles/CMakeScratch/TryCompile-tb8qtx/Debug/cmTC_8524a.pdb" /SUBSYSTEM:CONSOLE /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:"D:/Projects/Frost_Audio/build/windows-msvc/CMakeFiles/CMakeScratch/TryCompile-tb8qtx/Debug/cmTC_8524a.lib" /MACHINE:X64  /machine:x64 cmTC_8524a.dir\\Debug\\CheckFunctionExists.obj
+        LINK : fatal error LNK1104: cannot open file 'pthreads.lib' [D:\\Projects\\Frost_Audio\\build\\windows-msvc\\CMakeFiles\\CMakeScratch\\TryCompile-tb8qtx\\cmTC_8524a.vcxproj]
+        Done Building Project "D:\\Projects\\Frost_Audio\\build\\windows-msvc\\CMakeFiles\\CMakeScratch\\TryCompile-tb8qtx\\cmTC_8524a.vcxproj" (default targets) -- FAILED.
         
         Build FAILED.
         
-        "D:\\Projects\\Frost\\build\\windows-msvc\\CMakeFiles\\CMakeScratch\\TryCompile-vznh7z\\cmTC_435e4.vcxproj" (default target) (1) ->
+        "D:\\Projects\\Frost_Audio\\build\\windows-msvc\\CMakeFiles\\CMakeScratch\\TryCompile-tb8qtx\\cmTC_8524a.vcxproj" (default target) (1) ->
         (Link target) -> 
-          LINK : fatal error LNK1104: cannot open file 'pthreads.lib' [D:\\Projects\\Frost\\build\\windows-msvc\\CMakeFiles\\CMakeScratch\\TryCompile-vznh7z\\cmTC_435e4.vcxproj]
+          LINK : fatal error LNK1104: cannot open file 'pthreads.lib' [D:\\Projects\\Frost_Audio\\build\\windows-msvc\\CMakeFiles\\CMakeScratch\\TryCompile-tb8qtx\\cmTC_8524a.vcxproj]
         
             0 Warning(s)
             1 Error(s)
@@ -299,13 +299,13 @@ events:
     checks:
       - "Looking for pthread_create in pthread"
     directories:
-      source: "D:/Projects/Frost/build/windows-msvc/CMakeFiles/CMakeScratch/TryCompile-5w4m0k"
-      binary: "D:/Projects/Frost/build/windows-msvc/CMakeFiles/CMakeScratch/TryCompile-5w4m0k"
+      source: "D:/Projects/Frost_Audio/build/windows-msvc/CMakeFiles/CMakeScratch/TryCompile-sg0hbp"
+      binary: "D:/Projects/Frost_Audio/build/windows-msvc/CMakeFiles/CMakeScratch/TryCompile-sg0hbp"
     cmakeVariables:
       CMAKE_CXX_FLAGS: "/DWIN32 /D_WINDOWS /EHsc"
       CMAKE_CXX_FLAGS_DEBUG: "/Ob0 /Od /RTC1"
       CMAKE_EXE_LINKER_FLAGS: "/machine:x64"
-      VCPKG_INSTALLED_DIR: "D:/Projects/Frost/build/windows-msvc/vcpkg_installed"
+      VCPKG_INSTALLED_DIR: "D:/Projects/Frost_Audio/build/windows-msvc/vcpkg_installed"
       VCPKG_PREFER_SYSTEM_LIBS: "OFF"
       VCPKG_TARGET_TRIPLET: "x64-windows"
       Z_VCPKG_ROOT_DIR: "C:/Users/micha/vcpkg"
@@ -313,42 +313,42 @@ events:
       variable: "CMAKE_HAVE_PTHREAD_CREATE"
       cached: true
       stdout: |
-        Change Dir: 'D:/Projects/Frost/build/windows-msvc/CMakeFiles/CMakeScratch/TryCompile-5w4m0k'
+        Change Dir: 'D:/Projects/Frost_Audio/build/windows-msvc/CMakeFiles/CMakeScratch/TryCompile-sg0hbp'
         
-        Run Build Command(s): "C:/Program Files/Microsoft Visual Studio/2022/Community/MSBuild/Current/Bin/amd64/MSBuild.exe" cmTC_bac27.vcxproj /p:Configuration=Debug /p:Platform=x64 /p:VisualStudioVersion=17.0 /v:n
+        Run Build Command(s): "C:/Program Files/Microsoft Visual Studio/2022/Community/MSBuild/Current/Bin/amd64/MSBuild.exe" cmTC_721e3.vcxproj /p:Configuration=Debug /p:Platform=x64 /p:VisualStudioVersion=17.0 /v:n
         MSBuild version 17.14.10+8b8e13593 for .NET Framework
-        Build started 11/7/2026 7:51:44 PM.
+        Build started 11/7/2026 8:37:41 PM.
         
-        Project "D:\\Projects\\Frost\\build\\windows-msvc\\CMakeFiles\\CMakeScratch\\TryCompile-5w4m0k\\cmTC_bac27.vcxproj" on node 1 (default targets).
+        Project "D:\\Projects\\Frost_Audio\\build\\windows-msvc\\CMakeFiles\\CMakeScratch\\TryCompile-sg0hbp\\cmTC_721e3.vcxproj" on node 1 (default targets).
         PrepareForBuild:
-          Creating directory "cmTC_bac27.dir\\Debug\\".
+          Creating directory "cmTC_721e3.dir\\Debug\\".
           Structured output is enabled. The formatting of compiler diagnostics will reflect the error hierarchy. See https://aka.ms/cpp/structured-output for more details.
-          Creating directory "D:\\Projects\\Frost\\build\\windows-msvc\\CMakeFiles\\CMakeScratch\\TryCompile-5w4m0k\\Debug\\".
-          Creating directory "cmTC_bac27.dir\\Debug\\cmTC_bac27.tlog\\".
+          Creating directory "D:\\Projects\\Frost_Audio\\build\\windows-msvc\\CMakeFiles\\CMakeScratch\\TryCompile-sg0hbp\\Debug\\".
+          Creating directory "cmTC_721e3.dir\\Debug\\cmTC_721e3.tlog\\".
         InitializeBuildStatus:
-          Creating "cmTC_bac27.dir\\Debug\\cmTC_bac27.tlog\\unsuccessfulbuild" because "AlwaysCreate" was specified.
-          Touching "cmTC_bac27.dir\\Debug\\cmTC_bac27.tlog\\unsuccessfulbuild".
+          Creating "cmTC_721e3.dir\\Debug\\cmTC_721e3.tlog\\unsuccessfulbuild" because "AlwaysCreate" was specified.
+          Touching "cmTC_721e3.dir\\Debug\\cmTC_721e3.tlog\\unsuccessfulbuild".
         ClCompile:
-          C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.38.33130\\bin\\HostX64\\x64\\CL.exe /c /Zi /W1 /WX- /diagnostics:column /Od /Ob0 /D _MBCS /D WIN32 /D _WINDOWS /D CHECK_FUNCTION_EXISTS=pthread_create /D "CMAKE_INTDIR=\\"Debug\\"" /Gm- /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /Fo"cmTC_bac27.dir\\Debug\\\\" /Fd"cmTC_bac27.dir\\Debug\\vc143.pdb" /external:W1 /Gd /TP /errorReport:queue "D:\\Projects\\Frost\\build\\windows-msvc\\CMakeFiles\\CMakeScratch\\TryCompile-5w4m0k\\CheckFunctionExists.cxx"
+          C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.38.33130\\bin\\HostX64\\x64\\CL.exe /c /Zi /W1 /WX- /diagnostics:column /Od /Ob0 /D _MBCS /D WIN32 /D _WINDOWS /D CHECK_FUNCTION_EXISTS=pthread_create /D "CMAKE_INTDIR=\\"Debug\\"" /Gm- /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /Fo"cmTC_721e3.dir\\Debug\\\\" /Fd"cmTC_721e3.dir\\Debug\\vc143.pdb" /external:W1 /Gd /TP /errorReport:queue "D:\\Projects\\Frost_Audio\\build\\windows-msvc\\CMakeFiles\\CMakeScratch\\TryCompile-sg0hbp\\CheckFunctionExists.cxx"
           Microsoft (R) C/C++ Optimizing Compiler Version 19.38.33145 for x64
           Copyright (C) Microsoft Corporation.  All rights reserved.
-          cl /c /Zi /W1 /WX- /diagnostics:column /Od /Ob0 /D _MBCS /D WIN32 /D _WINDOWS /D CHECK_FUNCTION_EXISTS=pthread_create /D "CMAKE_INTDIR=\\"Debug\\"" /Gm- /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /Fo"cmTC_bac27.dir\\Debug\\\\" /Fd"cmTC_bac27.dir\\Debug\\vc143.pdb" /external:W1 /Gd /TP /errorReport:queue "D:\\Projects\\Frost\\build\\windows-msvc\\CMakeFiles\\CMakeScratch\\TryCompile-5w4m0k\\CheckFunctionExists.cxx"
+          cl /c /Zi /W1 /WX- /diagnostics:column /Od /Ob0 /D _MBCS /D WIN32 /D _WINDOWS /D CHECK_FUNCTION_EXISTS=pthread_create /D "CMAKE_INTDIR=\\"Debug\\"" /Gm- /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /Fo"cmTC_721e3.dir\\Debug\\\\" /Fd"cmTC_721e3.dir\\Debug\\vc143.pdb" /external:W1 /Gd /TP /errorReport:queue "D:\\Projects\\Frost_Audio\\build\\windows-msvc\\CMakeFiles\\CMakeScratch\\TryCompile-sg0hbp\\CheckFunctionExists.cxx"
           CheckFunctionExists.cxx
         Link:
-          C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.38.33130\\bin\\HostX64\\x64\\link.exe /ERRORREPORT:QUEUE /OUT:"D:\\Projects\\Frost\\build\\windows-msvc\\CMakeFiles\\CMakeScratch\\TryCompile-5w4m0k\\Debug\\cmTC_bac27.exe" /INCREMENTAL /ILK:"cmTC_bac27.dir\\Debug\\cmTC_bac27.ilk" /NOLOGO pthread.lib kernel32.lib user32.lib gdi32.lib winspool.lib shell32.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib /MANIFEST /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /manifest:embed /DEBUG /PDB:"D:/Projects/Frost/build/windows-msvc/CMakeFiles/CMakeScratch/TryCompile-5w4m0k/Debug/cmTC_bac27.pdb" /SUBSYSTEM:CONSOLE /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:"D:/Projects/Frost/build/windows-msvc/CMakeFiles/CMakeScratch/TryCompile-5w4m0k/Debug/cmTC_bac27.lib" /MACHINE:X64  /machine:x64 cmTC_bac27.dir\\Debug\\CheckFunctionExists.obj
-        LINK : fatal error LNK1104: cannot open file 'pthread.lib' [D:\\Projects\\Frost\\build\\windows-msvc\\CMakeFiles\\CMakeScratch\\TryCompile-5w4m0k\\cmTC_bac27.vcxproj]
-        Done Building Project "D:\\Projects\\Frost\\build\\windows-msvc\\CMakeFiles\\CMakeScratch\\TryCompile-5w4m0k\\cmTC_bac27.vcxproj" (default targets) -- FAILED.
+          C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.38.33130\\bin\\HostX64\\x64\\link.exe /ERRORREPORT:QUEUE /OUT:"D:\\Projects\\Frost_Audio\\build\\windows-msvc\\CMakeFiles\\CMakeScratch\\TryCompile-sg0hbp\\Debug\\cmTC_721e3.exe" /INCREMENTAL /ILK:"cmTC_721e3.dir\\Debug\\cmTC_721e3.ilk" /NOLOGO pthread.lib kernel32.lib user32.lib gdi32.lib winspool.lib shell32.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib /MANIFEST /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /manifest:embed /DEBUG /PDB:"D:/Projects/Frost_Audio/build/windows-msvc/CMakeFiles/CMakeScratch/TryCompile-sg0hbp/Debug/cmTC_721e3.pdb" /SUBSYSTEM:CONSOLE /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:"D:/Projects/Frost_Audio/build/windows-msvc/CMakeFiles/CMakeScratch/TryCompile-sg0hbp/Debug/cmTC_721e3.lib" /MACHINE:X64  /machine:x64 cmTC_721e3.dir\\Debug\\CheckFunctionExists.obj
+        LINK : fatal error LNK1104: cannot open file 'pthread.lib' [D:\\Projects\\Frost_Audio\\build\\windows-msvc\\CMakeFiles\\CMakeScratch\\TryCompile-sg0hbp\\cmTC_721e3.vcxproj]
+        Done Building Project "D:\\Projects\\Frost_Audio\\build\\windows-msvc\\CMakeFiles\\CMakeScratch\\TryCompile-sg0hbp\\cmTC_721e3.vcxproj" (default targets) -- FAILED.
         
         Build FAILED.
         
-        "D:\\Projects\\Frost\\build\\windows-msvc\\CMakeFiles\\CMakeScratch\\TryCompile-5w4m0k\\cmTC_bac27.vcxproj" (default target) (1) ->
+        "D:\\Projects\\Frost_Audio\\build\\windows-msvc\\CMakeFiles\\CMakeScratch\\TryCompile-sg0hbp\\cmTC_721e3.vcxproj" (default target) (1) ->
         (Link target) -> 
-          LINK : fatal error LNK1104: cannot open file 'pthread.lib' [D:\\Projects\\Frost\\build\\windows-msvc\\CMakeFiles\\CMakeScratch\\TryCompile-5w4m0k\\cmTC_bac27.vcxproj]
+          LINK : fatal error LNK1104: cannot open file 'pthread.lib' [D:\\Projects\\Frost_Audio\\build\\windows-msvc\\CMakeFiles\\CMakeScratch\\TryCompile-sg0hbp\\cmTC_721e3.vcxproj]
         
             0 Warning(s)
             1 Error(s)
         
-        Time Elapsed 00:00:00.39
+        Time Elapsed 00:00:00.28
         
       exitCode: 1
 ...

@@ -8,6 +8,7 @@
 #include <Frost/Assets/AssetRegistry.hpp>
 #include <Frost/Assets/AssetType.hpp>
 #include <Frost/Assets/ImportError.hpp>
+#include <Frost/Assets/Sound.hpp>
 #include <Frost/Scene/Bounds.hpp>
 
 #include <glm/mat4x4.hpp>
@@ -126,7 +127,17 @@ namespace Frost {
                             std::vector<glm::mat4>& palette) const;
     };
 
-    // Loads Frost assets (.fmesh, .ftex, .fskel, .fskmesh, .fanim; see AssetFile) and keeps them
+    // A loaded sound asset (.fsound): its properties and its audio, still encoded as the file it
+    // was imported from (a whole .wav or .mp3 file; see SoundData), for the audio system to decode.
+    // Immutable once loaded; shared by everything that plays it.
+    struct SoundAsset {
+        AssetId id;
+        std::filesystem::path path;  // Where it was loaded from.
+        std::string name;            // File name without extension, at load time.
+        SoundData sound;
+    };
+
+    // Loads Frost assets (.fmesh, .ftex, .fskel, .fskmesh, .fanim, .fsound; see AssetFile) and keeps them
     // loaded, one instance per asset: loading the same asset again returns the cached one, even if
     // its file has moved. Owned by Engine; shared by the game and the editor. Source files (glTF,
     // PNG, ...) are not loaded here: they are turned into assets first, by AssetImporter.
@@ -200,6 +211,12 @@ namespace Frost {
         [[nodiscard]]
         std::shared_ptr<const SkeletalMeshAsset> LoadSkeletalMesh(const std::filesystem::path& path);
 
+        // Loads (or returns the cached) sound asset. Throws ImportError like LoadMesh.
+        [[nodiscard]]
+        std::shared_ptr<const SoundAsset> LoadSound(const AssetReference& reference);
+
+        [[nodiscard]]
+        std::shared_ptr<const SoundAsset> LoadSound(const std::filesystem::path& path);
 
         // Drops the cached asset(s), so the next load reads the file again (e.g. after it was
         // reimported). Objects still holding the old asset keep it alive until they let go.
@@ -221,7 +238,7 @@ namespace Frost {
         static std::filesystem::path NormalizePath(const std::filesystem::path& path);
 
         // The type of a Frost asset file, judged by its extension (.fmesh, .ftex, .fskel, .fskmesh,
-        // .fanim; case-insensitive); nullopt for anything else (including source files: see
+        // .fanim, .fsound; case-insensitive); nullopt for anything else (including source files: see
         // AssetImporter::GetSourceType).
         [[nodiscard]]
         static std::optional<AssetType> GetAssetType(const std::filesystem::path& path);
@@ -258,6 +275,7 @@ namespace Frost {
         std::map<std::string, std::shared_ptr<const SkeletonAsset>> m_Skeletons;
         std::map<std::string, std::shared_ptr<const SkeletalMeshAsset>> m_SkeletalMeshes;
         std::map<std::string, std::shared_ptr<const AnimationAsset>> m_Animations;
+        std::map<std::string, std::shared_ptr<const SoundAsset>> m_Sounds;
     };
 
 }  // namespace Frost

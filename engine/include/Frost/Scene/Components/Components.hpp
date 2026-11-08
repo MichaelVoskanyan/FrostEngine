@@ -2,6 +2,8 @@
 
 #include <Frost/Scene/Components/AnimationTriggerComponent.hpp>
 #include <Frost/Scene/Components/AttachmentComponent.hpp>
+#include <Frost/Scene/Components/AudioListenerComponent.hpp>
+#include <Frost/Scene/Components/AudioSourceComponent.hpp>
 #include <Frost/Scene/Components/BoxColliderComponent.hpp>
 #include <Frost/Scene/Components/CameraComponent.hpp>
 #include <Frost/Scene/Components/CapsuleColliderComponent.hpp>
@@ -9,7 +11,6 @@
 #include <Frost/Scene/Components/FlyControllerComponent.hpp>
 #include <Frost/Scene/Components/LightComponent.hpp>
 #include <Frost/Scene/Components/MeshComponent.hpp>
-#include <Frost/Scene/Components/PhysicsQueryComponent.hpp>
 #include <Frost/Scene/Components/RigidBodyComponent.hpp>
 #include <Frost/Scene/Components/SkeletalMeshComponent.hpp>
 #include <Frost/Scene/Components/TransformComponent.hpp>
@@ -46,8 +47,8 @@ namespace Frost {
     // A system that works on it iterates it with Registry::Each (see PhysicsSystem).
     using BuiltinComponents =
             ComponentList<TransformComponent, AttachmentComponent, MeshComponent, SkeletalMeshComponent,
-                          AnimationTriggerComponent, LightComponent, CameraComponent, FlyControllerComponent,
-                          CharacterControllerComponent, BoxColliderComponent, CapsuleColliderComponent,
-                          RigidBodyComponent, PhysicsQueryComponent>;
+                          AnimationTriggerComponent, LightComponent, CameraComponent, AudioSourceComponent,
+                          AudioListenerComponent, FlyControllerComponent, CharacterControllerComponent,
+                          BoxColliderComponent, CapsuleColliderComponent, RigidBodyComponent>;
 
 }  // namespace Frost

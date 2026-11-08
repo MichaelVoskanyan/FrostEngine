@@ -19,7 +19,9 @@ namespace Frost {
     struct GltfModelInfo;
 
     // Turns source files into Frost assets (see AssetFile): the one step where third-party formats
-    // are read. An image (.png/.jpg, through ImageImporter) becomes a .ftex. A model (.gltf/.glb,
+    // are read. An image (.png/.jpg, through ImageImporter) becomes a .ftex. A sound (.wav/.mp3,
+    // through SoundImporter) becomes a .fsound, which holds a copy of the file itself along with its
+    // properties (format, sample rate, channels, length). A model (.gltf/.glb,
     // through GltfModel) can become any of:
     //   - a static mesh (.fmesh): the model as posed in the file;
     //   - a skeleton (.fskel): its bone hierarchy;
@@ -46,10 +48,14 @@ namespace Frost {
     public:
         AssetImporter() = delete;
 
+        // The source files that can be imported, for messages.
+        static constexpr const char* kImportableExtensions = ".gltf, .glb, .png, .jpg, .jpeg, .wav or .mp3";
+
         // One asset (or a model's static mesh with its textures) from a source file.
         struct Options {
             // The asset to write (replaced, keeping its id, if it exists). Its extension decides
-            // what a model is imported as: .fmesh, .fskel, .fskmesh or .fanim.
+            // what a model is imported as: .fmesh, .fskel, .fskmesh or .fanim. (An image can only
+            // become a .ftex, a sound a .fsound.)
             std::filesystem::path destination{};
             // Where a mesh's textures go; empty = GetDefaultTextureFolder(destination).
             std::filesystem::path textureFolder{};
@@ -136,7 +142,7 @@ namespace Frost {
 
         // What a source file imports as, judged by its extension (case-insensitive): Mesh for a
         // model (which can also be imported as the other model types, see CanImportAs), Texture for
-        // an image; nullopt if no importer handles it.
+        // an image, Sound for a sound (.wav/.mp3); nullopt if no importer handles it.
         [[nodiscard]]
         static std::optional<AssetType> GetSourceType(const std::filesystem::path& source);
 
@@ -145,11 +151,12 @@ namespace Frost {
         static bool IsModelSource(const std::filesystem::path& source);
 
         // Whether `source` can be imported as an asset of `type` (a model as a mesh, skeleton,
-        // skeletal mesh or animation; an image as a texture).
+        // skeletal mesh or animation; an image as a texture; a sound as a sound).
         [[nodiscard]]
         static bool CanImportAs(const std::filesystem::path& source, AssetType type);
 
-        // The asset file extension for a type (".fmesh", ".ftex", ".fskel", ".fskmesh", ".fanim").
+        // The asset file extension for a type (".fmesh", ".ftex", ".fskel", ".fskmesh", ".fanim",
+        // ".fsound").
         [[nodiscard]]
         static const char* GetAssetExtension(AssetType type) noexcept;
 

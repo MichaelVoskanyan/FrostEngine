@@ -1,8 +1,8 @@
-D:/Projects/Frost/build/windows-msvc/CMakeFiles/ALL_BUILD.dir
-D:/Projects/Frost/build/windows-msvc/CMakeFiles/ZERO_CHECK.dir
-D:/Projects/Frost/build/windows-msvc/engine/CMakeFiles/FrostEngine.dir
-D:/Projects/Frost/build/windows-msvc/game/CMakeFiles/FrostGame.dir
-D:/Projects/Frost/build/windows-msvc/game/CMakeFiles/FrostGameShaders.dir
-D:/Projects/Frost/build/windows-msvc/game/CMakeFiles/FrostGameContent.dir
-D:/Projects/Frost/build/windows-msvc/editor/CMakeFiles/FrostEditor.dir
-D:/Projects/Frost/build/windows-msvc/editor/CMakeFiles/FrostEditorShaders.dir
+D:/Projects/Frost_Audio/build/windows-msvc/CMakeFiles/ALL_BUILD.dir
+D:/Projects/Frost_Audio/build/windows-msvc/CMakeFiles/ZERO_CHECK.dir
+D:/Projects/Frost_Audio/build/windows-msvc/engine/CMakeFiles/FrostEngine.dir
+D:/Projects/Frost_Audio/build/windows-msvc/game/CMakeFiles/FrostGame.dir
+D:/Projects/Frost_Audio/build/windows-msvc/game/CMakeFiles/FrostGameShaders.dir
+D:/Projects/Frost_Audio/build/windows-msvc/game/CMakeFiles/FrostGameContent.dir
+D:/Projects/Frost_Audio/build/windows-msvc/editor/CMakeFiles/FrostEditor.dir
+D:/Projects/Frost_Audio/build/windows-msvc/editor/CMakeFiles/FrostEditorShaders.dir
