@@ -112,8 +112,8 @@ namespace Frost {
 
         // The nearest object surface the ray hits (triangles of the loaded models, skeletal ones in
         // their current pose, both faces), if any, within maxDistance: mesh picking, for the
-        // editor. It tests what is drawn, not colliders; for the physics world, see RaycastClosest
-        // and RaycastAll in Frost/Physics/Raycast.hpp.
+        // editor. It tests what is drawn, not colliders, and ignores collision layers; for the
+        // physics world, see RaycastClosest and RaycastAll in Frost/Physics/Raycast.hpp.
         [[nodiscard]]
         std::optional<MeshRaycastHit> Raycast(const Ray& ray, float maxDistance = 10.0f * kKilometer) const;
 

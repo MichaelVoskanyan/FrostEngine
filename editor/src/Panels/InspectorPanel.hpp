@@ -88,6 +88,7 @@ private:
     bool DrawComponent(EditorContext& context, Frost::GameObject& object, Frost::CapsuleColliderComponent& collider);
     bool DrawComponent(EditorContext& context, Frost::GameObject& object, Frost::BoxColliderComponent& collider);
     bool DrawComponent(EditorContext& context, Frost::GameObject& object, Frost::RigidBodyComponent& body);
+    bool DrawComponent(EditorContext& context, Frost::GameObject& object, Frost::PhysicsQueryComponent& query);
 
     // The per-sub-mesh material overrides of a component that draws a model (MeshComponent or
     // SkeletalMeshComponent); `model` is what it draws, if loaded.

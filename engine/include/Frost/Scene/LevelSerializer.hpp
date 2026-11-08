@@ -48,9 +48,9 @@ namespace Frost {
     // offset or rotation, before 7 lengths were in meters, before 8 there were no skeletal meshes,
     // before 9 skeletal meshes had no playback settings or attachments toggle, before 10 there were
     // no attachments, animation triggers or hidden models, before 11 animation triggers had no
-    // visibility keys, before 12 attachments had no socket, before 13 there were no audio sources,
-    // before 14 no audio listeners, and before 15 listeners had no offset nor sources Doppler and
-    // occlusion settings):
+    // visibility keys, before 12 attachments had no socket, before 13 colliders had no collision
+    // filters, before 14 there were no physics query components, and before 15 there were no
+    // audio source or audio listener components):
     //   {
     //     "format": "FrostLevel", "version": 15, "name": "...",
     //     "environment": {"ambientColor": [r, g, b], "ambientIntensity": i},   (optional)
@@ -86,9 +86,13 @@ namespace Frost {
     //                                                               first stays so, with a warning)
     //       "flyController": {"moveSpeed": s, "fastMultiplier": f, "lookSensitivity": deg},  (optional)
     //       "characterController": {"walkSpeed": s, "jumpSpeed": s, "lookSensitivity": deg},  (optional)
-    //       "boxCollider": {"center": [x, y, z], "size": [x, y, z]},  (optional; object space, before scale)
-    //       "capsuleCollider": {"center": [x, y, z], "radius": r, "height": h},  (optional; likewise)
-    //       "rigidBody": {"simulated": b, "mass": kg}               (optional)
+    //       "boxCollider": {"center": [x, y, z], "size": [x, y, z], "layer": n, "mask": m},  (optional; object space, before scale)
+    //       "capsuleCollider": {"center": [x, y, z], "radius": r, "height": h, "layer": n, "mask": m},  (optional; likewise)
+    //       "rigidBody": {"simulated": b, "mass": kg},              (optional)
+    //       "physicsQuery": {"type": "raycast"|"sphereCast"|"capsuleCast"|"sphereOverlap"|"boxOverlap",
+    //                        "mode": "closest"|"all", "enabled": b, "debug": b, "offset": [x,y,z],
+    //                        "direction": [x,y,z], "maxDistance": d, "radius": r, "height": h,
+    //                        "boxSize": [x,y,z], "layers": mask, "ignoreSelf": b}  (optional)
     //     }]
     //   }
     class LevelSerializer final {

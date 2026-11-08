@@ -1,5 +1,6 @@
 #pragma once
 
+#include <Frost/Physics/CollisionFilter.hpp>
 #include <Frost/Scene/Bounds.hpp>
 #include <Frost/Units.hpp>
 
@@ -24,8 +25,11 @@ namespace Frost {
         float radius = 40.0f * kCentimeter;  // Of the cylinder and the end half-spheres.
         float height = 1.8f * kMeter;        // Total, tip to tip (no taller than 2 * radius: a sphere).
 
+        // Its collision layer, and the layers it collides with (see CollisionFilter).
+        CollisionFilter filter{};
+
         // The capsule standing in a box in the object's space (e.g. its model's bounds): as tall as
-        // the box, and as wide as its wider horizontal side.
+        // the box, and as wide as its wider horizontal side. On the default layer.
         [[nodiscard]]
         static CapsuleColliderComponent FromBounds(const Bounds& localBounds) noexcept {
             const glm::vec3 size = localBounds.GetSize();
