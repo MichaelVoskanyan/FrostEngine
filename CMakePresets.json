@@ -22,6 +22,27 @@
         },
         "VCPKG_TARGET_TRIPLET": "x64-windows"
       }
+    },
+    {
+      "name":"linux-gcc-debug",
+      "displayName": "Linux GCC Debug",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Linux"
+      },
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_C_COMPILER": "gcc",
+        "CMAKE_CXX_COMPILER": "g++",
+        "CMAKE_TOOLCHAIN_FILE": {
+          "type": "FILEPATH",
+          "value": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake"
+        },
+        "VCPKG_TARGET_TRIPLET": "x64-linux"
+      }
     }
   ],
   "buildPresets": [
@@ -34,6 +55,11 @@
       "name": "windows-release",
       "configurePreset": "windows-msvc",
       "configuration": "Release"
+    },
+    {
+      "name": "linux-debug",
+      "configurePreset": "linux-gcc-debug",
+      "jobs": 4
     }
   ]
 }

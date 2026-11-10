@@ -1,3 +1,20 @@
+# for building in linux, ensure the following are installed
+# sudo apt update
+# sudo apt install -y build-essential ninja-build git curl zip unzip tar pkg-config \
+# libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev libwayland-dev \ 
+# libxkbcommon-dev libgll-mesa-dev libvulkan-dev glslc
+#
+# Ensure cmake version is 3.29 or newer. Check with cmake --version
+#
+# vcpkg is required. Install with:
+# git clone https://github.com/microsoft/gcpkg.git ~/vcpkg
+# ~/vcpkg/bootstrap-vcpkg.sh
+# export VCPKG_ROOT="$HOME/vcpkg"
+#
+# then run 
+# cmake --preset linux-gcc-debug
+# cmake --build --preset linux-debug
+
 cmake_minimum_required(VERSION 3.29)
 
 project(
